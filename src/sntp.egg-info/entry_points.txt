@@ -1,0 +1,2 @@
+[console_scripts]
+sntp = sntp.cli:main

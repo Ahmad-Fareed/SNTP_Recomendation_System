@@ -1,0 +1,62 @@
+{
+  "n_users": 49289,
+  "n_items": 139738,
+  "n_ratings": 664824,
+  "n_trust_edges": 487002,
+  "sparsity": 0.999903,
+  "rating_distribution": {
+    "1": 43228,
+    "2": 50678,
+    "3": 75525,
+    "4": 194340,
+    "5": 301053
+  },
+  "ratings_per_user": {
+    "min": 1,
+    "max": 1023,
+    "mean": 16.55,
+    "median": 6.0
+  },
+  "ratings_per_item": {
+    "min": 1,
+    "max": 2026,
+    "mean": 4.76,
+    "median": 1.0
+  },
+  "trust_per_user": {
+    "min": 1,
+    "max": 1760,
+    "mean": 14.34,
+    "median": 3.0
+  },
+  "user_overlap": {
+    "both_rating_and_trust": 40162,
+    "rating_only": 1,
+    "trust_only": 9126
+  },
+  "reciprocal_trust_edges": 105966,
+  "trust_values_observed": [
+    1
+  ],
+  "parsing": {
+    "ratings": {
+      "total_lines": 664824,
+      "blank_lines": 0,
+      "malformed_lines": 0,
+      "out_of_range": 0,
+      "duplicate_ratings": 0,
+      "valid_records": 664824
+    },
+    "trust": {
+      "total_lines": 487183,
+      "blank_lines": 0,
+      "malformed_lines": 0,
+      "self_loops": 181,
+      "duplicate_edges": 0,
+      "valid_edges": 487002,
+      "unique_trust_values": [
+        1
+      ]
+    }
+  }
+}

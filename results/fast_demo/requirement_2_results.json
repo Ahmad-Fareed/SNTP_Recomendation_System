@@ -1,0 +1,199 @@
+{
+  "item_based_cf": {
+    "config": {
+      "max_neighbors": 30,
+      "min_corated": 2
+    },
+    "prediction": {
+      "mae": 1.1208983674573763,
+      "rmse": 1.5211547513455361,
+      "n_evaluated": 100558,
+      "n_skipped": 0,
+      "train_time_seconds": 34.67
+    },
+    "ranking": {
+      "precision_at_k": 0.0010061888600519067,
+      "hit_rate_at_k": 0.00990217608305051,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 151.03
+    }
+  },
+  "matrix_factorization": {
+    "config": {
+      "n_factors": 10,
+      "lr": 0.005,
+      "reg": 0.02,
+      "n_epochs": 10,
+      "seed": 42
+    },
+    "prediction": {
+      "mae": 0.8206826846800975,
+      "rmse": 1.056503732078645,
+      "n_evaluated": 100558,
+      "n_skipped": 0,
+      "train_time_seconds": 72.99
+    },
+    "ranking": {
+      "precision_at_k": 0.0008824116590137752,
+      "hit_rate_at_k": 0.008704332202036334,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 185.07
+    },
+    "epoch_history": [
+      {
+        "epoch": 1,
+        "train_rmse": 1.15867,
+        "val_rmse": 1.12896
+      },
+      {
+        "epoch": 2,
+        "train_rmse": 1.10745,
+        "val_rmse": 1.10383
+      },
+      {
+        "epoch": 3,
+        "train_rmse": 1.08131,
+        "val_rmse": 1.08992
+      },
+      {
+        "epoch": 4,
+        "train_rmse": 1.06329,
+        "val_rmse": 1.08058
+      },
+      {
+        "epoch": 5,
+        "train_rmse": 1.04945,
+        "val_rmse": 1.0739
+      },
+      {
+        "epoch": 6,
+        "train_rmse": 1.03816,
+        "val_rmse": 1.06906
+      },
+      {
+        "epoch": 7,
+        "train_rmse": 1.02863,
+        "val_rmse": 1.0653
+      },
+      {
+        "epoch": 8,
+        "train_rmse": 1.02036,
+        "val_rmse": 1.06214
+      },
+      {
+        "epoch": 9,
+        "train_rmse": 1.01303,
+        "val_rmse": 1.05964
+      },
+      {
+        "epoch": 10,
+        "train_rmse": 1.00644,
+        "val_rmse": 1.05751
+      }
+    ]
+  },
+  "behavior_analysis": {
+    "short_1_5": {
+      "n_users": 21911,
+      "n_test_ratings": 10235,
+      "item_based_cf": {
+        "mae": 1.079456708095489,
+        "rmse": 1.51176877746008,
+        "n_evaluated": 10235,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.865617050406175,
+        "rmse": 1.0991109818259832,
+        "n_evaluated": 10235,
+        "n_skipped": 0
+      }
+    },
+    "medium_6_20": {
+      "n_users": 12813,
+      "n_test_ratings": 29354,
+      "item_based_cf": {
+        "mae": 1.056338371997717,
+        "rmse": 1.4110794190075526,
+        "n_evaluated": 29354,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.8343553037477079,
+        "rmse": 1.0702326348307898,
+        "n_evaluated": 29354,
+        "n_skipped": 0
+      }
+    },
+    "long_21_plus": {
+      "n_users": 5439,
+      "n_test_ratings": 60969,
+      "item_based_cf": {
+        "mae": 1.1589381826141236,
+        "rmse": 1.572923743819112,
+        "n_evaluated": 60969,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.8065566650091657,
+        "rmse": 1.0424607703082827,
+        "n_evaluated": 60969,
+        "n_skipped": 0
+      }
+    }
+  },
+  "item_popularity_analysis": {
+    "rare_1_5": {
+      "n_items": 99715,
+      "n_test_ratings": 22809,
+      "item_based_cf": {
+        "mae": 0.9479096849155391,
+        "rmse": 1.2754127622144993,
+        "n_evaluated": 22809,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.8222044559644915,
+        "rmse": 1.0557880014227339,
+        "n_evaluated": 22809,
+        "n_skipped": 0
+      }
+    },
+    "moderate_6_20": {
+      "n_items": 10807,
+      "n_test_ratings": 21806,
+      "item_based_cf": {
+        "mae": 1.3218004668944268,
+        "rmse": 1.7813034479531389,
+        "n_evaluated": 21806,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.8211134332339094,
+        "rmse": 1.048502158318123,
+        "n_evaluated": 21806,
+        "n_skipped": 0
+      }
+    },
+    "popular_21_plus": {
+      "n_items": 3449,
+      "n_test_ratings": 41680,
+      "item_based_cf": {
+        "mae": 1.2114806858709322,
+        "rmse": 1.6243035442560028,
+        "n_evaluated": 41680,
+        "n_skipped": 0
+      },
+      "matrix_factorization": {
+        "mae": 0.821993389712255,
+        "rmse": 1.0636557301879548,
+        "n_evaluated": 41680,
+        "n_skipped": 0
+      }
+    }
+  }
+}

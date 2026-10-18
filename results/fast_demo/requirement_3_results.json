@@ -1,0 +1,107 @@
+{
+  "baseline": {
+    "prediction": {
+      "mae": 0.8206826846800975,
+      "rmse": 1.056503732078645,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0008824116590137752,
+      "hit_rate_at_k": 0.008704332202036334,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 168.12
+    }
+  },
+  "social_lambda_0.0": {
+    "prediction": {
+      "mae": 0.8206826846800975,
+      "rmse": 1.056503732078645,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0008824116590137752,
+      "hit_rate_at_k": 0.008704332202036334,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 189.71
+    }
+  },
+  "social_lambda_0.3": {
+    "prediction": {
+      "mae": 0.8178207896614221,
+      "rmse": 1.0531845943038312,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0009542822918746256,
+      "hit_rate_at_k": 0.0093831104012777,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 209.54
+    }
+  },
+  "social_lambda_0.5": {
+    "prediction": {
+      "mae": 0.8201253061558468,
+      "rmse": 1.0595000136309982,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0011778798163306048,
+      "hit_rate_at_k": 0.011459373128368935,
+      "k": 10,
+      "relevance_threshold": 4,
+      "n_users_evaluated": 25045,
+      "eval_time_seconds": 260.1
+    }
+  },
+  "sparse_users_analysis": {
+    "n_sparse_users": 21911,
+    "n_test_ratings": 10235,
+    "lambda_used": 0.3,
+    "baseline": {
+      "mae": 0.865617050406175,
+      "rmse": 1.0991109818259832,
+      "n_evaluated": 10235,
+      "n_skipped": 0
+    },
+    "social": {
+      "mae": 0.8637771808981722,
+      "rmse": 1.097370000396191,
+      "n_evaluated": 10235,
+      "n_skipped": 0
+    }
+  },
+  "trust_vs_similarity_comparison": {
+    "lambda_used": 0.3,
+    "k_similar": 10,
+    "n_sampled_users": 50,
+    "n_test_ratings": 165,
+    "baseline": {
+      "mae": 0.8589449329722971,
+      "rmse": 1.0883082848181271,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    },
+    "trust_neighbors": {
+      "mae": 0.8594405063113509,
+      "rmse": 1.094297892539624,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    },
+    "similar_unconnected": {
+      "mae": 0.8501171564163259,
+      "rmse": 1.083678950910086,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    }
+  }
+}

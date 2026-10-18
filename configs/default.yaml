@@ -1,0 +1,38 @@
+# Full experiment configuration
+# For complete runs; may take 30-60+ minutes depending on hardware
+
+data_dir: "Assignment"
+results_dir: "results/full"
+
+split_seed: 42
+train_frac: 0.70
+val_frac: 0.15
+
+top_k: 10
+relevance_threshold: 4
+
+item_based_cf:
+  max_neighbors: 50
+  min_corated: 2
+
+matrix_factorization:
+  n_factors: 20
+  lr: 0.005
+  reg: 0.02
+  n_epochs: 20
+  seed: 42
+
+social:
+  lambda_values: [0.0, 0.1, 0.3, 0.5, 0.7]
+  k_similar: 20
+  comparison_sample: 200
+
+diffusion:
+  n_simulations: 20
+  seed_size: 10
+  seed: 42
+  max_rounds: 50
+  propagation_probs: [0.01, 0.05, 0.1]
+  recovery_probs: [0.0, 0.1, 0.3, 0.5]
+  base_adopt_prob: 0.5
+  default_affinity: 0.3

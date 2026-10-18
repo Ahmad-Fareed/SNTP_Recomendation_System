@@ -1,0 +1,12 @@
+{
+  "seed": 42,
+  "train_frac": 0.7,
+  "val_frac": 0.15,
+  "test_frac": 0.15,
+  "total_ratings": 664824,
+  "train_size": 463663,
+  "val_size": 100603,
+  "test_size": 100558,
+  "users_included_in_evaluation": 28487,
+  "users_excluded_lt3_ratings": 11676
+}
