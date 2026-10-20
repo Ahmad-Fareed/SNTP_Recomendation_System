@@ -17,6 +17,7 @@ import logging
 import time
 
 import numpy as np
+from scipy import sparse
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,95 @@ def intra_list_diversity(
     return float(total_dist / n_pairs)
 
 
+def _normalised_item_features(item_features) -> tuple[sparse.csr_matrix, np.ndarray]:
+    """Return row-oriented item vectors and their Euclidean norms.
+
+    ``item_features`` must have **one row per item** and one column per
+    feature (for this project: users).  Binary training-interaction vectors or
+    centred rating vectors are both valid.
+    """
+    X = sparse.csr_matrix(item_features, dtype=np.float64)
+    norms = np.sqrt(np.asarray(X.multiply(X).sum(axis=1)).ravel())
+    norms = np.where(norms > 1e-12, norms, 0.0)
+    return X, norms
+
+
+def _diversity_from_prepared(
+    recommended: list[int],
+    X: sparse.csr_matrix,
+    norms: np.ndarray,
+) -> float:
+    """Mean pairwise ``1 - cosine`` distance for one recommendation list."""
+    items = [int(i) for i in recommended if 0 <= int(i) < X.shape[0]]
+    n = len(items)
+    if n <= 1:
+        return 0.0
+
+    sub = X[items, :]
+    sub_norms = norms[items]
+    dots = np.asarray((sub @ sub.T).toarray(), dtype=np.float64)
+    denom = np.outer(sub_norms, sub_norms)
+    sim = np.zeros_like(dots)
+    valid = denom > 1e-12
+    sim[valid] = dots[valid] / denom[valid]
+    # Clip numerical noise; cosine similarity is defined on [-1, 1].
+    sim = np.clip(sim, -1.0, 1.0)
+
+    total = 0.0
+    for i in range(n):
+        total += float(np.sum(1.0 - sim[i, i + 1:]))
+    return total / (n * (n - 1) / 2.0)
+
+
+def intra_list_diversity_from_features(
+    recommended: list[int],
+    item_features,
+) -> float:
+    """Intra-list diversity using cosine distance between item feature vectors.
+
+    This is the documented diversity measure used by the ranking evaluation:
+    for a list of ``n`` distinct items, it is the mean pairwise
+    ``1 - cosine(item_i, item_j)`` over the ``n(n-1)/2`` pairs.  It returns 0
+    for lists with fewer than two items and treats zero-norm item vectors as
+    having zero similarity to every other item.
+    """
+    X, norms = _normalised_item_features(item_features)
+    return _diversity_from_prepared(recommended, X, norms)
+
+
+def mean_intra_list_diversity(
+    all_recs: list[list[int]],
+    item_features,
+    max_users: int | None = None,
+    seed: int = 42,
+) -> dict:
+    """Average feature-based intra-list diversity over recommendation lists.
+
+    ``max_users`` optionally caps the number of lists evaluated (deterministic
+    seeded sample) so that full-catalogue evaluation remains bounded.
+    """
+    if not all_recs or item_features is None:
+        return {"mean_diversity": 0.0, "n_lists": 0, "is_sampled": False,
+                "sample_seed": None}
+
+    recs = all_recs
+    is_sampled = False
+    if max_users is not None and 0 < max_users < len(recs):
+        rng = np.random.RandomState(seed)
+        idx = np.sort(rng.choice(len(recs), size=max_users, replace=False))
+        recs = [recs[i] for i in idx]
+        is_sampled = True
+
+    X, norms = _normalised_item_features(item_features)
+    values = [_diversity_from_prepared(rec, X, norms) for rec in recs]
+    return {
+        "mean_diversity": float(np.mean(values)) if values else 0.0,
+        "n_lists": int(len(values)),
+        "is_sampled": bool(is_sampled),
+        "sample_seed": int(seed) if is_sampled else None,
+    }
+
+
 def evaluate_predictions(recommender, test_ratings, user_to_idx, item_to_idx,
                          rating_min=1, rating_max=5):
     """Evaluate a recommender on held-out ratings using MAE and RMSE.
@@ -235,7 +325,9 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
                      user_to_idx, item_to_idx, k=10, relevance_threshold=4,
                      label: str = "ranking", log_every_seconds: float = 30.0,
                      sample_users: int | None = None, sample_seed: int = 42,
-                     batch_size: int = 256):
+                     batch_size: int = 256, item_features=None,
+                     max_diversity_users: int | None = 500,
+                     diversity_seed: int = 42):
     """Evaluate top-K ranking quality.
 
     Parameters
@@ -260,10 +352,35 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
         Random seed for evaluation user sampling.
     batch_size : int
         Batch size when using recommender.recommend_batch.
+    item_features : sparse matrix or None
+        One row per item, one column per feature (training interactions are
+        used in this project).  When provided, feature-based intra-list
+        diversity is computed.
+    max_diversity_users : int or None
+        Cap on the number of recommendation lists used for the diversity
+        estimate.  ``None`` evaluates every list.  The sample is deterministic
+        and seeded by ``diversity_seed``.
+    diversity_seed : int
+        Seed for the diversity-list sample.
 
     Returns
     -------
     results : dict with ranking metrics and evaluation metadata.
+
+    Notes
+    -----
+    * Relevance is binary: a held-out item is relevant when its observed test
+      rating is ``>= relevance_threshold``.  Unobserved items are *not*
+      treated as negatives; they are simply not in the relevant set.
+    * Precision@K uses ``K`` as the denominator, even when fewer than ``K``
+      eligible items exist.  Recall@K uses the number of relevant held-out
+      items as the denominator.
+    * F1@K is the mean of the per-user F1 scores, not the harmonic mean of the
+      mean precision and mean recall.
+    * Coverage is the fraction of the full item catalogue that appears at
+      least once in the evaluated recommendation lists.
+    * Diversity is the mean pairwise cosine distance between item feature
+      vectors, computed on a bounded deterministic sample of lists.
     """
     from collections import defaultdict
 
@@ -303,6 +420,7 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
     precisions = []
     hit_rates = []
     recalls = []
+    f1_scores = []
     ndcgs = []
     all_recs = []
 
@@ -317,9 +435,12 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
                 rel_items = user_relevant[uidx]
                 rec_list = [item_idx for item_idx, _ in recs]
                 all_recs.append(rec_list)
-                precisions.append(precision_at_k(rec_list, rel_items, k))
+                p = precision_at_k(rec_list, rel_items, k)
+                r = recall_at_k(rec_list, rel_items, k)
+                precisions.append(p)
                 hit_rates.append(hit_rate_at_k(rec_list, rel_items, k))
-                recalls.append(recall_at_k(rec_list, rel_items, k))
+                recalls.append(r)
+                f1_scores.append(f1_at_k(p, r))
                 ndcgs.append(ndcg_at_k(rec_list, rel_items, k))
 
             now = time.time()
@@ -340,9 +461,12 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
             recs = recommender.recommend(uidx, k, exclude=exclude)
             rec_list = [item_idx for item_idx, _ in recs]
             all_recs.append(rec_list)
-            precisions.append(precision_at_k(rec_list, rel_items, k))
+            p = precision_at_k(rec_list, rel_items, k)
+            r = recall_at_k(rec_list, rel_items, k)
+            precisions.append(p)
             hit_rates.append(hit_rate_at_k(rec_list, rel_items, k))
-            recalls.append(recall_at_k(rec_list, rel_items, k))
+            recalls.append(r)
+            f1_scores.append(f1_at_k(p, r))
             ndcgs.append(ndcg_at_k(rec_list, rel_items, k))
 
             now = time.time()
@@ -361,9 +485,18 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
 
     mean_p = float(np.mean(precisions)) if precisions else float("nan")
     mean_r = float(np.mean(recalls)) if recalls else float("nan")
-    mean_f1 = f1_at_k(mean_p, mean_r)
+    mean_f1 = float(np.mean(f1_scores)) if f1_scores else float("nan")
     n_catalog = len(item_to_idx) if item_to_idx is not None else 0
     cov = recommendation_coverage(all_recs, n_catalog)
+
+    if item_features is not None:
+        diversity = mean_intra_list_diversity(
+            all_recs, item_features, max_users=max_diversity_users,
+            seed=diversity_seed,
+        )
+    else:
+        diversity = {"mean_diversity": None, "n_lists": 0,
+                     "is_sampled": False, "sample_seed": None}
 
     return {
         "precision_at_k": mean_p,
@@ -372,8 +505,25 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
         "hit_rate_at_k": float(np.mean(hit_rates)) if hit_rates else float("nan"),
         "ndcg_at_k": float(np.mean(ndcgs)) if ndcgs else float("nan"),
         "coverage": cov,
+        "diversity": diversity["mean_diversity"],
+        "diversity_method": (
+            "mean pairwise 1-cosine(item feature vectors) over recommendation lists"
+            if item_features is not None else None
+        ),
+        "diversity_n_lists": diversity["n_lists"],
+        "diversity_is_sampled": diversity["is_sampled"],
+        "diversity_sample_seed": diversity["sample_seed"],
+        "catalog_size": int(n_catalog),
         "k": k,
         "relevance_threshold": relevance_threshold,
+        "relevance_definition": (
+            f"held-out test rating >= {relevance_threshold}; unobserved items "
+            "are not treated as negatives"
+        ),
+        "candidate_definition": (
+            "all catalogue items except the user's training items; no negative "
+            "item sampling"
+        ),
         "n_users_evaluated": len(precisions),
         "total_eligible_users": n_total,
         "is_sampled": is_sampled,

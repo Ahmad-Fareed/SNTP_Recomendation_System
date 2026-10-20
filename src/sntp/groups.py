@@ -45,16 +45,20 @@ def generate_groups(
         negative rating correlation / contrasting mean ratings to simulate
         conflicting preferences.
     user_item_matrix : scipy.sparse matrix or None
-        Sparse user-item ratings matrix.
+        Sparse user-item ratings matrix.  **Pass the training matrix only.**
+        Using the full observed matrix would leak validation/test preferences
+        into group construction.
     seed : int
         Random seed.
 
     Returns
     -------
     groups : list[list[int]]
+        Each group contains distinct user indices.  Groups may overlap each
+        other; each group itself is a set.
     """
     rng = np.random.RandomState(seed)
-    users = list(user_ids)
+    users = list(dict.fromkeys(int(u) for u in user_ids))
     if len(users) < group_size:
         return [users] if users else []
 
@@ -93,7 +97,13 @@ def generate_groups(
             if len(group) < group_size and mid_pool:
                 needed = group_size - len(group)
                 group.extend(rng.choice(mid_pool, size=min(needed, len(mid_pool)), replace=False).tolist())
-            groups.append([int(u) for u in group])
+            if len(group) < group_size:
+                remaining = [u for u in users if u not in group]
+                needed = group_size - len(group)
+                if remaining:
+                    group.extend(rng.choice(remaining, size=min(needed, len(remaining)),
+                                            replace=False).tolist())
+            groups.append([int(u) for u in dict.fromkeys(group)])
     else:
         # Uniform random group generation without replacement per group
         for _ in range(n_groups):
@@ -101,6 +111,34 @@ def generate_groups(
             groups.append([int(u) for u in chosen])
 
     return groups
+
+
+def aggregate_member_scores(member_scores: np.ndarray, strategy: str) -> np.ndarray:
+    """Aggregate a ``(n_members, n_items)`` score matrix into group scores.
+
+    This pure function is the single implementation used by
+    :func:`score_group_items`; exposing it makes the three aggregation rules
+    directly testable on hand-checkable matrices.
+
+    * ``average``       -> arithmetic mean over members
+    * ``least_misery``  -> element-wise minimum (maximise the worst member)
+    * ``most_pleasure`` -> element-wise maximum (maximise the happiest member)
+    """
+    if strategy not in AGGREGATION_STRATEGIES:
+        raise ValueError(
+            f"Unknown strategy '{strategy}'. Expected one of {AGGREGATION_STRATEGIES}"
+        )
+    matrix = np.asarray(member_scores, dtype=np.float64)
+    if matrix.ndim != 2:
+        raise ValueError("member_scores must be a 2-D (members x items) array")
+    if matrix.shape[0] == 0:
+        raise ValueError("group must contain at least one member")
+
+    if strategy == "average":
+        return np.mean(matrix, axis=0)
+    if strategy == "least_misery":
+        return np.min(matrix, axis=0)
+    return np.max(matrix, axis=0)
 
 
 def score_group_items(
@@ -135,21 +173,21 @@ def score_group_items(
     member_scores = []
     for u in group:
         if hasattr(recommender, "score_all"):
-            scores = recommender.score_all(u)
+            scores = np.asarray(recommender.score_all(u), dtype=np.float64)
         else:
-            scores = np.array([recommender.predict(u, i) for i in range(n_items)], dtype=np.float64)
+            scores = np.array(
+                [recommender.predict(u, i) for i in range(n_items)],
+                dtype=np.float64,
+            )
+        if scores.shape != (n_items,):
+            raise ValueError(
+                f"recommender returned shape {scores.shape} for user {u}; "
+                f"expected ({n_items},)"
+            )
         member_scores.append(scores)
 
     matrix = np.vstack(member_scores)  # shape (len(group), n_items)
-
-    if strategy == "average":
-        return np.mean(matrix, axis=0)
-    elif strategy == "least_misery":
-        return np.min(matrix, axis=0)
-    elif strategy == "most_pleasure":
-        return np.max(matrix, axis=0)
-    else:
-        raise ValueError(f"Unknown strategy: {strategy}")
+    return aggregate_member_scores(matrix, strategy)
 
 
 def recommend_for_group(

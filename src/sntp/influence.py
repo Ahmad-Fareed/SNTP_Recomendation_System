@@ -20,6 +20,7 @@ from typing import Any
 import numpy as np
 
 from sntp.diffusion.icm import ICMSimulator
+from sntp.selection import make_simulation_seeds
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def estimate_spread(
     n_simulations: int = 10,
     max_rounds: int = 100,
     seed: int = 42,
+    sim_seeds: list[int] | None = None,
 ) -> tuple[float, float, list[set[int]]]:
     """Estimate expected spread (mean, std) of a seed set via Monte Carlo ICM.
 
@@ -47,7 +49,11 @@ def estimate_spread(
     max_rounds : int
         Max rounds per simulation.
     seed : int
-        Base random seed.
+        Base random seed (used only when ``sim_seeds`` is not supplied).
+    sim_seeds : list[int] or None
+        Explicit Monte Carlo seeds.  Supplying the same list to every method
+        gives paired/common-random-number comparisons; this is the recommended
+        path for all reported experiments.
 
     Returns
     -------
@@ -59,18 +65,26 @@ def estimate_spread(
         Set of adopters for each simulation run.
     """
     seeds = set(seed_users)
+    n_runs = len(sim_seeds) if sim_seeds is not None else int(n_simulations)
     if not seeds:
-        return 0.0, 0.0, [set() for _ in range(n_simulations)]
+        return 0.0, 0.0, [set() for _ in range(n_runs)]
+    if n_runs <= 0:
+        return 0.0, 0.0, []
+
+    if sim_seeds is None:
+        sim_seeds = [seed + i * 1000 + 7 for i in range(n_runs)]
+    else:
+        sim_seeds = [int(s) for s in sim_seeds]
 
     adopter_counts = []
     adopter_sets = []
 
-    for i in range(n_simulations):
+    for sim_seed in sim_seeds:
         sim = ICMSimulator(
             propagation_graph=propagation_graph,
             propagation_prob=propagation_prob,
             max_rounds=max_rounds,
-            seed=seed + i * 1000 + 7,
+            seed=sim_seed,
         )
         res = sim.run_canonical(seeds)
         adopters = res["adopters"]
@@ -159,6 +173,8 @@ def greedy_influence_maximization(
     candidate_pool_size: int | None = None,
     seed: int = 42,
     use_celf: bool = False,
+    candidate_pool: list[int] | None = None,
+    selection_seeds: list[int] | None = None,
 ) -> dict[str, Any]:
     """Greedy influence maximization based on marginal expected spread.
 
@@ -178,12 +194,23 @@ def greedy_influence_maximization(
     n_simulations : int
         Number of Monte Carlo simulations per spread estimate.
     candidate_pool_size : int or None
-        If provided and smaller than len(eligible_users), restricts candidate
-        pool to top candidates ranked by out-degree for tractability.
+        If provided and smaller than len(eligible_users), restricts the
+        candidate pool to the top candidates ranked by out-degree for
+        tractability.  The same restriction must be applied to every compared
+        method (random and degree baselines included).
     seed : int
-        Base random seed.
+        Base random seed, used only when ``selection_seeds`` is None.
     use_celf : bool
         If True, applies CELF lazy forward optimization.
+    candidate_pool : list[int] or None
+        Explicit candidate pool.  Takes precedence over
+        ``candidate_pool_size``; useful for applying exactly the same pool to
+        all compared methods.
+    selection_seeds : list[int] or None
+        Explicit Monte Carlo seeds used for every candidate evaluation.
+        Reusing one list across every candidate and across standard greedy /
+        CELF gives paired comparisons and makes negative Monte Carlo noise less
+        likely to look like a real marginal loss.
 
     Returns
     -------
@@ -195,9 +222,16 @@ def greedy_influence_maximization(
         'n_evaluations': int
         'runtime_seconds': float
         'strategy': str
+        'candidate_pool': list[int]
+        'n_candidates': int
+        'selection_seeds': list[int]
     """
     t_start = time.time()
     n_evals = 0
+    if selection_seeds is None:
+        selection_seeds = make_simulation_seeds(seed, n_simulations)
+    else:
+        selection_seeds = [int(s) for s in selection_seeds]
 
     if budget <= 0 or not eligible_users:
         return {
@@ -208,13 +242,20 @@ def greedy_influence_maximization(
             "n_evaluations": 0,
             "runtime_seconds": 0.0,
             "strategy": "celf" if use_celf else "greedy",
+            "candidate_pool": [],
+            "n_candidates": 0,
+            "selection_seeds": selection_seeds,
         }
 
-    # Restrict candidate pool if requested
-    candidates = list(set(eligible_users))
-    if candidate_pool_size is not None and candidate_pool_size < len(candidates):
-        candidates.sort(key=lambda u: (-len(propagation_graph.get(u, [])), u))
-        candidates = candidates[:candidate_pool_size]
+    # Restrict candidate pool if requested.  ``set`` removes duplicates but
+    # sorting restores deterministic iteration order.
+    if candidate_pool is not None:
+        candidates = sorted({int(u) for u in candidate_pool})
+    else:
+        candidates = sorted({int(u) for u in eligible_users})
+        if candidate_pool_size is not None and candidate_pool_size < len(candidates):
+            candidates.sort(key=lambda u: (-len(propagation_graph.get(u, [])), u))
+            candidates = candidates[:candidate_pool_size]
 
     selected_seeds: list[int] = []
     marginal_gains: list[float] = []
@@ -231,7 +272,11 @@ def greedy_influence_maximization(
                 break
 
             best_candidate = None
-            best_gain = -1.0
+            # Monte Carlo estimates can make a marginal gain negative (for
+            # example when extra seeds perturb the random stream).  The
+            # sentinel must therefore be -inf, not -1; otherwise the loop
+            # stops after one selection whenever every measured gain is < -1.
+            best_gain = -np.inf
             best_spread = current_spread
             best_std = 0.0
 
@@ -244,6 +289,7 @@ def greedy_influence_maximization(
                     propagation_prob=propagation_prob,
                     n_simulations=n_simulations,
                     seed=seed,
+                    sim_seeds=selection_seeds,
                 )
                 n_evals += 1
                 gain = sp_mean - current_spread
@@ -268,8 +314,10 @@ def greedy_influence_maximization(
 
     else:
         # CELF optimization (Leskovec et al. 2007)
-        # Max-heap elements: (-marginal_gain, user_id, iteration_tag)
+        # Max-heap elements: (-marginal_gain, user_id, iteration_tag).  The
+        # tag records the seed-set round for which the gain was computed.
         heap: list[tuple[float, int, int]] = []
+        last_std: dict[int, float] = {}
 
         # Step 0: Initial single-node evaluations
         for cand in sorted(candidates):
@@ -279,10 +327,11 @@ def greedy_influence_maximization(
                 propagation_prob=propagation_prob,
                 n_simulations=n_simulations,
                 seed=seed,
+                sim_seeds=selection_seeds,
             )
             n_evals += 1
-            gain = sp_mean
-            heapq.heappush(heap, (-gain, cand, 0))
+            last_std[cand] = sp_std
+            heapq.heappush(heap, (-sp_mean, cand, 0))
 
         # Iterations 1..budget
         for step in range(budget):
@@ -291,17 +340,18 @@ def greedy_influence_maximization(
 
             while True:
                 neg_gain, cand, tag = heapq.heappop(heap)
-                # If tag equals current step, this candidate's gain was computed with current seed set
+                # If tag equals current step, this candidate's gain was
+                # computed with the current seed set.
                 if tag == step:
                     selected_seeds.append(cand)
                     gain = -neg_gain
                     marginal_gains.append(float(gain))
                     current_spread += gain
                     spread_progression.append(float(current_spread))
-                    spread_stds.append(0.0)  # CELF lazy track
+                    spread_stds.append(float(last_std.get(cand, 0.0)))
                     break
 
-                # Otherwise, re-evaluate with current seed set
+                # Otherwise, re-evaluate with the current seed set.
                 test_set = set(selected_seeds) | {cand}
                 sp_mean, sp_std, _ = estimate_spread(
                     propagation_graph=propagation_graph,
@@ -309,8 +359,10 @@ def greedy_influence_maximization(
                     propagation_prob=propagation_prob,
                     n_simulations=n_simulations,
                     seed=seed,
+                    sim_seeds=selection_seeds,
                 )
                 n_evals += 1
+                last_std[cand] = sp_std
                 new_gain = sp_mean - current_spread
                 heapq.heappush(heap, (-new_gain, cand, step))
 
@@ -324,6 +376,9 @@ def greedy_influence_maximization(
         "n_evaluations": n_evals,
         "runtime_seconds": round(elapsed, 3),
         "strategy": "celf" if use_celf else "greedy",
+        "candidate_pool": candidates,
+        "n_candidates": len(candidates),
+        "selection_seeds": selection_seeds,
     }
 
 

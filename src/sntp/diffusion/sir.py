@@ -78,6 +78,7 @@ class SIRSimulator:
         -------
         result : dict with state history, event log, and summary statistics.
         """
+        seed_users = set(seed_users)
         rng = np.random.RandomState(self.seed)
 
         # Initialize states
@@ -93,9 +94,12 @@ class SIRSimulator:
         susceptible = all_users_set - seed_users
         infected = set(seed_users)
         recovered = set()
+        ever_infected = set(seed_users)
 
         event_log = []
         state_history = []
+        last_infection_round = 0
+        rounds_attempted = 0
 
         # Log initial infections
         for u in seed_users:
@@ -111,6 +115,7 @@ class SIRSimulator:
         })
 
         for round_num in range(1, self.max_rounds + 1):
+            rounds_attempted = round_num
             newly_infected = set()
 
             # --- Transmission phase ---
@@ -132,6 +137,7 @@ class SIRSimulator:
 
                     if rng.random() < t_prob:
                         newly_infected.add(receiver)
+                        ever_infected.add(receiver)
                         event_log.append({
                             "round": round_num, "event": "infect",
                             "user": receiver, "source": sender,
@@ -150,6 +156,8 @@ class SIRSimulator:
             susceptible -= newly_infected
             infected = (infected - newly_recovered) | newly_infected
             recovered |= newly_recovered
+            if newly_infected:
+                last_infection_round = round_num
 
             state_history.append({
                 "round": round_num,
@@ -162,12 +170,6 @@ class SIRSimulator:
             if not infected:
                 break
 
-        total_affected = len(seed_users) | len(recovered)  # all who were ever infected
-        ever_infected = set(seed_users)
-        for entry in event_log:
-            if entry["event"] == "infect":
-                ever_infected.add(entry["user"])
-
         return {
             "ever_infected": ever_infected,
             "final_infected": infected,
@@ -175,7 +177,10 @@ class SIRSimulator:
             "final_susceptible": susceptible,
             "state_history": state_history,
             "log": event_log,
-            "n_rounds": round_num if not infected else round_num,
+            # Infection depth: last round with a new infection; the terminal
+            # no-transmission round is not counted.
+            "n_rounds": last_infection_round,
+            "rounds_attempted": rounds_attempted,
             "seed_users": seed_users,
             "n_ever_infected": len(ever_infected),
             "n_final_recovered": len(recovered),

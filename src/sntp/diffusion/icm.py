@@ -71,11 +71,14 @@ class ICMSimulator:
             'n_rounds': number of simulation rounds
             'seed_users': the initial seed set
         """
+        seed_users = set(seed_users)
         rng = np.random.RandomState(self.seed)
         adopters = set(seed_users)
         newly_active = set(seed_users)
         attempted = defaultdict(set)  # sender -> set of receivers already attempted
         event_log = []
+        last_adoption_round = 0
+        rounds_attempted = 0
 
         # Log initial recommendations
         for u in seed_users:
@@ -87,6 +90,7 @@ class ICMSimulator:
             })
 
         for round_num in range(1, self.max_rounds + 1):
+            rounds_attempted = round_num
             next_active = set()
 
             for sender in newly_active:
@@ -111,11 +115,16 @@ class ICMSimulator:
 
             adopters.update(next_active)
             newly_active = next_active
+            last_adoption_round = round_num
 
         return {
             "adopters": adopters,
             "log": event_log,
-            "n_rounds": round_num if newly_active else round_num,
+            # Cascade adoption depth: the last round in which at least one
+            # non-seed user adopted.  The terminal no-adoption round is not
+            # counted.
+            "n_rounds": last_adoption_round,
+            "rounds_attempted": rounds_attempted,
             "seed_users": seed_users,
             "n_adopters": len(adopters),
         }
@@ -140,16 +149,26 @@ class ICMSimulator:
             Relevance threshold (intervention). Exposed users with affinity
             below this threshold do not adopt or propagate the item.
 
+        Modelling note
+        --------------
+        A non-seed user receives at most one adoption decision after first
+        exposure.  This keeps the preference-aware variant a user-level
+        decision model rather than an edge-level independent-cascade model.
+        ``n_rounds`` reports adoption depth (the last round with an adoption).
+
         Returns
         -------
         result : dict with exposure and adoption tracking.
         """
+        seed_users = set(seed_users)
         rng = np.random.RandomState(self.seed)
         adopters = set(seed_users)
         exposed = set(seed_users)
         newly_active = set(seed_users)
         attempted = defaultdict(set)
         event_log = []
+        last_adoption_round = 0
+        rounds_attempted = 0
 
         for u in seed_users:
             event_log.append({
@@ -160,6 +179,7 @@ class ICMSimulator:
             })
 
         for round_num in range(1, self.max_rounds + 1):
+            rounds_attempted = round_num
             newly_exposed = set()
             next_active = set()
 
@@ -205,12 +225,14 @@ class ICMSimulator:
                 break
 
             newly_active = next_active
+            last_adoption_round = round_num
 
         return {
             "adopters": adopters,
             "exposed": exposed,
             "log": event_log,
-            "n_rounds": round_num,
+            "n_rounds": last_adoption_round,
+            "rounds_attempted": rounds_attempted,
             "seed_users": seed_users,
             "n_adopters": len(adopters),
             "n_exposed": len(exposed),

@@ -9,7 +9,10 @@ Covers:
 """
 
 import unittest
+from unittest.mock import patch
+
 import numpy as np
+from scipy import sparse
 
 from sntp.metrics import (
     precision_at_k,
@@ -19,6 +22,8 @@ from sntp.metrics import (
     ndcg_at_k,
     recommendation_coverage,
     intra_list_diversity,
+    intra_list_diversity_from_features,
+    mean_intra_list_diversity,
 )
 from sntp.influence import (
     estimate_spread,
@@ -97,6 +102,38 @@ class TestNewMetrics(unittest.TestCase):
         # Pairs: (0, 1): dist = 0.2; (0, 2): dist = 0.8; (1, 2): dist = 0.5
         # mean dist = (0.2 + 0.8 + 0.5) / 3 = 0.5
         self.assertAlmostEqual(intra_list_diversity([0, 1, 2], sim_matrix), 0.5)
+
+    def test_feature_based_intra_list_diversity(self):
+        # Rows are item feature vectors (here: two binary user features).
+        features = sparse.csr_matrix([
+            [1.0, 0.0],   # item 0
+            [0.0, 1.0],   # item 1
+            [1.0, 1.0],   # item 2
+            [0.0, 0.0],   # item 3 (zero vector)
+        ])
+        # Orthogonal item vectors -> cosine 0 -> distance 1.
+        self.assertAlmostEqual(
+            intra_list_diversity_from_features([0, 1], features), 1.0
+        )
+        # 45-degree vectors -> cosine 1/sqrt(2) -> distance 1 - 1/sqrt(2).
+        self.assertAlmostEqual(
+            intra_list_diversity_from_features([0, 2], features),
+            1.0 - 1.0 / np.sqrt(2.0),
+            places=7,
+        )
+        # A zero vector is documented as having zero similarity to every item.
+        self.assertAlmostEqual(
+            intra_list_diversity_from_features([0, 3], features), 1.0
+        )
+        summary = mean_intra_list_diversity(
+            [[0, 1], [0, 2]], features, max_users=None
+        )
+        self.assertEqual(summary["n_lists"], 2)
+        self.assertAlmostEqual(
+            summary["mean_diversity"],
+            (1.0 + (1.0 - 1.0 / np.sqrt(2.0))) / 2.0,
+            places=7,
+        )
 
 
 class TestInfluenceMaximization(unittest.TestCase):
@@ -177,6 +214,66 @@ class TestInfluenceMaximization(unittest.TestCase):
         # Run 1: intersection {0, 1} = 2, union {0, 1, 4, 5} = 4 -> 0.5
         # Average = 0.75
         self.assertAlmostEqual(compute_adopter_overlap(sets_a, sets_b), 0.75)
+
+    def test_greedy_does_not_stop_on_negative_monte_carlo_gains(self):
+        # Regression for the old ``best_gain = -1.0`` sentinel.  Every
+        # measured spread here is negative, so every marginal gain is below
+        # -1.  A correct implementation must still fill the budget.
+        def fake_estimate_spread(propagation_graph, seed_users, **kwargs):
+            n = len(set(seed_users))
+            return -5.0 - n, 0.0, [set(seed_users)]
+
+        with patch("sntp.influence.estimate_spread", fake_estimate_spread):
+            result = greedy_influence_maximization(
+                self.graph,
+                self.users,
+                budget=3,
+                propagation_prob=0.05,
+                n_simulations=1,
+                candidate_pool=self.users,
+                seed=42,
+                use_celf=False,
+            )
+        self.assertEqual(len(result["seeds"]), 3)
+        self.assertEqual(len(result["marginal_gains"]), 3)
+
+    def test_explicit_candidate_pool_is_reported(self):
+        pool = [0, 1, 2, 7]
+        result = greedy_influence_maximization(
+            self.graph,
+            self.users,
+            budget=2,
+            propagation_prob=1.0,
+            n_simulations=1,
+            candidate_pool=pool,
+            seed=42,
+            use_celf=False,
+        )
+        self.assertEqual(result["candidate_pool"], sorted(pool))
+        self.assertEqual(result["n_candidates"], len(pool))
+        self.assertTrue(set(result["seeds"]).issubset(set(pool)))
+
+    def test_greedy_marginal_gains_match_spread_increments(self):
+        # With p=1.0 and one Monte Carlo trial the cascade is deterministic,
+        # so the reported marginal gains must equal the increments of the
+        # spread progression exactly.
+        result = greedy_influence_maximization(
+            self.graph,
+            self.users,
+            budget=2,
+            propagation_prob=1.0,
+            n_simulations=1,
+            candidate_pool=self.users,
+            seed=42,
+            use_celf=False,
+        )
+        progression = result["spread_progression"]
+        gains = result["marginal_gains"]
+        self.assertAlmostEqual(gains[0], progression[0])
+        self.assertAlmostEqual(gains[1], progression[1] - progression[0])
+        # Seeds 0 and 7 together reach all 11 nodes in this graph.
+        self.assertEqual(set(result["seeds"]), {0, 7})
+        self.assertAlmostEqual(progression[-1], 11.0)
 
 
 class DummyRecommender:
