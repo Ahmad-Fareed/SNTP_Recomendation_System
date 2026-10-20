@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: sntp
-Version: 0.1.0
-Summary: SNTP Assignment 2: Recommendation & Information Diffusion
-Requires-Dist: numpy
-Requires-Dist: scipy
-Requires-Dist: pyyaml
