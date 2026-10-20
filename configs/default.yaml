@@ -11,6 +11,10 @@ val_frac: 0.15
 top_k: 10
 relevance_threshold: 4
 
+# Full-scale evaluation (no sampling for ranking)
+ranking_sample_users: null
+ranking_sample_seed: 42
+
 item_based_cf:
   max_neighbors: 50
   min_corated: 2
@@ -28,6 +32,8 @@ social:
   comparison_sample: 200
 
 diffusion:
+  subgraph:
+    enabled: false
   n_simulations: 20
   seed_size: 10
   seed: 42

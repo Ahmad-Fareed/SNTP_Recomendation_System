@@ -28,12 +28,15 @@ Limitations:
 """
 
 import logging
+import time
 from collections import defaultdict
 
 import numpy as np
 from scipy import sparse
 
-from sntp.recommenders._ranking import top_n_from_scores
+from sntp.recommenders._ranking import (
+    recommend_batch_dense, rows_or_empty, top_n_from_scores,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,24 @@ def _baseline_scores(baseline, user_idx: int, n_items: int) -> np.ndarray:
     return out
 
 
+def _baseline_scores_batch(baseline, users: np.ndarray, n_items: int) -> np.ndarray:
+    """Dense baseline scores for many users (NaN where unavailable)."""
+    if hasattr(baseline, "score_batch"):
+        return np.asarray(baseline.score_batch(users), dtype=np.float64)
+    return np.vstack([_baseline_scores(baseline, int(u), n_items) for u in users])
+
+
+def _baseline_predict_pairs(baseline, u: np.ndarray, i: np.ndarray) -> np.ndarray:
+    """Baseline predictions for aligned (user, item) arrays (NaN if None)."""
+    if hasattr(baseline, "predict_batch"):
+        return np.asarray(baseline.predict_batch(u, i), dtype=np.float64)
+    out = np.empty(u.shape[0], dtype=np.float64)
+    for k, (uu, ii) in enumerate(zip(u.tolist(), i.tolist())):
+        p = baseline.predict(uu, ii)
+        out[k] = np.nan if p is None else p
+    return out
+
+
 def _build_rating_csr(user_ratings: dict, n_items: int) -> sparse.csr_matrix:
     """user_idx -> {item_idx: rating} dict  ->  CSR (n_rows x n_items)."""
     rows, cols, vals = [], [], []
@@ -68,6 +89,27 @@ def _build_rating_csr(user_ratings: dict, n_items: int) -> sparse.csr_matrix:
         (np.asarray(vals, dtype=np.float64),
          (np.asarray(rows, dtype=np.int64), np.asarray(cols, dtype=np.int64))),
         shape=(n_rows, n_items),
+    )
+
+
+def _build_adjacency(neighbor_lists: dict, n_cols: int, min_rows: int = 0) -> sparse.csr_matrix:
+    """user -> [neighbour, ...]  ->  CSR adjacency (n_rows x n_cols).
+
+    Neighbours outside ``[0, n_cols)`` (e.g. trust-only users with no rating
+    row) are dropped, exactly like ``_neighbor_mean_scores``.  Repeated
+    neighbours are summed, which matches the per-item loop counting them twice.
+    """
+    rows, cols = [], []
+    for u, nbs in neighbor_lists.items():
+        for v in nbs:
+            if 0 <= v < n_cols:
+                rows.append(u)
+                cols.append(v)
+    n_rows = max([min_rows] + [u + 1 for u in neighbor_lists.keys()])
+    return sparse.csr_matrix(
+        (np.ones(len(rows), dtype=np.float64),
+         (np.asarray(rows, dtype=np.int64), np.asarray(cols, dtype=np.int64))),
+        shape=(n_rows, n_cols),
     )
 
 
@@ -90,6 +132,28 @@ def _neighbor_mean_scores(rating_csr, neighbors, n_items: int):
     return sums, counts
 
 
+def _neighbor_stats_batch(adj, rating_csr, binary_csr, users, n_items: int):
+    """Dense (sums, counts) of neighbours' training ratings for many users."""
+    A = rows_or_empty(adj, users)
+    sums = (A @ rating_csr).toarray()[:, :n_items]
+    counts = (A @ binary_csr).toarray()[:, :n_items]
+    return sums, counts
+
+
+def _neighbor_stats_pairs(adj, rating_csc, binary_csc, u: np.ndarray, i: np.ndarray):
+    """(sums, counts) of neighbours' ratings for aligned (user, item) pairs."""
+    A = rows_or_empty(adj, u)                              # pairs x n_rating_rows
+    i_ok = (i >= 0) & (i < rating_csc.shape[1])
+    i_safe = np.where(i_ok, i, 0)
+    Rt = sparse.csr_matrix(rating_csc[:, i_safe].T)        # pairs x n_rating_rows
+    Bt = sparse.csr_matrix(binary_csc[:, i_safe].T)
+    sums = np.asarray(A.multiply(Rt).sum(axis=1)).ravel()
+    counts = np.asarray(A.multiply(Bt).sum(axis=1)).ravel()
+    sums[~i_ok] = 0.0
+    counts[~i_ok] = 0.0
+    return sums, counts
+
+
 def _blend_scores(base: np.ndarray, sums, counts, social_weight: float,
                   global_mean: float) -> np.ndarray:
     """Vectorized version of the predict() blending / fallback rules."""
@@ -109,7 +173,46 @@ def _blend_scores(base: np.ndarray, sums, counts, social_weight: float,
     return scores
 
 
-class SocialRecommender:
+class _NeighborBlendMixin:
+    """Shared batched paths for recommenders that blend a baseline with the
+    mean training rating of a per-user neighbour set (``self._adj``)."""
+
+    def _prepare_matrices(self, user_ratings: dict):
+        self._rating_csr = _build_rating_csr(user_ratings, getattr(self.baseline, "n_items", 0))
+        R = self._rating_csr
+        self._binary_csr = sparse.csr_matrix(
+            (np.ones(R.nnz, dtype=np.float64), R.indices, R.indptr), shape=R.shape)
+        self._rating_csc = R.tocsc()
+        self._binary_csc = self._binary_csr.tocsc()
+
+    def score_batch(self, user_indices) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of ``score_all``."""
+        users = np.asarray(user_indices, dtype=np.int64)
+        n_items = self.baseline.n_items
+        base = _baseline_scores_batch(self.baseline, users, n_items).copy()
+        sums, counts = _neighbor_stats_batch(self._adj, self._rating_csr,
+                                             self._binary_csr, users, n_items)
+        return _blend_scores(base, sums, counts, self.social_weight, self.global_mean)
+
+    def predict_batch(self, user_idx: np.ndarray, item_idx: np.ndarray,
+                      rating_min: float = 1.0, rating_max: float = 5.0) -> np.ndarray:
+        """Vectorized ``predict`` for aligned arrays of (user, item) pairs."""
+        u = np.asarray(user_idx, dtype=np.int64)
+        i = np.asarray(item_idx, dtype=np.int64)
+        base = _baseline_predict_pairs(self.baseline, u, i).copy()
+        sums, counts = _neighbor_stats_pairs(self._adj, self._rating_csc,
+                                             self._binary_csc, u, i)
+        scores = _blend_scores(base, sums, counts, self.social_weight, self.global_mean)
+        return np.clip(scores, rating_min, rating_max)
+
+    def recommend_batch(self, user_indices, n: int = 10, excludes=None,
+                        candidate_mask: np.ndarray | None = None):
+        """Top-n for many users (vectorized; same rules as ``recommend``)."""
+        return recommend_batch_dense(self.score_batch, user_indices, n, self.baseline.n_items,
+                                     excludes, self._train_user_items, candidate_mask)
+
+
+class SocialRecommender(_NeighborBlendMixin):
     """Wraps a baseline recommender with a trust-neighbor component."""
 
     def __init__(self, baseline, trust_graph: dict, social_weight: float = 0.3,
@@ -133,6 +236,7 @@ class SocialRecommender:
         self.train_user_ratings = {}  # user_idx -> {item_idx: rating}
         self._train_user_items = {}
         self._rating_csr = None
+        self._adj = None
 
     def set_training_data(self, user_ratings: dict):
         """Set training data for trust-neighbor lookup.
@@ -144,7 +248,9 @@ class SocialRecommender:
         """
         self.train_user_ratings = user_ratings
         self._train_user_items = {u: set(items.keys()) for u, items in user_ratings.items()}
-        self._rating_csr = _build_rating_csr(user_ratings, getattr(self.baseline, "n_items", 0))
+        self._prepare_matrices(user_ratings)
+        self._adj = _build_adjacency(self.trust_graph, self._rating_csr.shape[0],
+                                     min_rows=getattr(self.baseline, "n_users", 0))
 
     def _trust_neighbor_prediction(self, user_idx: int, item_idx: int):
         """Predict using ratings of trusted users.
@@ -210,7 +316,7 @@ class SocialRecommender:
         return top_n_from_scores(self.score_all(user_idx), n, exclude)
 
 
-class SimilarUserRecommender:
+class SimilarUserRecommender(_NeighborBlendMixin):
     """Control condition: uses top-K rating-similar (but NOT trusted) users.
 
     This serves as a comparison baseline to test whether trust neighbors
@@ -229,61 +335,68 @@ class SimilarUserRecommender:
         self.train_user_ratings = {}
         self._train_user_items = {}
         self._rating_csr = None
+        self._adj = None
         self._similar_users = {}  # user_idx -> [(similar_user_idx, similarity), ...]
 
     def set_training_data(self, user_ratings: dict):
         """Set training data and compute similar-but-unconnected users."""
         self.train_user_ratings = user_ratings
         self._train_user_items = {u: set(items.keys()) for u, items in user_ratings.items()}
-        self._rating_csr = _build_rating_csr(user_ratings, getattr(self.baseline, "n_items", 0))
+        self._prepare_matrices(user_ratings)
+        self._rebuild_adjacency()
+
+    def _rebuild_adjacency(self):
+        nb = {u: [s for s, _ in sims] for u, sims in self._similar_users.items()}
+        self._adj = _build_adjacency(nb, self._rating_csr.shape[0],
+                                     min_rows=getattr(self.baseline, "n_users", 0))
 
     def compute_similar_users(self, target_users: list[int]):
         """For each target user, find top-K similar users NOT in their trust network.
 
-        Uses cosine similarity on co-rated items from training data.
+        Uses cosine similarity on co-rated items from training data:
+        ratings are centred by each user's overall training mean, and the
+        numerator / both norms are summed over co-rated items only; at least
+        2 co-rated items are required.  Computed with sparse products against
+        all users at once; ties are broken by ascending user index.
         """
+        t0 = time.time()
         logger.info("Computing similar-but-unconnected users for %d targets...", len(target_users))
 
-        all_users = sorted(self.train_user_ratings.keys())
+        R = self._rating_csr
+        n_rows = R.shape[0]
+        counts = np.diff(R.indptr)
+        means = np.zeros(n_rows, dtype=np.float64)
+        has = counts > 0
+        means[has] = np.asarray(R.sum(axis=1)).ravel()[has] / counts[has]
+        row_of = np.repeat(np.arange(n_rows), counts)
+        C = sparse.csr_matrix((R.data - means[row_of], R.indices, R.indptr), shape=R.shape)
+        C2 = C.multiply(C).tocsr()
+        Bm = self._binary_csr
+        Ct, C2t, Bt = C.T.tocsr(), C2.T.tocsr(), Bm.T.tocsr()
 
         for uidx in target_users:
-            u_ratings = self.train_user_ratings.get(uidx, {})
-            if not u_ratings:
+            if not (0 <= uidx < n_rows) or counts[uidx] == 0:
                 self._similar_users[uidx] = []
                 continue
+            cu, c2u, bu = Ct[:, [uidx]], C2t[:, [uidx]], Bt[:, [uidx]]
+            num = (C @ cu).toarray().ravel()           # sum_c cu_c * cv_c
+            den_u2 = (Bm @ c2u).toarray().ravel()       # sum_{c common} cu_c^2
+            den_v2 = (C2 @ bu).toarray().ravel()        # sum_{c common} cv_c^2
+            n_common = (Bm @ bu).toarray().ravel()
+            den_u, den_v = np.sqrt(den_u2), np.sqrt(den_v2)
 
-            trusted_set = set(self.trust_graph.get(uidx, []))
-            u_items = set(u_ratings.keys())
-            u_mean = np.mean(list(u_ratings.values()))
+            valid = (n_common >= 2) & has & (den_u >= 1e-10) & (den_v >= 1e-10)
+            valid[uidx] = False
+            trusted = np.asarray(self.trust_graph.get(uidx, []), dtype=np.int64)
+            trusted = trusted[(trusted >= 0) & (trusted < n_rows)]
+            valid[trusted] = False
+            cand = np.flatnonzero(valid)
+            sims = num[cand] / (den_u[cand] * den_v[cand])
+            order = np.lexsort((cand, -sims))[:self.k_similar]
+            self._similar_users[uidx] = list(zip(cand[order].tolist(), sims[order].tolist()))
 
-            similarities = []
-            for vidx in all_users:
-                if vidx == uidx or vidx in trusted_set:
-                    continue
-                v_ratings = self.train_user_ratings.get(vidx, {})
-                if not v_ratings:
-                    continue
-
-                # Co-rated items
-                common = u_items & set(v_ratings.keys())
-                if len(common) < 2:
-                    continue
-
-                v_mean = np.mean(list(v_ratings.values()))
-
-                # Cosine similarity on co-rated items (mean-centered)
-                num = sum((u_ratings[c] - u_mean) * (v_ratings[c] - v_mean) for c in common)
-                den_u = np.sqrt(sum((u_ratings[c] - u_mean) ** 2 for c in common))
-                den_v = np.sqrt(sum((v_ratings[c] - v_mean) ** 2 for c in common))
-
-                if den_u < 1e-10 or den_v < 1e-10:
-                    continue
-
-                sim = num / (den_u * den_v)
-                similarities.append((vidx, sim))
-
-            similarities.sort(key=lambda x: -x[1])
-            self._similar_users[uidx] = similarities[:self.k_similar]
+        self._rebuild_adjacency()
+        logger.info("Similar-user search done in %.1fs.", time.time() - t0)
 
     def predict(self, user_idx: int, item_idx: int) -> float | None:
         """Predict using baseline + similar-unconnected-user component."""

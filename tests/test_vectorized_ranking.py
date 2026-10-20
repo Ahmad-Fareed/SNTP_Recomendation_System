@@ -230,5 +230,98 @@ class TestSocialVectorized(unittest.TestCase):
         np.testing.assert_allclose(sr.score_all(0), ref)
 
 
+class TestBatchedAndSampling(unittest.TestCase):
+    """Tests for predict_batch, recommend_batch, and ranking user sampling."""
+
+    def setUp(self):
+        self.n_users, self.n_items = 30, 40
+        self.triples = _random_ratings(self.n_users, self.n_items, density=0.2, seed=42)
+        self.u2i = {u: u for u in range(self.n_users)}
+        self.i2i = {i: i for i in range(self.n_items)}
+
+        # Item-Based CF
+        ur, ir = defaultdict(list), defaultdict(list)
+        rows, cols, vals = [], [], []
+        for u, i, r in self.triples:
+            ur[u].append((i, r))
+            ir[i].append((u, r))
+            rows.append(u); cols.append(i); vals.append(r)
+        m = sparse.csr_matrix((vals, (rows, cols)), shape=(self.n_users, self.n_items), dtype=np.float32)
+        self.icf = ItemBasedCF(max_neighbors=5, min_corated=2)
+        self.icf.fit(m, dict(ur), dict(ir))
+
+        # MF
+        self.mf = BiasedMF(n_factors=6, lr=0.01, reg=0.02, n_epochs=5, seed=42)
+        self.mf.fit(self.triples, self.n_users, self.n_items, self.u2i, self.i2i)
+
+        # Social
+        train_dict = {u: {i: float(r) for i, r in items} for u, items in ur.items()}
+        trust = {u: [(u + 1) % self.n_users, (u + 2) % self.n_users] for u in range(self.n_users)}
+        self.social = SocialRecommender(self.mf, trust, social_weight=0.3, global_mean=self.mf.global_mean)
+        self.social.set_training_data(train_dict)
+
+    def test_predict_batch_matches_predict(self):
+        pairs_u = np.array([u for u in range(self.n_users) for _ in range(3)])
+        pairs_i = np.array([i % self.n_items for u in range(self.n_users) for i in range(u, u + 3)])
+
+        for model in (self.icf, self.mf, self.social):
+            batch_preds = model.predict_batch(pairs_u, pairs_i)
+            single_preds = np.array([model.predict(u, i) for u, i in zip(pairs_u, pairs_i)])
+            np.testing.assert_allclose(batch_preds, single_preds, rtol=1e-7, atol=1e-7)
+
+    def test_recommend_batch_matches_recommend(self):
+        users = list(range(self.n_users))
+        for model in (self.icf, self.mf, self.social):
+            batch_recs = model.recommend_batch(users, n=5)
+            for u in users:
+                single_rec = model.recommend(u, n=5)
+                self.assertEqual(batch_recs[u], single_rec)
+
+    def test_evaluate_predictions_equivalence(self):
+        from sntp.metrics import evaluate_predictions
+        test_ratings = [(u, i, 4) for u in range(10) for i in range(5)]
+        res_batch = evaluate_predictions(self.mf, test_ratings, self.u2i, self.i2i)
+
+        # Wrap in an object without predict_batch to verify fallback loop equivalence
+        class NoBatchWrapper:
+            def __init__(self, model):
+                self.model = model
+            def predict(self, u, i):
+                return self.model.predict(u, i)
+
+        res_loop = evaluate_predictions(NoBatchWrapper(self.mf), test_ratings, self.u2i, self.i2i)
+
+        self.assertAlmostEqual(res_batch["mae"], res_loop["mae"], places=7)
+        self.assertAlmostEqual(res_batch["rmse"], res_loop["rmse"], places=7)
+        self.assertEqual(res_batch["n_evaluated"], res_loop["n_evaluated"])
+
+    def test_evaluate_ranking_sampling(self):
+        from sntp.metrics import evaluate_ranking
+        test_ratings = [(u, (u + 1) % self.n_items, 5) for u in range(self.n_users)]
+        train_items = {u: set() for u in range(self.n_users)}
+
+        # Full evaluation
+        res_full = evaluate_ranking(self.mf, test_ratings, train_items,
+                                    self.u2i, self.i2i, k=5, sample_users=None)
+        self.assertFalse(res_full["is_sampled"])
+        self.assertEqual(res_full["n_users_evaluated"], self.n_users)
+        self.assertEqual(res_full["total_eligible_users"], self.n_users)
+
+        # Sampled evaluation
+        res_sample = evaluate_ranking(self.mf, test_ratings, train_items,
+                                      self.u2i, self.i2i, k=5, sample_users=10, sample_seed=99)
+        self.assertTrue(res_sample["is_sampled"])
+        self.assertEqual(res_sample["n_users_evaluated"], 10)
+        self.assertEqual(res_sample["total_eligible_users"], self.n_users)
+        self.assertEqual(res_sample["sample_seed"], 99)
+
+        # Sampling is reproducible
+        res_sample2 = evaluate_ranking(self.mf, test_ratings, train_items,
+                                       self.u2i, self.i2i, k=5, sample_users=10, sample_seed=99)
+        self.assertEqual(res_sample["precision_at_k"], res_sample2["precision_at_k"])
+        self.assertEqual(res_sample["hit_rate_at_k"], res_sample2["hit_rate_at_k"])
+
+
 if __name__ == "__main__":
     unittest.main()
+

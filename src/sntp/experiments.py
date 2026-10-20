@@ -190,12 +190,15 @@ def run_requirement_2(dataset, train, val, test, config: dict, results_dir: Path
 
     # Ranking evaluation
     k = config.get("top_k", 10)
+    sample_users = config.get("ranking_sample_users", None)
+    sample_seed = config.get("ranking_sample_seed", 42)
     ts = _stage_start("R2: item-based CF top-K ranking")
     icf_rank_results = evaluate_ranking(
         icf, test, train_user_items,
         dataset.user_to_idx, dataset.item_to_idx,
         k=k, relevance_threshold=config.get("relevance_threshold", 4),
         label="ICF",
+        sample_users=sample_users, sample_seed=sample_seed,
     )
     _stage_end("R2: item-based CF top-K ranking", ts)
     logger.info("Item-based CF ranking: P@%d=%.4f, HR@%d=%.4f",
@@ -241,6 +244,7 @@ def run_requirement_2(dataset, train, val, test, config: dict, results_dir: Path
         dataset.user_to_idx, dataset.item_to_idx,
         k=k, relevance_threshold=config.get("relevance_threshold", 4),
         label="MF",
+        sample_users=sample_users, sample_seed=sample_seed,
     )
     _stage_end("R2: MF top-K ranking", ts)
     logger.info("MF ranking: P@%d=%.4f, HR@%d=%.4f",
@@ -358,6 +362,8 @@ def run_requirement_3(dataset, train, val, test, baseline, config: dict, results
     lambda_values = social_config.get("lambda_values", [0.0, 0.1, 0.3, 0.5, 0.7])
     k_similar = social_config.get("k_similar", 20)
     k = config.get("top_k", 10)
+    sample_users = config.get("ranking_sample_users", None)
+    sample_seed = config.get("ranking_sample_seed", 42)
 
     results = {}
 
@@ -371,6 +377,7 @@ def run_requirement_3(dataset, train, val, test, baseline, config: dict, results
         dataset.user_to_idx, dataset.item_to_idx,
         k=k, relevance_threshold=config.get("relevance_threshold", 4),
         label="R3 baseline",
+        sample_users=sample_users, sample_seed=sample_seed,
     )
     _stage_end("R3: baseline evaluation", ts)
     results["baseline"] = {"prediction": baseline_pred, "ranking": baseline_rank}
@@ -393,6 +400,7 @@ def run_requirement_3(dataset, train, val, test, baseline, config: dict, results
             dataset.user_to_idx, dataset.item_to_idx,
             k=k, relevance_threshold=config.get("relevance_threshold", 4),
             label=f"Social lambda={lam}",
+            sample_users=sample_users, sample_seed=sample_seed,
         )
         _stage_end(f"R3: social lambda={lam}", ts)
         results[f"social_lambda_{lam}"] = {"prediction": soc_pred, "ranking": soc_rank}
@@ -499,12 +507,21 @@ def run_requirement_3(dataset, train, val, test, baseline, config: dict, results
 # ---------------------------------------------------------------------------
 
 def _affinity_fn_factory(recommender, item_idx: int, user_to_idx: dict,
-                         default_affinity: float = 0.3):
+                         default_affinity: float = 0.3, n_users: int = 0):
     """Create an affinity function for a specific item.
 
     affinity(u) = clip((predicted_rating(u, item) - 1) / 4, 0, 1)
     Falls back to default_affinity if no prediction is available.
+    Uses vectorized precomputation when predict_batch is available.
     """
+    if hasattr(recommender, "predict_batch") and n_users > 0:
+        all_u = np.arange(n_users, dtype=np.int64)
+        all_i = np.full(n_users, item_idx, dtype=np.int64)
+        preds = recommender.predict_batch(all_u, all_i)
+        aff_arr = np.clip((preds - 1.0) / 4.0, 0.0, 1.0)
+        aff_arr[np.isnan(aff_arr)] = default_affinity
+        return lambda user_idx: float(aff_arr[user_idx]) if 0 <= user_idx < n_users else default_affinity
+
     def affinity(user_idx):
         pred = recommender.predict(user_idx, item_idx)
         if pred is None or np.isnan(pred):
@@ -528,6 +545,34 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     recovery_probs = diff_config.get("recovery_probs", [0.0, 0.1, 0.3, 0.5])
     default_affinity = diff_config.get("default_affinity", 0.3)
 
+    # Graph configuration: full propagation graph vs. documented subgraph (fast demo)
+    subgraph_cfg = diff_config.get("subgraph", {})
+    if subgraph_cfg.get("enabled", False):
+        center_user = subgraph_cfg.get("center_user", 0)
+        hops = subgraph_cfg.get("hops", 2)
+        sub_users, sub_trust, sub_prop = dataset.get_ego_network(center_user, hops=hops)
+        active_prop_graph = sub_prop
+        active_user_indices = sub_users
+        graph_info = {
+            "type": "ego_subgraph",
+            "center_user": center_user,
+            "hops": hops,
+            "n_users": len(sub_users),
+            "n_edges": sum(len(v) for v in sub_prop.values()),
+        }
+        logger.info("Using documented ego subgraph for diffusion: center=%d, hops=%d (%d users, %d edges)",
+                    center_user, hops, len(sub_users), graph_info["n_edges"])
+    else:
+        active_prop_graph = dataset.propagation_graph
+        active_user_indices = set(range(dataset.n_users))
+        graph_info = {
+            "type": "full_graph",
+            "n_users": dataset.n_users,
+            "n_edges": sum(len(v) for v in dataset.propagation_graph.values()),
+        }
+        logger.info("Using full propagation graph for diffusion: %d users, %d edges",
+                    graph_info["n_users"], graph_info["n_edges"])
+
     # Select a target item for diffusion (moderately popular)
     from collections import Counter
     item_counts = Counter()
@@ -547,17 +592,17 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
         if iid == target_item_orig:
             rated_users.add(dataset.user_to_idx[uid])
 
-    # Select seed users from those who haven't rated it
-    all_user_indices = set(range(dataset.n_users))
-    eligible = list(all_user_indices - rated_users)
+    # Select seed users from active users who haven't rated it
+    eligible = list(active_user_indices - rated_users)
 
-    # Affinity function
+    # Affinity function (vectorized precomputation)
     aff_fn = _affinity_fn_factory(recommender, target_item_idx, dataset.user_to_idx,
-                                  default_affinity=default_affinity)
+                                  default_affinity=default_affinity, n_users=dataset.n_users)
 
     rng = np.random.RandomState(base_seed)
     results = {
         "target_item": {"original_id": target_item_orig, "idx": target_item_idx},
+        "graph_info": graph_info,
         "seed_size": seed_size,
         "n_simulations": n_simulations,
         "icm_canonical": {},
@@ -576,7 +621,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             seed_users = set(rng.choice(eligible, size=min(seed_size, len(eligible)), replace=False))
 
             icm = ICMSimulator(
-                dataset.propagation_graph, propagation_prob=p_prob,
+                active_prop_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
             )
             result = icm.run_canonical(seed_users)
@@ -613,7 +658,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             seed_users = set(rng.choice(eligible, size=min(seed_size, len(eligible)), replace=False))
 
             icm = ICMSimulator(
-                dataset.propagation_graph, propagation_prob=p_prob,
+                active_prop_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
             )
             result = icm.run_preference_aware(
@@ -655,12 +700,12 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
                 seed_users = set(rng.choice(eligible, size=min(seed_size, len(eligible)), replace=False))
 
                 sir = SIRSimulator(
-                    dataset.propagation_graph, transmission_prob=p_prob,
+                    active_prop_graph, transmission_prob=p_prob,
                     recovery_prob=g_prob, max_rounds=max_rounds, seed=sim_seed,
                 )
                 result = sir.run(seed_users, affinity_fn=aff_fn,
                                 base_adopt_prob=diff_config.get("base_adopt_prob", 0.5),
-                                all_users=all_user_indices)
+                                all_users=active_user_indices)
                 run_results.append({
                     "sim_seed": sim_seed,
                     "n_ever_infected": result["n_ever_infected"],

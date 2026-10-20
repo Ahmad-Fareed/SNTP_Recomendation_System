@@ -6,6 +6,8 @@
   "val_frac": 0.15,
   "top_k": 10,
   "relevance_threshold": 4,
+  "ranking_sample_users": 500,
+  "ranking_sample_seed": 42,
   "item_based_cf": {
     "max_neighbors": 30,
     "min_corated": 2
@@ -27,10 +29,16 @@
     "comparison_sample": 50
   },
   "diffusion": {
-    "n_simulations": 5,
+    "subgraph": {
+      "enabled": true,
+      "method": "ego_network",
+      "center_user": 0,
+      "hops": 2
+    },
+    "n_simulations": 3,
     "seed_size": 5,
     "seed": 42,
-    "max_rounds": 30,
+    "max_rounds": 25,
     "propagation_probs": [
       0.01,
       0.05

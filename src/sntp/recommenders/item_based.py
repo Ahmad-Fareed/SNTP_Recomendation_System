@@ -18,6 +18,23 @@ Similarity formula — Adjusted Cosine:
 
   This removes user-specific rating bias before computing cosine similarity.
 
+Implementation notes:
+  - Similarities are computed with blocked sparse matrix products
+    (C^T C on the user-mean-centred training matrix C, and B^T B on its binary
+    pattern for co-rated counts) instead of a Python loop over user item pairs.
+  - Neighbour selection keeps the ``max_neighbors`` largest |sim| per item;
+    ties in |sim| are broken by ascending neighbour index (deterministic).
+    Pairs whose dot product is exactly 0 (sim = 0) are not stored: they
+    contribute 0 to both numerator and denominator, so predictions are
+    unaffected.
+
+Ranking candidates (``recommend_batch``):
+  - Items reachable through the neighbour graph from the user's rated items
+    are scored with the weighted average; every other eligible item has the
+    fallback score (user mean).  Only neighbour-reachable items plus the
+    ``n`` lowest-index fallback items are materialised, which yields exactly
+    the same top-n as scoring the whole catalogue.
+
 Limitations:
   - Requires co-rated users; items with very few ratings have unreliable similarities.
   - Cold-start items (no training ratings) cannot be recommended.
@@ -26,12 +43,13 @@ Limitations:
 
 import logging
 import time
-from collections import defaultdict
 
 import numpy as np
 from scipy import sparse
 
-from sntp.recommenders._ranking import top_n_from_scores
+from sntp.recommenders._ranking import (
+    exclusion_pairs, rows_or_empty, top_n_batch_from_candidates, top_n_from_scores,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +57,8 @@ logger = logging.getLogger(__name__)
 class ItemBasedCF:
     """Item-based collaborative filtering with adjusted cosine similarity."""
 
-    def __init__(self, max_neighbors: int = 50, min_corated: int = 2):
+    def __init__(self, max_neighbors: int = 50, min_corated: int = 2,
+                 block_size: int = 8192):
         """
         Parameters
         ----------
@@ -47,9 +66,13 @@ class ItemBasedCF:
             Maximum number of similar items stored per item.
         min_corated : int
             Minimum co-rated users required to compute a similarity.
+        block_size : int
+            Number of target items per sparse-product block in ``fit``
+            (bounds peak memory; does not affect results).
         """
         self.max_neighbors = max_neighbors
         self.min_corated = min_corated
+        self.block_size = block_size
         self.similarities = {}   # item_idx -> [(neighbor_idx, sim), ...]
         self.user_means = None
         self.global_mean = 0.0
@@ -59,6 +82,15 @@ class ItemBasedCF:
         # similarities, in CSC so a user's rated-item columns slice cheaply.
         self._sim_csc = None
         self._abs_sim_csc = None
+        # CSR copies (row = target item) and transposes for batched scoring.
+        self._sim_csr = None
+        self._abs_sim_csr = None
+        self._simT_csr = None
+        self._abs_simT_csr = None
+        # Training rating matrix (float64) and its binary pattern.
+        self._R_csr = None
+        self._B_csr = None
+        self._user_counts = None
         # Per-user arrays for vectorized scoring.
         self._user_items_arr = {}   # user_idx -> np.ndarray[int]
         self._user_ratings_arr = {}  # user_idx -> np.ndarray[float]
@@ -74,19 +106,24 @@ class ItemBasedCF:
             user_idx -> [(item_idx, rating), ...]
         item_ratings : dict[int, list[tuple[int, int]]]
             item_idx -> [(user_idx, rating), ...]
+            (kept for API compatibility; the same data is read from
+            ``rating_matrix``).
         """
         t0 = time.time()
-        self.n_items = rating_matrix.shape[1]
-        n_users = rating_matrix.shape[0]
+        R = sparse.csr_matrix(rating_matrix, dtype=np.float64, copy=True)
+        R.sum_duplicates()
+        R.sort_indices()
+        R.eliminate_zeros()
+        n_users, self.n_items = R.shape
+        n_items = self.n_items
 
-        # Compute user means (over observed ratings only)
+        # User means over observed ratings only.
+        counts = np.diff(R.indptr)
+        sums = np.asarray(R.sum(axis=1)).ravel()
         self.user_means = np.zeros(n_users, dtype=np.float64)
-        user_counts = np.zeros(n_users, dtype=np.float64)
-        for uidx, items in user_ratings.items():
-            ratings_arr = [r for _, r in items]
-            if ratings_arr:
-                self.user_means[uidx] = np.mean(ratings_arr)
-                user_counts[uidx] = len(ratings_arr)
+        has = counts > 0
+        self.user_means[has] = sums[has] / counts[has]
+        self._user_counts = counts
 
         self.global_mean = float(rating_matrix.data.mean()) if rating_matrix.nnz > 0 else 3.0
 
@@ -95,76 +132,76 @@ class ItemBasedCF:
         for uidx, items in user_ratings.items():
             self.train_user_ratings[uidx] = {iidx: r for iidx, r in items}
 
-        # Build item -> set of (user_idx, adjusted_rating) for similarity computation
-        item_user_adj = {}  # item_idx -> dict{user_idx: adjusted_rating}
-        for iidx, users in item_ratings.items():
-            item_user_adj[iidx] = {}
-            for uidx, r in users:
-                item_user_adj[iidx][uidx] = r - self.user_means[uidx]
+        # Mean-centred matrix C and binary co-rating pattern B.
+        row_of = np.repeat(np.arange(n_users), counts)
+        adj = R.data - self.user_means[row_of]
+        C = sparse.csr_matrix((adj, R.indices.copy(), R.indptr.copy()), shape=R.shape)
+        B32 = sparse.csr_matrix((np.ones(R.nnz, dtype=np.float32), R.indices.copy(),
+                                 R.indptr.copy()), shape=R.shape)
+        norms = np.sqrt(np.bincount(R.indices, weights=adj * adj, minlength=n_items))
+        item_pop = np.bincount(R.indices, minlength=n_items)
+        n_rated_items = int((item_pop > 0).sum())
+        logger.info("Computing item-item similarities for %d items (blocked sparse products)...",
+                    n_rated_items)
 
-        # Compute similarities
-        item_indices = sorted(item_ratings.keys())
-        logger.info("Computing item-item similarities for %d items...", len(item_indices))
-
-        # For efficiency, build inverted index: user -> items they rated
-        user_items_set = defaultdict(set)
-        for iidx, users in item_ratings.items():
-            for uidx, _ in users:
-                user_items_set[uidx].add(iidx)
-
-        # Compute pairwise similarities using co-rated users
-        # For scalability, iterate through users and accumulate dot products
-        # between pairs of items that they co-rated.
-        n_items_total = self.n_items
-        # Use dictionaries to accumulate numerator and denominator components
-        dot_products = defaultdict(float)    # (i, j) -> sum of adjusted products
-        norms_sq = defaultdict(float)        # item_idx -> sum of squared adjusted ratings
-        corated_counts = defaultdict(int)    # (i, j) -> count of co-rated users
-
-        # Pre-compute item norms
-        for iidx in item_indices:
-            for uidx, adj_r in item_user_adj[iidx].items():
-                norms_sq[iidx] += adj_r ** 2
-
-        # Accumulate dot products through user iteration
-        for uidx, items in user_items_set.items():
-            items_list = sorted(items)
-            for idx_a in range(len(items_list)):
-                i = items_list[idx_a]
-                adj_i = item_user_adj[i].get(uidx, 0.0)
-                for idx_b in range(idx_a + 1, len(items_list)):
-                    j = items_list[idx_b]
-                    adj_j = item_user_adj[j].get(uidx, 0.0)
-                    pair = (i, j) if i < j else (j, i)
-                    dot_products[pair] += adj_i * adj_j
-                    corated_counts[pair] += 1
-
-        # Build neighbor lists
-        item_neighbors = defaultdict(list)
-        for (i, j), dot in dot_products.items():
-            if corated_counts[(i, j)] < self.min_corated:
+        Ct = C.T.tocsr()      # items x users
+        Bt = B32.T.tocsr()
+        K = self.max_neighbors
+        rows_parts, cols_parts, sims_parts = [], [], []
+        t_last = time.time()
+        for a in range(0, n_items, self.block_size):
+            b = min(a + self.block_size, n_items)
+            if item_pop[a:b].sum() == 0:
                 continue
-            norm_i = np.sqrt(norms_sq.get(i, 0))
-            norm_j = np.sqrt(norms_sq.get(j, 0))
-            if norm_i < 1e-10 or norm_j < 1e-10:
-                continue
-            sim = dot / (norm_i * norm_j)
-            item_neighbors[i].append((j, sim))
-            item_neighbors[j].append((i, sim))
+            dots = (Ct[a:b] @ C).tocoo()         # sum of adjusted products
+            cnt = (Bt[a:b] @ B32).tocsr()         # co-rated user counts
+            r_loc, c = dots.row.astype(np.int64), dots.col.astype(np.int64)
+            d = dots.data
+            r = r_loc + a
+            # Co-rated counts at the same (row, col) positions.
+            cnt_vals = np.asarray(cnt[r_loc, c]).ravel()
+            ok = (cnt_vals >= self.min_corated) & (r != c)
+            ok &= (norms[r] >= 1e-10) & (norms[c] >= 1e-10)
+            r, c, d = r[ok], c[ok], d[ok]
+            s = d / (norms[r] * norms[c])
+            if r.size:
+                # Top-K by |sim| desc, ties -> ascending neighbour index.
+                order = np.lexsort((c, -np.abs(s), r))
+                r, c, s = r[order], c[order], s[order]
+                starts = np.searchsorted(r, r, side="left")
+                keep = (np.arange(r.size) - starts) < K
+                rows_parts.append(r[keep])
+                cols_parts.append(c[keep])
+                sims_parts.append(s[keep])
+            if time.time() - t_last >= 15:
+                logger.info("  item similarity blocks: %d/%d items done (%.0fs)",
+                            b, n_items, time.time() - t0)
+                t_last = time.time()
 
-        # Keep top-K neighbors per item
-        for iidx in item_neighbors:
-            neighbors = item_neighbors[iidx]
-            neighbors.sort(key=lambda x: -abs(x[1]))
-            self.similarities[iidx] = neighbors[:self.max_neighbors]
+        if rows_parts:
+            rows = np.concatenate(rows_parts)
+            cols = np.concatenate(cols_parts)
+            sims = np.concatenate(sims_parts)
+        else:
+            rows = cols = np.zeros(0, dtype=np.int64)
+            sims = np.zeros(0, dtype=np.float64)
 
-        self._build_scoring_structures()
+        # Neighbour lists (already ordered by |sim| desc, index asc).
+        self.similarities = {}
+        bounds = np.searchsorted(rows, np.arange(n_items + 1), side="left")
+        cols_l, sims_l = cols.tolist(), sims.tolist()
+        for iidx in np.flatnonzero(np.diff(bounds)).tolist():
+            lo, hi = bounds[iidx], bounds[iidx + 1]
+            self.similarities[iidx] = list(zip(cols_l[lo:hi], sims_l[lo:hi]))
+
+        self._R_csr = R
+        self._B_csr = sparse.csr_matrix((np.ones(R.nnz), R.indices, R.indptr), shape=R.shape)
+        self._build_scoring_structures(rows, cols, sims)
 
         elapsed = time.time() - t0
-        n_with_neighbors = sum(1 for v in self.similarities.values() if v)
         logger.info(
-            "Item-based CF fitted in %.1fs. %d / %d items have neighbors.",
-            elapsed, n_with_neighbors, len(item_indices),
+            "Item-based CF fitted in %.1fs. %d / %d items have neighbors (%d stored pairs).",
+            elapsed, len(self.similarities), n_rated_items, sims.size,
         )
 
     def predict(self, user_idx: int, item_idx: int,
@@ -195,8 +232,8 @@ class ItemBasedCF:
 
         return float(np.clip(pred, rating_min, rating_max))
 
-    def _build_scoring_structures(self):
-        """Build sparse similarity matrices and per-user arrays for score_all().
+    def _build_scoring_structures(self, rows, cols, sims):
+        """Build sparse similarity matrices and per-user arrays for scoring.
 
         S[i, j] = sim(i, j) for every stored neighbor j of target item i, so
         for a user u with rated items J_u and ratings r_u:
@@ -204,20 +241,18 @@ class ItemBasedCF:
             den = |S|[:, J_u] @ 1      (= sum_j |sim(i,j)|         for all i)
         which is exactly the per-item computation in predict().
         """
-        rows, cols, data = [], [], []
-        for iidx, neighbors in self.similarities.items():
-            for j, sim in neighbors:
-                rows.append(iidx)
-                cols.append(j)
-                data.append(sim)
         shape = (self.n_items, self.n_items)
-        sim_mat = sparse.csc_matrix(
-            (np.asarray(data, dtype=np.float64),
+        sim_csr = sparse.csr_matrix(
+            (np.asarray(sims, dtype=np.float64),
              (np.asarray(rows, dtype=np.int64), np.asarray(cols, dtype=np.int64))),
             shape=shape,
         )
-        self._sim_csc = sim_mat
-        self._abs_sim_csc = abs(sim_mat)
+        self._sim_csr = sim_csr
+        self._abs_sim_csr = abs(sim_csr)
+        self._sim_csc = sim_csr.tocsc()
+        self._abs_sim_csc = abs(self._sim_csc)
+        self._simT_csr = sim_csr.T.tocsr()
+        self._abs_simT_csr = self._abs_sim_csr.T.tocsr()
 
         self._user_items_arr = {}
         self._user_ratings_arr = {}
@@ -268,3 +303,119 @@ class ItemBasedCF:
 
         scores = self.score_all(user_idx)
         return top_n_from_scores(scores, n, exclude)
+
+    # ------------------------------------------------------------------
+    # Batched / vectorized paths
+    # ------------------------------------------------------------------
+
+    def _fallback_values(self, users: np.ndarray, rating_min: float,
+                         rating_max: float) -> np.ndarray:
+        """Per-user fallback (user mean, else global mean), clipped."""
+        users = np.asarray(users, dtype=np.int64)
+        n_rows = self.user_means.shape[0]
+        inr = (users >= 0) & (users < n_rows)
+        fb = np.full(users.shape[0], self.global_mean, dtype=np.float64)
+        safe = np.where(inr, users, 0)
+        has = inr & (self._user_counts[safe] > 0)
+        fb[has] = self.user_means[users[has]]
+        return np.clip(fb, rating_min, rating_max)
+
+    def predict_batch(self, user_idx: np.ndarray, item_idx: np.ndarray,
+                      rating_min: float = 1.0, rating_max: float = 5.0) -> np.ndarray:
+        """Vectorized :meth:`predict` for aligned arrays of (user, item) pairs."""
+        u = np.asarray(user_idx, dtype=np.int64)
+        i = np.asarray(item_idx, dtype=np.int64)
+        if u.size == 0:
+            return np.zeros(0, dtype=np.float64)
+        R_rows = rows_or_empty(self._R_csr, u)
+        B_rows = rows_or_empty(self._B_csr, u)
+        num = np.asarray(rows_or_empty(self._sim_csr, i).multiply(R_rows).sum(axis=1)).ravel()
+        den = np.asarray(rows_or_empty(self._abs_sim_csr, i).multiply(B_rows).sum(axis=1)).ravel()
+        # Unclipped user-mean / global-mean fallback (clipped below, as predict()).
+        fb = self._fallback_values(u, -np.inf, np.inf)
+        has_nb = den > 1e-10
+        pred = fb
+        pred[has_nb] = num[has_nb] / den[has_nb]
+        return np.clip(pred, rating_min, rating_max)
+
+    def score_batch(self, user_indices, rating_min: float = 1.0,
+                    rating_max: float = 5.0) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of :meth:`score_all`."""
+        users = np.asarray(user_indices, dtype=np.int64)
+        num = (rows_or_empty(self._R_csr, users) @ self._simT_csr).toarray()
+        den = (rows_or_empty(self._B_csr, users) @ self._abs_simT_csr).toarray()
+        fb = self._fallback_values(users, -np.inf, np.inf)
+        scores = np.broadcast_to(fb[:, None], num.shape).copy()
+        has_nb = den > 1e-10
+        scores[has_nb] = num[has_nb] / den[has_nb]
+        np.clip(scores, rating_min, rating_max, out=scores)
+        return scores
+
+    def recommend_batch(self, user_indices, n: int = 10, excludes=None,
+                        candidate_mask: np.ndarray | None = None,
+                        rating_min: float = 1.0, rating_max: float = 5.0):
+        """Top-n for many users using sparse candidate generation.
+
+        Candidates are (a) items reachable through the neighbour graph from
+        the user's rated items (scored by the weighted average) and (b) the
+        ``n`` lowest-index remaining eligible items, which all carry the
+        fallback score.  Because every non-reachable item has the identical
+        fallback score and ties are broken by ascending index, this returns
+        exactly the same lists as full-catalogue scoring restricted to
+        ``candidate_mask`` (all items when None).
+
+        Excluded: ``excludes[r]`` for each user plus the user's training items.
+        """
+        users = np.asarray(user_indices, dtype=np.int64)
+        b = users.shape[0]
+        n_items = self.n_items
+        if b == 0 or n <= 0:
+            return [[] for _ in range(b)]
+        cm = (np.ones(n_items, dtype=bool) if candidate_mask is None
+              else np.asarray(candidate_mask, dtype=bool))
+
+        # (row, item) pairs that must never be returned.
+        ex_r, ex_c = exclusion_pairs(users, n_items, excludes, self.train_user_ratings)
+        ex_keys = np.unique(ex_r * n_items + ex_c)
+
+        # (a) neighbour-reachable candidates, scored on the sparse structure.
+        den = (rows_or_empty(self._B_csr, users) @ self._abs_simT_csr).tocsr()
+        num = (rows_or_empty(self._R_csr, users) @ self._simT_csr).tocsr()
+        den.sort_indices()
+        num.sort_indices()
+        den_r = np.repeat(np.arange(b, dtype=np.int64), np.diff(den.indptr))
+        den_keys = den_r * n_items + den.indices
+        num_r = np.repeat(np.arange(b, dtype=np.int64), np.diff(num.indptr))
+        num_keys = num_r * n_items + num.indices
+        num_on_den = np.zeros(den.nnz, dtype=np.float64)
+        if num.nnz:
+            # num's sparsity pattern is a subset of den's (sim != 0 => |sim| > 0).
+            num_on_den[np.searchsorted(den_keys, num_keys)] = num.data
+        reach = den.data > 1e-10
+        cand_ok = reach & cm[den.indices] & ~np.isin(den_keys, ex_keys)
+        c_rows = den_r[cand_ok]
+        c_cols = den.indices[cand_ok].astype(np.int64)
+        c_vals = np.clip(num_on_den[cand_ok] / den.data[cand_ok], rating_min, rating_max)
+
+        # (b) fallback items: n lowest-index eligible items that are neither
+        # excluded nor neighbour-reachable (they all share the fallback score).
+        fb = self._fallback_values(users, rating_min, rating_max)
+        eligible = np.flatnonzero(cm)
+        reach_keys = den_keys[reach]
+        blocked_keys = np.union1d(ex_keys, reach_keys)
+        blk_r = blocked_keys // n_items
+        blk_bounds = np.searchsorted(blk_r, np.arange(b + 1))
+        f_rows, f_cols = [], []
+        for r in range(b):
+            blocked = blocked_keys[blk_bounds[r]:blk_bounds[r + 1]] - r * n_items
+            prefix = eligible[:n + blocked.shape[0]]
+            picked = prefix[~np.isin(prefix, blocked, assume_unique=True)][:n]
+            f_rows.append(np.full(picked.shape[0], r, dtype=np.int64))
+            f_cols.append(picked)
+        f_rows = np.concatenate(f_rows) if f_rows else np.zeros(0, dtype=np.int64)
+        f_cols = np.concatenate(f_cols) if f_cols else np.zeros(0, dtype=np.int64)
+
+        rows = np.concatenate([c_rows, f_rows])
+        cols = np.concatenate([c_cols, f_cols])
+        vals = np.concatenate([c_vals, fb[f_rows]])
+        return top_n_batch_from_candidates(rows, cols, vals, b, n)

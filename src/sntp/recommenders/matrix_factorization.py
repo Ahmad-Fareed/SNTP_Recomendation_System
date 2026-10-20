@@ -36,7 +36,7 @@ import time
 
 import numpy as np
 
-from sntp.recommenders._ranking import top_n_from_scores
+from sntp.recommenders._ranking import recommend_batch_dense, top_n_from_scores
 
 logger = logging.getLogger(__name__)
 
@@ -269,3 +269,47 @@ class BiasedMF:
 
         scores = self.score_all(user_idx)
         return top_n_from_scores(scores, n, exclude)
+
+    # ------------------------------------------------------------------
+    # Batched / vectorized paths
+    # ------------------------------------------------------------------
+
+    def predict_batch(self, user_idx: np.ndarray, item_idx: np.ndarray,
+                      rating_min: float = 1.0, rating_max: float = 5.0) -> np.ndarray:
+        """Vectorized :meth:`predict` for aligned arrays of (user, item) pairs."""
+        u = np.asarray(user_idx, dtype=np.int64)
+        i = np.asarray(item_idx, dtype=np.int64)
+        pred = np.full(u.shape[0], self.global_mean, dtype=np.float64)
+        if self.user_bias is None:
+            return np.clip(pred, rating_min, rating_max)
+        u_ok = (u >= 0) & (u < self.n_users)
+        i_ok = (i >= 0) & (i < self.n_items)
+        pred[u_ok] += self.user_bias[u[u_ok]]
+        pred[i_ok] += self.item_bias[i[i_ok]]
+        both = u_ok & i_ok
+        pred[both] += np.einsum("ij,ij->i", self.user_factors[u[both]],
+                                self.item_factors[i[both]])
+        return np.clip(pred, rating_min, rating_max)
+
+    def score_batch(self, user_indices, rating_min: float = 1.0,
+                    rating_max: float = 5.0) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of :meth:`score_all`."""
+        users = np.asarray(user_indices, dtype=np.int64)
+        out = np.empty((users.shape[0], self.n_items), dtype=np.float64)
+        inr = (users >= 0) & (users < self.n_users)
+        out[~inr] = self.global_mean + self.item_bias
+        if inr.any():
+            uu = users[inr]
+            # Same left-to-right addition order as score_all().
+            out[inr] = ((self.global_mean + self.user_bias[uu])[:, None]
+                        + self.item_bias[None, :]
+                        + self.user_factors[uu] @ self.item_factors.T)
+        np.clip(out, rating_min, rating_max, out=out)
+        return out
+
+    def recommend_batch(self, user_indices, n: int = 10, excludes=None,
+                        candidate_mask: np.ndarray | None = None):
+        """Top-n unseen items for many users (vectorized; same ordering rules
+        as :meth:`recommend`, restricted to ``candidate_mask`` if given)."""
+        return recommend_batch_dense(self.score_batch, user_indices, n, self.n_items,
+                                     excludes, self._train_user_items, candidate_mask)

@@ -7,12 +7,15 @@
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0008824116590137752,
-      "hit_rate_at_k": 0.008704332202036334,
+      "precision_at_k": 0.0012,
+      "hit_rate_at_k": 0.01,
       "k": 10,
       "relevance_threshold": 4,
-      "n_users_evaluated": 25045,
-      "eval_time_seconds": 168.12
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 2.2
     }
   },
   "social_lambda_0.0": {
@@ -23,12 +26,15 @@
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0008824116590137752,
-      "hit_rate_at_k": 0.008704332202036334,
+      "precision_at_k": 0.0012,
+      "hit_rate_at_k": 0.01,
       "k": 10,
       "relevance_threshold": 4,
-      "n_users_evaluated": 25045,
-      "eval_time_seconds": 189.71
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 3.5
     }
   },
   "social_lambda_0.3": {
@@ -39,12 +45,15 @@
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0009542822918746256,
-      "hit_rate_at_k": 0.0093831104012777,
+      "precision_at_k": 0.0014000000000000002,
+      "hit_rate_at_k": 0.012,
       "k": 10,
       "relevance_threshold": 4,
-      "n_users_evaluated": 25045,
-      "eval_time_seconds": 209.54
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 3.29
     }
   },
   "social_lambda_0.5": {
@@ -55,12 +64,15 @@
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0011778798163306048,
-      "hit_rate_at_k": 0.011459373128368935,
+      "precision_at_k": 0.0015999999999999999,
+      "hit_rate_at_k": 0.014,
       "k": 10,
       "relevance_threshold": 4,
-      "n_users_evaluated": 25045,
-      "eval_time_seconds": 260.1
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 3.24
     }
   },
   "sparse_users_analysis": {

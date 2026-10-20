@@ -3,34 +3,41 @@
     "original_id": 127774,
     "idx": 127773
   },
+  "graph_info": {
+    "type": "ego_subgraph",
+    "center_user": 0,
+    "hops": 2,
+    "n_users": 9883,
+    "n_edges": 301710
+  },
   "seed_size": 5,
-  "n_simulations": 5,
+  "n_simulations": 3,
   "icm_canonical": {
     "p=0.01": {
       "propagation_prob": 0.01,
       "runs": [
         {
           "sim_seed": 42,
-          "n_adopters": 5,
-          "n_rounds": 1,
+          "n_adopters": 7,
+          "n_rounds": 3,
           "seed_users": [
-            22401,
-            26575,
-            12591,
-            47027,
-            18999
+            4169,
+            12267,
+            3023,
+            7060,
+            733
           ]
         },
         {
           "sim_seed": 43,
-          "n_adopters": 14,
-          "n_rounds": 6,
+          "n_adopters": 195,
+          "n_rounds": 21,
           "seed_users": [
-            747,
-            2544,
-            5718,
-            20758,
-            11006
+            2859,
+            12267,
+            1356,
+            35153,
+            882
           ]
         },
         {
@@ -38,43 +45,19 @@
           "n_adopters": 5,
           "n_rounds": 1,
           "seed_users": [
-            22440,
-            26453,
-            39770,
-            16638,
-            28351
-          ]
-        },
-        {
-          "sim_seed": 45,
-          "n_adopters": 5,
-          "n_rounds": 1,
-          "seed_users": [
-            35882,
-            40083,
-            26900,
-            28635,
-            30206
-          ]
-        },
-        {
-          "sim_seed": 46,
-          "n_adopters": 5,
-          "n_rounds": 1,
-          "seed_users": [
-            28609,
-            11244,
-            12274,
-            25912,
-            36860
+            1412,
+            7324,
+            6781,
+            10366,
+            6847
           ]
         }
       ],
       "summary": {
-        "mean_adopters": 6.8,
-        "std_adopters": 3.6000000000000005,
+        "mean_adopters": 69.0,
+        "std_adopters": 89.0991956566762,
         "min_adopters": 5,
-        "max_adopters": 14
+        "max_adopters": 195
       }
     },
     "p=0.05": {
@@ -82,26 +65,26 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_adopters": 7160,
-          "n_rounds": 15,
+          "n_adopters": 4697,
+          "n_rounds": 11,
           "seed_users": [
-            32453,
-            7501,
-            36561,
-            16691,
-            34526
+            384,
+            29249,
+            6631,
+            7124,
+            5561
           ]
         },
         {
           "sim_seed": 43,
-          "n_adopters": 7230,
-          "n_rounds": 17,
+          "n_adopters": 4646,
+          "n_rounds": 11,
           "seed_users": [
-            32483,
-            9671,
-            29356,
-            39980,
-            19505
+            1570,
+            21292,
+            2957,
+            1871,
+            10333
           ]
         },
         {
@@ -109,43 +92,19 @@
           "n_adopters": 5,
           "n_rounds": 1,
           "seed_users": [
-            22785,
-            16902,
-            16464,
-            23990,
-            1789
-          ]
-        },
-        {
-          "sim_seed": 45,
-          "n_adopters": 7124,
-          "n_rounds": 13,
-          "seed_users": [
-            13124,
-            10953,
-            41519,
-            39639,
-            10455
-          ]
-        },
-        {
-          "sim_seed": 46,
-          "n_adopters": 7046,
-          "n_rounds": 15,
-          "seed_users": [
-            9353,
-            31756,
-            4462,
-            37746,
-            21757
+            1923,
+            6511,
+            8370,
+            6938,
+            20763
           ]
         }
       ],
       "summary": {
-        "mean_adopters": 5713.0,
-        "std_adopters": 2854.6163314883493,
+        "mean_adopters": 3116.0,
+        "std_adopters": 2199.907725337588,
         "min_adopters": 5,
-        "max_adopters": 7230
+        "max_adopters": 4697
       }
     }
   },
@@ -155,14 +114,14 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_adopters": 5,
-          "n_exposed": 5,
-          "n_rounds": 1
+          "n_adopters": 7,
+          "n_exposed": 9,
+          "n_rounds": 2
         },
         {
           "sim_seed": 43,
           "n_adopters": 5,
-          "n_exposed": 5,
+          "n_exposed": 6,
           "n_rounds": 1
         },
         {
@@ -170,25 +129,13 @@
           "n_adopters": 5,
           "n_exposed": 5,
           "n_rounds": 1
-        },
-        {
-          "sim_seed": 45,
-          "n_adopters": 5,
-          "n_exposed": 5,
-          "n_rounds": 1
-        },
-        {
-          "sim_seed": 46,
-          "n_adopters": 5,
-          "n_exposed": 5,
-          "n_rounds": 1
         }
       ],
       "summary": {
-        "mean_adopters": 5.0,
-        "std_adopters": 0.0,
-        "mean_exposed": 5.0,
-        "std_exposed": 0.0
+        "mean_adopters": 5.666666666666667,
+        "std_adopters": 0.9428090415820634,
+        "mean_exposed": 6.666666666666667,
+        "std_exposed": 1.699673171197595
       }
     },
     "p=0.05": {
@@ -196,14 +143,14 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_adopters": 957,
-          "n_exposed": 2583,
-          "n_rounds": 16
+          "n_adopters": 794,
+          "n_exposed": 2061,
+          "n_rounds": 15
         },
         {
           "sim_seed": 43,
           "n_adopters": 5,
-          "n_exposed": 6,
+          "n_exposed": 9,
           "n_rounds": 1
         },
         {
@@ -211,25 +158,13 @@
           "n_adopters": 5,
           "n_exposed": 5,
           "n_rounds": 1
-        },
-        {
-          "sim_seed": 45,
-          "n_adopters": 6,
-          "n_exposed": 6,
-          "n_rounds": 2
-        },
-        {
-          "sim_seed": 46,
-          "n_adopters": 964,
-          "n_exposed": 2502,
-          "n_rounds": 26
         }
       ],
       "summary": {
-        "mean_adopters": 387.4,
-        "std_adopters": 467.9395687479314,
-        "mean_exposed": 1020.4,
-        "std_exposed": 1243.0534340888166
+        "mean_adopters": 268.0,
+        "std_adopters": 371.938166904124,
+        "mean_exposed": 691.6666666666666,
+        "std_exposed": 968.2662627374536
       }
     }
   },
@@ -240,53 +175,35 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_ever_infected": 5,
+          "n_ever_infected": 274,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 49284,
-          "final_I": 5,
+          "n_rounds": 25,
+          "final_S": 9609,
+          "final_I": 274,
           "final_R": 0
         },
         {
           "sim_seed": 43,
-          "n_ever_infected": 23,
+          "n_ever_infected": 91,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 49266,
-          "final_I": 23,
+          "n_rounds": 25,
+          "final_S": 9792,
+          "final_I": 91,
           "final_R": 0
         },
         {
           "sim_seed": 44,
-          "n_ever_infected": 1397,
+          "n_ever_infected": 3601,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 47892,
-          "final_I": 1397,
-          "final_R": 0
-        },
-        {
-          "sim_seed": 45,
-          "n_ever_infected": 5,
-          "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 49284,
-          "final_I": 5,
-          "final_R": 0
-        },
-        {
-          "sim_seed": 46,
-          "n_ever_infected": 11,
-          "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 49278,
-          "final_I": 11,
+          "n_rounds": 25,
+          "final_S": 6282,
+          "final_I": 3601,
           "final_R": 0
         }
       ],
       "summary": {
-        "mean_ever_infected": 288.2,
-        "std_ever_infected": 554.4389596700433
+        "mean_ever_infected": 1322.0,
+        "std_ever_infected": 1613.227200365776
       }
     },
     "beta=0.01_gamma=0.2": {
@@ -297,51 +214,33 @@
           "sim_seed": 42,
           "n_ever_infected": 5,
           "n_final_recovered": 5,
-          "n_rounds": 6,
-          "final_S": 49284,
+          "n_rounds": 2,
+          "final_S": 9878,
           "final_I": 0,
           "final_R": 5
         },
         {
           "sim_seed": 43,
-          "n_ever_infected": 5,
-          "n_final_recovered": 5,
-          "n_rounds": 7,
-          "final_S": 49284,
+          "n_ever_infected": 6,
+          "n_final_recovered": 6,
+          "n_rounds": 10,
+          "final_S": 9877,
           "final_I": 0,
-          "final_R": 5
+          "final_R": 6
         },
         {
           "sim_seed": 44,
-          "n_ever_infected": 7,
-          "n_final_recovered": 7,
-          "n_rounds": 22,
-          "final_S": 49282,
+          "n_ever_infected": 8,
+          "n_final_recovered": 8,
+          "n_rounds": 12,
+          "final_S": 9875,
           "final_I": 0,
-          "final_R": 7
-        },
-        {
-          "sim_seed": 45,
-          "n_ever_infected": 5,
-          "n_final_recovered": 5,
-          "n_rounds": 5,
-          "final_S": 49284,
-          "final_I": 0,
-          "final_R": 5
-        },
-        {
-          "sim_seed": 46,
-          "n_ever_infected": 5,
-          "n_final_recovered": 5,
-          "n_rounds": 4,
-          "final_S": 49284,
-          "final_I": 0,
-          "final_R": 5
+          "final_R": 8
         }
       ],
       "summary": {
-        "mean_ever_infected": 5.4,
-        "std_ever_infected": 0.7999999999999999
+        "mean_ever_infected": 6.333333333333333,
+        "std_ever_infected": 1.247219128924647
       }
     },
     "beta=0.05_gamma=0.0": {
@@ -350,53 +249,35 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_ever_infected": 18834,
+          "n_ever_infected": 8238,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 30455,
-          "final_I": 18834,
+          "n_rounds": 25,
+          "final_S": 1645,
+          "final_I": 8238,
           "final_R": 0
         },
         {
           "sim_seed": 43,
-          "n_ever_infected": 19087,
+          "n_ever_infected": 7979,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 30202,
-          "final_I": 19087,
+          "n_rounds": 25,
+          "final_S": 1904,
+          "final_I": 7979,
           "final_R": 0
         },
         {
           "sim_seed": 44,
-          "n_ever_infected": 17427,
+          "n_ever_infected": 8204,
           "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 31862,
-          "final_I": 17427,
-          "final_R": 0
-        },
-        {
-          "sim_seed": 45,
-          "n_ever_infected": 5,
-          "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 49284,
-          "final_I": 5,
-          "final_R": 0
-        },
-        {
-          "sim_seed": 46,
-          "n_ever_infected": 19870,
-          "n_final_recovered": 0,
-          "n_rounds": 30,
-          "final_S": 29419,
-          "final_I": 19870,
+          "n_rounds": 25,
+          "final_S": 1679,
+          "final_I": 8204,
           "final_R": 0
         }
       ],
       "summary": {
-        "mean_ever_infected": 15044.6,
-        "std_ever_infected": 7561.090307620985
+        "mean_ever_infected": 8140.333333333333,
+        "std_ever_infected": 114.92122906099155
       }
     },
     "beta=0.05_gamma=0.2": {
@@ -405,53 +286,35 @@
       "runs": [
         {
           "sim_seed": 42,
-          "n_ever_infected": 10149,
-          "n_final_recovered": 9154,
-          "n_rounds": 30,
-          "final_S": 39140,
-          "final_I": 995,
-          "final_R": 9154
+          "n_ever_infected": 5952,
+          "n_final_recovered": 5540,
+          "n_rounds": 25,
+          "final_S": 3931,
+          "final_I": 412,
+          "final_R": 5540
         },
         {
           "sim_seed": 43,
-          "n_ever_infected": 10362,
-          "n_final_recovered": 9763,
-          "n_rounds": 30,
-          "final_S": 38927,
-          "final_I": 599,
-          "final_R": 9763
+          "n_ever_infected": 6114,
+          "n_final_recovered": 5815,
+          "n_rounds": 25,
+          "final_S": 3769,
+          "final_I": 299,
+          "final_R": 5815
         },
         {
           "sim_seed": 44,
-          "n_ever_infected": 10146,
-          "n_final_recovered": 9825,
-          "n_rounds": 30,
-          "final_S": 39143,
-          "final_I": 321,
-          "final_R": 9825
-        },
-        {
-          "sim_seed": 45,
-          "n_ever_infected": 5,
-          "n_final_recovered": 5,
-          "n_rounds": 17,
-          "final_S": 49284,
-          "final_I": 0,
-          "final_R": 5
-        },
-        {
-          "sim_seed": 46,
-          "n_ever_infected": 10609,
-          "n_final_recovered": 9959,
-          "n_rounds": 30,
-          "final_S": 38680,
-          "final_I": 650,
-          "final_R": 9959
+          "n_ever_infected": 5825,
+          "n_final_recovered": 5477,
+          "n_rounds": 25,
+          "final_S": 4058,
+          "final_I": 348,
+          "final_R": 5477
         }
       ],
       "summary": {
-        "mean_ever_infected": 8254.2,
-        "std_ever_infected": 4128.108012152783
+        "mean_ever_infected": 5963.666666666667,
+        "std_ever_infected": 118.27181499504529
       }
     }
   }
