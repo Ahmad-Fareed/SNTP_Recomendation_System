@@ -422,7 +422,7 @@ Regression tests specifically guard the leakage and fairness claims:
   * data loading, split guarantees, recommender correctness, vectorized
     ranking equivalence.
 
-Latest test run: **87 passed in 3.07 s** (`python -m pytest -q`).
+Latest test run: **87 passed** in 4.72 s (`python -m pytest -q`); the suite is a few seconds, not a long-running experiment.
 
 ---
 
