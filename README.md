@@ -493,8 +493,9 @@ authoritative record for the submitted run.
 ## 7. Report generation
 
 The searchable PDF report is at `report/SNTP_Assignment_02_Report.pdf`. It is
-generated from the saved JSON, so the numbers in the report and in this README
-are not hand-copied independently:
+generated from the saved JSON, so the report's tables stay tied to the saved
+artifacts; the README summarizes the same values, and the JSON remains the
+authoritative record:
 
 ```powershell
 python -m pip install -r requirements-report.txt
