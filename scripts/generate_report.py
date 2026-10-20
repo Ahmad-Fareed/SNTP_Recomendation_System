@@ -97,13 +97,18 @@ def plain(value: Any) -> str:
     return str(value)
 
 
-def make_figure(draw, width: float = 165 * mm, height: float = 78 * mm) -> Image:
+def make_figure(draw, width: float = 165 * mm, height: float = 78 * mm,
+                output_path: Path | None = None) -> Image:
     buffer = io.BytesIO()
     fig = plt.figure(figsize=(7.0, 3.3), dpi=180)
     try:
         draw(fig)
         fig.tight_layout()
         fig.savefig(buffer, format="png", bbox_inches="tight", facecolor="white")
+        if output_path is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(output_path, format="png", dpi=200,
+                        bbox_inches="tight", facecolor="white")
     finally:
         plt.close(fig)
     buffer.seek(0)
@@ -281,8 +286,13 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     def caption(text: str) -> None:
         add(Paragraph(text, STYLE_CAPTION))
 
-    def fig(draw, text: str, width=165 * mm, height=76 * mm) -> None:
-        add(KeepTogether([make_figure(draw, width, height), Paragraph(text, STYLE_CAPTION)]))
+    def fig(draw, text: str, width=165 * mm, height=76 * mm,
+            name: str | None = None) -> None:
+        path = (Path(args.figures_dir) / name) if name else None
+        add(KeepTogether([
+            make_figure(draw, width, height, output_path=path),
+            Paragraph(text, STYLE_CAPTION),
+        ]))
 
     r2 = metrics["r2"]
     r3 = metrics["r3"]

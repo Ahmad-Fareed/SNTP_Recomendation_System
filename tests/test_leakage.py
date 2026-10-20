@@ -25,6 +25,7 @@ from sntp.selection import (
     build_rating_matrix,
     generate_seed_sets,
     make_simulation_seeds,
+    randomize_directed_graph_degree_preserving,
     select_target_item,
 )
 
@@ -139,21 +140,35 @@ def test_build_rating_matrix_uses_only_supplied_triples():
 
 
 def test_select_target_item_is_training_only_and_documented():
-    # Ten items: training counts 1..10.  The 40th-60th percentile band is
-    # roughly 4.6..6.4, so items 4 (count 5) and 5 (count 6) are in the band.
-    # Both are equally close to the median count 5.5; the ascending item ID
-    # tie-break selects item 4.
+    # Ten items: training counts 1..10.  The explicit 6-20 band contains
+    # counts 6..10; the band median is 8, selecting original item 7 (count 8).
     train = []
     item_to_idx = {}
     for item in range(10):
         item_to_idx[item] = item
         for u in range(item + 1):
             train.append((u, item, 4))
-    selected = select_target_item(train, item_to_idx, 0.4, 0.6)
-    assert selected["original_id"] == 4
-    assert selected["train_rating_count"] == 5
+    selected = select_target_item(train, item_to_idx, 6, 20)
+    assert selected["original_id"] == 7
+    assert selected["train_rating_count"] == 8
+    assert selected["band_min_train_ratings"] == 6
+    assert selected["band_max_train_ratings"] == 20
     assert selected["selection_rule"].startswith("Choose the item")
-    assert selected["used_median_fallback"] is False
+    assert selected["used_count_band_fallback"] is False
+
+    # The selected count is inside the documented band and the selection is
+    # independent of validation/test triples (none are passed to the helper).
+    assert 6 <= selected["train_rating_count"] <= 20
+
+
+def test_select_target_item_records_empty_band_fallback():
+    train = [(u, item, 4) for item in range(5) for u in range(item + 1)]
+    item_to_idx = {item: item for item in range(5)}
+    selected = select_target_item(train, item_to_idx, 6, 20)
+    assert selected["used_count_band_fallback"] is True
+    assert selected["band_size_items"] == 0
+    assert selected["train_rating_count"] == 5
+    assert "band midpoint" in selected["selection_rule"]
 
 
 def test_seed_sets_and_simulation_seeds_are_reproducible():
@@ -164,6 +179,42 @@ def test_seed_sets_and_simulation_seeds_are_reproducible():
     assert len(first) == 4
     assert all(len(s) == 5 and len(set(s)) == 5 for s in first)
     assert make_simulation_seeds(42, 4) == make_simulation_seeds(42, 4)
+
+
+def test_degree_preserving_randomization_is_a_controlled_null_model():
+    graph = {
+        0: [1, 2, 3],
+        1: [0, 3],
+        2: [0, 1],
+        3: [1, 2],
+        4: [],
+    }
+    first, info = randomize_directed_graph_degree_preserving(
+        graph, nodes=range(5), swap_multiplier=20, seed=7
+    )
+    second, info2 = randomize_directed_graph_degree_preserving(
+        graph, nodes=range(5), swap_multiplier=20, seed=7
+    )
+    assert first == second
+    assert info == info2
+    assert info["degree_sequence_preserved"] is True
+    assert info["n_nodes"] == 5
+    assert info["n_edges"] == sum(len(v) for v in graph.values())
+    assert set(first) == set(graph)
+    assert sum(len(v) for v in first.values()) == info["n_edges"]
+    out_before = {u: len(v) for u, v in graph.items()}
+    out_after = {u: len(v) for u, v in first.items()}
+    assert out_before == out_after
+    in_before = {u: sum(u in neighbours for neighbours in graph.values())
+                 for u in graph}
+    in_after = {u: sum(u in neighbours for neighbours in first.values())
+                for u in graph}
+    assert in_before == in_after
+    for u, neighbours in first.items():
+        assert u not in neighbours
+        assert len(neighbours) == len(set(neighbours))
+    # A 20x swap multiplier on this small graph should actually rearrange it.
+    assert first != graph
 
 
 def test_group_aggregation_is_hand_checkable():

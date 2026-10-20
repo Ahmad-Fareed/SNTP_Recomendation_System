@@ -25,8 +25,15 @@ Training:
 
   Missing ratings are never treated as zero — only observed ratings contribute to training.
 
+Cold-start fallbacks (training observations only):
+  - Untrained user, trained item: μ + b_i (the unseen user's bias/factors are
+    forced to zero after training).
+  - Trained user, untrained item: μ + b_u (the unseen item's bias/factors are
+    forced to zero after training).
+  - Untrained user and item: μ.
+  Random initial factors are never used as a cold-start prediction.
+
 Limitations:
-  - Cold-start: new users/items not in training get only bias + global mean.
   - Latent factors have no direct interpretability.
   - Requires tuning of d, α, λ, and number of epochs.
 """
@@ -36,7 +43,9 @@ import time
 
 import numpy as np
 
-from sntp.recommenders._ranking import recommend_batch_dense, top_n_from_scores
+from sntp.recommenders._ranking import (
+    clip_ranked, recommend_batch_dense, top_n_from_scores,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +83,10 @@ class BiasedMF:
         self.n_users = 0
         self.n_items = 0
         self._train_user_items = {}
+        self._user_seen = np.zeros(0, dtype=bool)
+        self._item_seen = np.zeros(0, dtype=bool)
+        self.n_users_with_training_ratings = 0
+        self.n_items_with_training_ratings = 0
 
     def fit(self, train_triples, n_users: int, n_items: int,
             user_to_idx: dict, item_to_idx: dict,
@@ -243,8 +256,13 @@ class BiasedMF:
         return float(np.clip(pred, rating_min, rating_max))
 
     def score_all(self, user_idx: int, rating_min: float = 1.0,
-                  rating_max: float = 5.0) -> np.ndarray:
-        """Clipped predicted rating for every catalogue item (vectorized predict)."""
+                  rating_max: float = 5.0, raw_scores: bool = False) -> np.ndarray:
+        """Predicted rating for every catalogue item (vectorized predict).
+
+        ``raw_scores=False`` (the public prediction path) clips to the rating
+        scale.  ``raw_scores=True`` returns the unclipped model score for
+        ranking; callers must clip only the reported rating after selection.
+        """
         if user_idx < self.n_users:
             preds = (self.global_mean
                      + self.user_bias[user_idx]
@@ -252,23 +270,27 @@ class BiasedMF:
                      + self.item_factors.dot(self.user_factors[user_idx]))
         else:
             preds = self.global_mean + self.item_bias
+        if raw_scores:
+            return np.asarray(preds, dtype=np.float64)
         return np.clip(preds, rating_min, rating_max)
 
     def recommend(self, user_idx: int, n: int = 10,
                   exclude: set | None = None) -> list[tuple[int, float]]:
         """Recommend top-n unseen items.
 
-        Every catalogue item is scored (full-catalogue ranking).
-        Returns list of (item_idx, predicted_rating) sorted descending; ties
-        are broken by ascending item index.
+        Every catalogue item is scored (full-catalogue ranking).  Items are
+        ordered by the **unclipped** model score; the returned predicted rating
+        is then clipped to [1, 5].  Ties in the raw score are broken by
+        ascending item index.
         """
         if exclude is None:
             exclude = set()
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        scores = self.score_all(user_idx)
-        return top_n_from_scores(scores, n, exclude)
+        raw_scores = self.score_all(user_idx, raw_scores=True)
+        ranked = top_n_from_scores(raw_scores, n, exclude)
+        return clip_ranked(ranked)
 
     # ------------------------------------------------------------------
     # Batched / vectorized paths
@@ -292,8 +314,11 @@ class BiasedMF:
         return np.clip(pred, rating_min, rating_max)
 
     def score_batch(self, user_indices, rating_min: float = 1.0,
-                    rating_max: float = 5.0) -> np.ndarray:
-        """Dense ``(n_users, n_items)`` version of :meth:`score_all`."""
+                    rating_max: float = 5.0, raw_scores: bool = False) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of :meth:`score_all`.
+
+        ``raw_scores=True`` leaves the model scores unclipped for ordering.
+        """
         users = np.asarray(user_indices, dtype=np.int64)
         out = np.empty((users.shape[0], self.n_items), dtype=np.float64)
         inr = (users >= 0) & (users < self.n_users)
@@ -304,12 +329,22 @@ class BiasedMF:
             out[inr] = ((self.global_mean + self.user_bias[uu])[:, None]
                         + self.item_bias[None, :]
                         + self.user_factors[uu] @ self.item_factors.T)
+        if raw_scores:
+            return out
         np.clip(out, rating_min, rating_max, out=out)
         return out
 
     def recommend_batch(self, user_indices, n: int = 10, excludes=None,
                         candidate_mask: np.ndarray | None = None):
-        """Top-n unseen items for many users (vectorized; same ordering rules
-        as :meth:`recommend`, restricted to ``candidate_mask`` if given)."""
-        return recommend_batch_dense(self.score_batch, user_indices, n, self.n_items,
-                                     excludes, self._train_user_items, candidate_mask)
+        """Top-n unseen items for many users (vectorized).
+
+        Ordering uses raw model scores; returned ratings are clipped.  The
+        rules and tie-breaking are identical to :meth:`recommend`, restricted
+        to ``candidate_mask`` if given.
+        """
+        ranked = recommend_batch_dense(
+            lambda users: self.score_batch(users, raw_scores=True),
+            user_indices, n, self.n_items,
+            excludes, self._train_user_items, candidate_mask,
+        )
+        return [clip_ranked(rows) for rows in ranked]

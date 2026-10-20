@@ -274,13 +274,22 @@ class TestItemBasedCF(unittest.TestCase):
             self.assertNotIn(item, seen_items)
 
     def test_user_mean_fallback(self):
-        """Item with no neighbors should fall back to user mean."""
-        # Remove all similarities to force fallback
+        """Unsupported item prediction uses a training-only user mean."""
+        # Remove all similarities to force the documented fallback chain.
         icf2 = ItemBasedCF(max_neighbors=10, min_corated=100)
         icf2.fit(self.matrix, dict(self.user_ratings), dict(self.item_ratings))
         pred = icf2.predict(0, 3)
         user_mean = (5 + 3 + 4) / 3
         self.assertAlmostEqual(pred, user_mean, places=2)
+
+        # The raw path exposes the same training-only fallback for ranking.
+        raw = icf2.score_all(0, raw_scores=True)
+        self.assertAlmostEqual(raw[3], user_mean, places=2)
+        recs = icf2.recommend(0, n=3)
+        self.assertTrue(recs)
+        self.assertTrue(all(1.0 <= score <= 5.0 for _, score in recs))
+        batch = icf2.recommend_batch([0], n=3)
+        self.assertEqual(batch[0], recs)
 
 
 class TestBiasedMF(unittest.TestCase):

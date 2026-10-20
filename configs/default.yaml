@@ -45,8 +45,12 @@ diffusion:
   recovery_probs: [0.0, 0.1, 0.3, 0.5]
   base_adopt_prob: 0.5
   default_affinity: 0.3
-  target_lower_quantile: 0.40
-  target_upper_quantile: 0.60
+  target_min_train_ratings: 6
+  target_max_train_ratings: 20
+  network_structure_comparison:
+    enabled: true
+    swap_multiplier: 2
+    seed: 4242
 
 influence:
   budgets: [1, 2, 5, 10]
@@ -74,8 +78,8 @@ evaluation:
   interaction_base_adopt_prob: 0.5
   interaction_max_rounds: 50
   interaction_default_affinity: 0.3
-  target_lower_quantile: 0.40
-  target_upper_quantile: 0.60
+  target_min_train_ratings: 6
+  target_max_train_ratings: 20
 
 intervention:
   thresholds: [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]
@@ -85,6 +89,8 @@ intervention:
   seed_size: 10
   max_rounds: 50
   default_affinity: 0.3
+  target_min_train_ratings: 6
+  target_max_train_ratings: 20
   seed: 42
   celf:
     budget: 5

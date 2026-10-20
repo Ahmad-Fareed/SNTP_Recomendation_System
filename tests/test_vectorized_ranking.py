@@ -22,17 +22,28 @@ from sntp.recommenders.matrix_factorization import BiasedMF
 from sntp.recommenders.social import SocialRecommender, SimilarUserRecommender
 
 
+def _raw_scores(rec, user_idx, n_items):
+    """Raw ordering scores, using the model's documented raw path when present."""
+    if hasattr(rec, "score_all"):
+        try:
+            return np.asarray(rec.score_all(user_idx, raw_scores=True), dtype=float)
+        except TypeError:
+            pass
+    return np.array([rec.predict(user_idx, i)
+                     for i in range(n_items)], dtype=float)
+
+
 def _brute_force_recommend(rec, user_idx, n, exclude, n_items):
-    """Reference: predict every item, stable sort by -score (original loop)."""
+    """Reference: stable-sort raw scores, then clip only reported ratings."""
+    scores = _raw_scores(rec, user_idx, n_items)
     candidates = []
     for iidx in range(n_items):
-        if iidx in exclude:
+        if iidx in exclude or not np.isfinite(scores[iidx]):
             continue
-        pred = rec.predict(user_idx, iidx)
-        if pred is not None:
-            candidates.append((iidx, pred))
+        candidates.append((iidx, float(scores[iidx])))
     candidates.sort(key=lambda x: -x[1])
-    return candidates[:n]
+    return [(iidx, float(np.clip(score, 1.0, 5.0)))
+            for iidx, score in candidates[:n]]
 
 
 def _random_ratings(n_users=60, n_items=80, density=0.12, seed=0):
@@ -228,6 +239,53 @@ class TestSocialVectorized(unittest.TestCase):
         sr.set_training_data({1: {0: 5.0, 3: 2.0}})
         ref = [sr.predict(0, i) for i in range(4)]
         np.testing.assert_allclose(sr.score_all(0), ref)
+
+
+class TestRawScoreOrdering(unittest.TestCase):
+    """Regression tests for ranking on raw scores with clipped reporting."""
+
+    def _mf_stub(self):
+        mf = BiasedMF(n_factors=1)
+        mf.n_users, mf.n_items = 1, 3
+        mf.global_mean = 4.0
+        mf.user_bias = np.zeros(1, dtype=np.float64)
+        mf.item_bias = np.array([1.5, 2.0, 0.5], dtype=np.float64)
+        mf.user_factors = np.zeros((1, 1), dtype=np.float64)
+        mf.item_factors = np.zeros((3, 1), dtype=np.float64)
+        mf._train_user_items = {0: set()}
+        return mf
+
+    def test_mf_orders_by_raw_score_and_clips_reported_rating(self):
+        mf = self._mf_stub()
+        raw = mf.score_all(0, raw_scores=True)
+        clipped = mf.score_all(0)
+        self.assertGreater(raw[1], raw[0])
+        self.assertGreater(raw[0], 5.0)
+        self.assertEqual(clipped[0], 5.0)
+        self.assertEqual(clipped[1], 5.0)
+
+        # Clipped-order tie-breaking would return item 0 first.  Raw ordering
+        # keeps the higher-confidence item 1 first; only the reported rating is
+        # clipped to 5.0.
+        recs = mf.recommend(0, n=2)
+        self.assertEqual([item for item, _ in recs], [1, 0])
+        self.assertEqual([score for _, score in recs], [5.0, 5.0])
+        batch = mf.recommend_batch([0], n=2)
+        self.assertEqual(batch[0], recs)
+
+    def test_social_raw_path_preserves_baseline_order_and_clips_report(self):
+        from sntp.recommenders.social import SocialRecommender
+
+        mf = self._mf_stub()
+        social = SocialRecommender(mf, trust_graph={0: []}, social_weight=0.5,
+                                   global_mean=mf.global_mean)
+        social.set_training_data({})
+        raw = social.score_all(0, raw_scores=True)
+        recs = social.recommend(0, n=2)
+        self.assertGreater(raw[1], raw[0])
+        self.assertEqual([item for item, _ in recs], [1, 0])
+        self.assertEqual([score for _, score in recs], [5.0, 5.0])
+        self.assertEqual(social.recommend_batch([0], n=2)[0], recs)
 
 
 class TestBatchedAndSampling(unittest.TestCase):

@@ -30,6 +30,7 @@ from sntp.selection import (
     build_rating_matrix,
     generate_seed_sets,
     make_simulation_seeds,
+    randomize_directed_graph_degree_preserving,
     select_target_item,
 )
 from sntp.metrics import (
@@ -830,8 +831,8 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     recovery_probs = [float(g) for g in diff_config.get("recovery_probs", [0.0, 0.1, 0.3, 0.5])]
     default_affinity = float(diff_config.get("default_affinity", 0.3))
     base_adopt_prob = float(diff_config.get("base_adopt_prob", 0.5))
-    lower_q = float(diff_config.get("target_lower_quantile", 0.40))
-    upper_q = float(diff_config.get("target_upper_quantile", 0.60))
+    target_min = int(diff_config.get("target_min_train_ratings", 6))
+    target_max = int(diff_config.get("target_max_train_ratings", 20))
 
     if n_simulations <= 0:
         raise ValueError("diffusion.n_simulations must be positive")
@@ -839,7 +840,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     active_graph, active_users, graph_info = _resolve_diffusion_graph(dataset, config)
     target = select_target_item(
         train, dataset.item_to_idx,
-        lower_quantile=lower_q, upper_quantile=upper_q,
+        min_train_ratings=target_min, max_train_ratings=target_max,
     )
     target_orig = int(target["original_id"])
     target_idx = int(target["idx"])
@@ -886,6 +887,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
         "icm_preference_aware": {},
         "sir": {},
         "comparison": {},
+        "network_structure_comparison": {},
     }
 
     # --- ICM canonical ---
@@ -931,8 +933,125 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             round_dist["mean"] or 0.0,
         )
 
-    # --- ICM preference-aware ---
+    # --- Controlled network-structure comparison ---
     _stage_end("R4: ICM canonical", ts)
+    net_cfg = diff_config.get("network_structure_comparison", {})
+    if bool(net_cfg.get("enabled", True)):
+        logger.info("--- Controlled network-structure comparison ---")
+        ts = _stage_start("R4: network-structure comparison")
+        t0 = time.perf_counter()
+        randomized_graph, randomization = randomize_directed_graph_degree_preserving(
+            active_graph,
+            nodes=active_users,
+            swap_multiplier=int(net_cfg.get("swap_multiplier", 2)),
+            seed=int(net_cfg.get("seed", 4242)),
+        )
+        randomization_seconds = time.perf_counter() - t0
+        if randomization["n_edges"] != graph_info["n_edges"]:
+            raise RuntimeError(
+                "randomized graph edge count differs from the observed graph"
+            )
+        randomized_info = {
+            "type": "degree_preserving_randomization",
+            "n_users": int(randomization["n_nodes"]),
+            "n_edges": int(randomization["n_edges"]),
+            "definition": (
+                "same node set, edge count, and directed in/out-degree sequence "
+                "as the observed active graph; edges rearranged by accepted "
+                "double-edge swaps"
+            ),
+            "randomization": randomization,
+            "randomization_runtime_seconds": round(randomization_seconds, 4),
+            "null_model_note": (
+                "This is one seeded degree-preserving rearrangement, not a "
+                "claim of full mixing over all graphs with that degree sequence."
+            ),
+        }
+        logger.info(
+            "Randomized structure: %d nodes, %d edges, %d/%d swaps accepted "
+            "(%.1f%%), degrees preserved",
+            randomized_info["n_users"], randomized_info["n_edges"],
+            randomization["swaps_accepted"], randomization["swaps_attempted"],
+            100.0 * randomization["acceptance_rate"],
+        )
+
+        structure_results = {}
+        for p_prob in propagation_probs:
+            key = f"p={p_prob}"
+            observed_summary = results["icm_canonical"][key]["summary"]
+            observed_counts = [r["n_adopters"] for r in results["icm_canonical"][key]["runs"]]
+            random_counts = []
+            random_rounds = []
+            run_rows = []
+            t_start = time.perf_counter()
+            for sim_i, sim_seed in enumerate(sim_seeds):
+                seed_users = set(seed_sets[sim_i])
+                icm = ICMSimulator(
+                    randomized_graph, propagation_prob=p_prob,
+                    max_rounds=max_rounds, seed=sim_seed,
+                )
+                result = icm.run_canonical(seed_users)
+                random_counts.append(int(result["n_adopters"]))
+                random_rounds.append(int(result["n_rounds"]))
+                run_rows.append({
+                    "simulation_index": sim_i,
+                    "sim_seed": int(sim_seed),
+                    "n_adopters": int(result["n_adopters"]),
+                    "n_rounds": int(result["n_rounds"]),
+                })
+            elapsed = time.perf_counter() - t_start
+            random_dist = _distribution(random_counts)
+            random_round_dist = _distribution(random_rounds)
+            paired = _paired_difference(random_counts, observed_counts)
+            observed_mean = observed_summary["mean_adopters"]
+            random_mean = random_dist["mean"]
+            relative = (
+                round(100.0 * (random_mean - observed_mean) / observed_mean, 3)
+                if observed_mean not in (None, 0) else None
+            )
+            structure_results[key] = {
+                "propagation_prob": p_prob,
+                "observed": observed_summary,
+                "randomized": {
+                    "adopters": random_dist,
+                    "rounds": random_round_dist,
+                    "runs": run_rows,
+                    "mean_adopters": random_mean,
+                    "std_adopters": random_dist["std"],
+                    "mean_rounds": random_round_dist["mean"],
+                },
+                "paired_randomized_minus_observed": paired,
+                "relative_change_pct": relative,
+                "runtime_seconds": round(elapsed, 4),
+            }
+            logger.info(
+                "Network structure (p=%.2f): observed mean=%.1f, randomized "
+                "mean=%.1f (%+.1f%%), paired difference=%+.1f",
+                p_prob, observed_mean or 0.0, random_mean or 0.0,
+                relative or 0.0, paired["mean_difference"] or 0.0,
+            )
+
+        results["network_structure_comparison"] = {
+            "design": {
+                "question": (
+                    "How much of the simulated cascade is explained by the "
+                    "observed directed edge arrangement rather than by node "
+                    "count, edge count, and degree sequence?"
+                ),
+                "model": "canonical ICM",
+                "observed_graph": graph_info,
+                "randomized_graph": randomized_info,
+                "same_seed_sets": seed_sets,
+                "same_simulation_seeds": sim_seeds,
+                "only_structure_changes": True,
+                "outcome_scope": "simulated adoptions, not observed cascades",
+            },
+            "settings": structure_results,
+            "runtime_seconds": round(time.perf_counter() - t0 - randomization_seconds, 4),
+        }
+        _stage_end("R4: network-structure comparison", ts)
+
+    # --- ICM preference-aware ---
     logger.info("--- ICM Preference-Aware ---")
     ts = _stage_start("R4: ICM preference-aware")
     for p_prob in propagation_probs:
@@ -2059,13 +2178,13 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
         base_adopt_prob = float(eval_cfg.get("interaction_base_adopt_prob", 0.5))
         max_rounds = int(eval_cfg.get("interaction_max_rounds", 25))
         default_affinity = float(eval_cfg.get("interaction_default_affinity", 0.3))
-        lower_q = float(eval_cfg.get("target_lower_quantile", 0.40))
-        upper_q = float(eval_cfg.get("target_upper_quantile", 0.60))
+        target_min = int(eval_cfg.get("target_min_train_ratings", 6))
+        target_max = int(eval_cfg.get("target_max_train_ratings", 20))
 
         active_graph, active_users, graph_info = _resolve_diffusion_graph(dataset, config)
         target = select_target_item(
             train, dataset.item_to_idx,
-            lower_quantile=lower_q, upper_quantile=upper_q,
+            min_train_ratings=target_min, max_train_ratings=target_max,
         )
         eligible, _ = _target_eligible_users(
             dataset, train, int(target["original_id"]), active_users
@@ -2234,12 +2353,12 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
     seed = int(int_cfg.get("seed", 42))
     max_rounds = int(int_cfg.get("max_rounds", 25))
     default_affinity = float(int_cfg.get("default_affinity", 0.3))
-    lower_q = float(int_cfg.get("target_lower_quantile", 0.40))
-    upper_q = float(int_cfg.get("target_upper_quantile", 0.60))
+    target_min = int(int_cfg.get("target_min_train_ratings", 6))
+    target_max = int(int_cfg.get("target_max_train_ratings", 20))
 
     target = select_target_item(
         train, dataset.item_to_idx,
-        lower_quantile=lower_q, upper_quantile=upper_q,
+        min_train_ratings=target_min, max_train_ratings=target_max,
     )
     eligible, _ = _target_eligible_users(
         dataset, train, int(target["original_id"]), active_users

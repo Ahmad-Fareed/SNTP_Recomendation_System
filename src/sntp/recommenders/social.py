@@ -35,20 +35,27 @@ import numpy as np
 from scipy import sparse
 
 from sntp.recommenders._ranking import (
-    recommend_batch_dense, rows_or_empty, top_n_from_scores,
+    clip_ranked, recommend_batch_dense, rows_or_empty, top_n_from_scores,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _baseline_scores(baseline, user_idx: int, n_items: int) -> np.ndarray:
+def _baseline_scores(baseline, user_idx: int, n_items: int,
+                     raw_scores: bool = False) -> np.ndarray:
     """Baseline prediction for every item; NaN where the baseline returns None.
 
     Uses the baseline's vectorized ``score_all`` when available, otherwise
-    falls back to calling ``predict`` per item.
+    falls back to calling ``predict`` per item.  ``raw_scores=True`` requests
+    the baseline's unclipped ranking score; baselines that do not expose that
+    option are used through their normal (clipped) public score.
     """
     if hasattr(baseline, "score_all"):
-        return np.asarray(baseline.score_all(user_idx), dtype=np.float64).copy()
+        try:
+            values = baseline.score_all(user_idx, raw_scores=raw_scores)
+        except TypeError:
+            values = baseline.score_all(user_idx)
+        return np.asarray(values, dtype=np.float64).copy()
     out = np.empty(n_items, dtype=np.float64)
     for iidx in range(n_items):
         p = baseline.predict(user_idx, iidx)
@@ -56,11 +63,19 @@ def _baseline_scores(baseline, user_idx: int, n_items: int) -> np.ndarray:
     return out
 
 
-def _baseline_scores_batch(baseline, users: np.ndarray, n_items: int) -> np.ndarray:
+def _baseline_scores_batch(baseline, users: np.ndarray, n_items: int,
+                           raw_scores: bool = False) -> np.ndarray:
     """Dense baseline scores for many users (NaN where unavailable)."""
     if hasattr(baseline, "score_batch"):
-        return np.asarray(baseline.score_batch(users), dtype=np.float64)
-    return np.vstack([_baseline_scores(baseline, int(u), n_items) for u in users])
+        try:
+            values = baseline.score_batch(users, raw_scores=raw_scores)
+        except TypeError:
+            values = baseline.score_batch(users)
+        return np.asarray(values, dtype=np.float64)
+    return np.vstack([
+        _baseline_scores(baseline, int(u), n_items, raw_scores=raw_scores)
+        for u in users
+    ])
 
 
 def _baseline_predict_pairs(baseline, u: np.ndarray, i: np.ndarray) -> np.ndarray:
@@ -155,8 +170,12 @@ def _neighbor_stats_pairs(adj, rating_csc, binary_csc, u: np.ndarray, i: np.ndar
 
 
 def _blend_scores(base: np.ndarray, sums, counts, social_weight: float,
-                  global_mean: float) -> np.ndarray:
-    """Vectorized version of the predict() blending / fallback rules."""
+                  global_mean: float, clip_scores: bool = True) -> np.ndarray:
+    """Vectorized version of the predict() blending / fallback rules.
+
+    ``clip_scores=False`` preserves the raw blended scores for ranking.  The
+    caller clips only the reported ratings after top-n selection.
+    """
     scores = base
     base_nan = np.isnan(base)
     if sums is not None:
@@ -164,10 +183,13 @@ def _blend_scores(base: np.ndarray, sums, counts, social_weight: float,
         nb_mean = np.zeros_like(base)
         nb_mean[has_nb] = sums[has_nb] / counts[has_nb]
         both = has_nb & ~base_nan
-        scores[both] = np.clip(
-            (1 - social_weight) * base[both] + social_weight * nb_mean[both], 1.0, 5.0)
+        combined = (1 - social_weight) * base[both] + social_weight * nb_mean[both]
         only_nb = has_nb & base_nan
-        scores[only_nb] = np.clip(nb_mean[only_nb], 1.0, 5.0)
+        if clip_scores:
+            combined = np.clip(combined, 1.0, 5.0)
+            nb_mean = np.clip(nb_mean, 1.0, 5.0)
+        scores[both] = combined
+        scores[only_nb] = nb_mean[only_nb]
         base_nan = base_nan & ~has_nb
     scores[base_nan] = global_mean
     return scores
@@ -185,14 +207,23 @@ class _NeighborBlendMixin:
         self._rating_csc = R.tocsc()
         self._binary_csc = self._binary_csr.tocsc()
 
-    def score_batch(self, user_indices) -> np.ndarray:
-        """Dense ``(n_users, n_items)`` version of ``score_all``."""
+    def score_batch(self, user_indices, raw_scores: bool = False) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of ``score_all``.
+
+        ``raw_scores=True`` requests unclipped baseline and blended scores for
+        ranking.  The public prediction path keeps ``raw_scores=False``.
+        """
         users = np.asarray(user_indices, dtype=np.int64)
         n_items = self.baseline.n_items
-        base = _baseline_scores_batch(self.baseline, users, n_items).copy()
+        base = _baseline_scores_batch(
+            self.baseline, users, n_items, raw_scores=raw_scores
+        ).copy()
         sums, counts = _neighbor_stats_batch(self._adj, self._rating_csr,
                                              self._binary_csr, users, n_items)
-        return _blend_scores(base, sums, counts, self.social_weight, self.global_mean)
+        return _blend_scores(
+            base, sums, counts, self.social_weight, self.global_mean,
+            clip_scores=not raw_scores,
+        )
 
     def predict_batch(self, user_idx: np.ndarray, item_idx: np.ndarray,
                       rating_min: float = 1.0, rating_max: float = 5.0) -> np.ndarray:
@@ -207,9 +238,17 @@ class _NeighborBlendMixin:
 
     def recommend_batch(self, user_indices, n: int = 10, excludes=None,
                         candidate_mask: np.ndarray | None = None):
-        """Top-n for many users (vectorized; same rules as ``recommend``)."""
-        return recommend_batch_dense(self.score_batch, user_indices, n, self.baseline.n_items,
-                                     excludes, self._train_user_items, candidate_mask)
+        """Top-n for many users (vectorized; same rules as ``recommend``).
+
+        Items are ordered by raw blended scores and reported ratings are
+        clipped to [1, 5] after selection.
+        """
+        ranked = recommend_batch_dense(
+            lambda users: self.score_batch(users, raw_scores=True),
+            user_indices, n, self.baseline.n_items,
+            excludes, self._train_user_items, candidate_mask,
+        )
+        return [clip_ranked(rows) for rows in ranked]
 
 
 class SocialRecommender(_NeighborBlendMixin):
@@ -290,30 +329,38 @@ class SocialRecommender(_NeighborBlendMixin):
         else:
             return self.global_mean
 
-    def score_all(self, user_idx: int) -> np.ndarray:
+    def score_all(self, user_idx: int, raw_scores: bool = False) -> np.ndarray:
         """Social-enhanced prediction for every catalogue item (vectorized).
 
         Same blending and fallback rules as :meth:`predict`.
+        ``raw_scores=True`` preserves the unclipped values for ranking.
         """
         n_items = self.baseline.n_items
-        base = _baseline_scores(self.baseline, user_idx, n_items)
+        base = _baseline_scores(
+            self.baseline, user_idx, n_items, raw_scores=raw_scores
+        )
         sums, counts = _neighbor_mean_scores(
             self._rating_csr, self.trust_graph.get(user_idx, []), n_items)
-        return _blend_scores(base, sums, counts, self.social_weight, self.global_mean)
+        return _blend_scores(
+            base, sums, counts, self.social_weight, self.global_mean,
+            clip_scores=not raw_scores,
+        )
 
     def recommend(self, user_idx: int, n: int = 10,
                   exclude: set | None = None) -> list[tuple[int, float]]:
         """Recommend top-n items using social-enhanced predictions.
 
-        Every catalogue item is scored (full-catalogue ranking); ties are
-        broken by ascending item index.
+        Every catalogue item is scored; items are ordered by raw blended
+        scores and reported ratings are clipped to [1, 5].  Ties are broken by
+        ascending item index.
         """
         if exclude is None:
             exclude = set()
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        return top_n_from_scores(self.score_all(user_idx), n, exclude)
+        ranked = top_n_from_scores(self.score_all(user_idx, raw_scores=True), n, exclude)
+        return clip_ranked(ranked)
 
 
 class SimilarUserRecommender(_NeighborBlendMixin):
@@ -421,13 +468,21 @@ class SimilarUserRecommender(_NeighborBlendMixin):
         else:
             return self.global_mean
 
-    def score_all(self, user_idx: int) -> np.ndarray:
-        """Similar-user-enhanced prediction for every item (vectorized predict)."""
+    def score_all(self, user_idx: int, raw_scores: bool = False) -> np.ndarray:
+        """Similar-user-enhanced prediction for every item (vectorized predict).
+
+        ``raw_scores=True`` preserves unclipped values for ranking.
+        """
         n_items = self.baseline.n_items
-        base = _baseline_scores(self.baseline, user_idx, n_items)
+        base = _baseline_scores(
+            self.baseline, user_idx, n_items, raw_scores=raw_scores
+        )
         similar = [s for s, _ in self._similar_users.get(user_idx, [])]
         sums, counts = _neighbor_mean_scores(self._rating_csr, similar, n_items)
-        return _blend_scores(base, sums, counts, self.social_weight, self.global_mean)
+        return _blend_scores(
+            base, sums, counts, self.social_weight, self.global_mean,
+            clip_scores=not raw_scores,
+        )
 
     def recommend(self, user_idx: int, n: int = 10,
                   exclude: set | None = None) -> list[tuple[int, float]]:
@@ -436,4 +491,5 @@ class SimilarUserRecommender(_NeighborBlendMixin):
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        return top_n_from_scores(self.score_all(user_idx), n, exclude)
+        ranked = top_n_from_scores(self.score_all(user_idx, raw_scores=True), n, exclude)
+        return clip_ranked(ranked)

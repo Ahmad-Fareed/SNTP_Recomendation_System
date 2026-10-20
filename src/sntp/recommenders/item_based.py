@@ -31,9 +31,15 @@ Implementation notes:
 Ranking candidates (``recommend_batch``):
   - Items reachable through the neighbour graph from the user's rated items
     are scored with the weighted average; every other eligible item has the
-    fallback score (user mean).  Only neighbour-reachable items plus the
-    ``n`` lowest-index fallback items are materialised, which yields exactly
-    the same top-n as scoring the whole catalogue.
+    fallback score.  Only neighbour-reachable items plus the ``n`` lowest-index
+    fallback items are materialised, which yields exactly the same top-n as
+    scoring the whole catalogue.
+  - An item with no stored neighbours is **unsupported by the item-item
+    model**.  Its documented fallback uses training data only: the user's mean
+    training rating, then the global training mean for a user with no training
+    ratings.  Held-out ratings are never consulted.
+  - Items are ordered by raw model scores.  The predicted rating returned with
+    a recommendation is clipped to [1, 5] only after selection.
 
 Limitations:
   - Requires co-rated users; items with very few ratings have unreliable similarities.
@@ -48,7 +54,8 @@ import numpy as np
 from scipy import sparse
 
 from sntp.recommenders._ranking import (
-    exclusion_pairs, rows_or_empty, top_n_batch_from_candidates, top_n_from_scores,
+    clip_ranked, exclusion_pairs, rows_or_empty, top_n_batch_from_candidates,
+    top_n_from_scores,
 )
 
 logger = logging.getLogger(__name__)
@@ -264,17 +271,22 @@ class ItemBasedCF:
                                                            count=len(items))
 
     def score_all(self, user_idx: int, rating_min: float = 1.0,
-                  rating_max: float = 5.0) -> np.ndarray:
+                  rating_max: float = 5.0,
+                  raw_scores: bool = False) -> np.ndarray:
         """Predicted rating for *every* catalogue item for one user (vectorized).
 
         Applies the same formula and fallback chain as :meth:`predict`:
-        neighbor-weighted average -> user mean -> global mean, then clipping.
+        neighbor-weighted average -> training-only user mean -> training-only
+        global mean.  ``raw_scores=False`` clips the returned ratings to the
+        rating scale; ``raw_scores=True`` returns the unclipped scores for
+        ranking.
         """
         items = self._user_items_arr.get(user_idx)
         if items is None:
-            # No training ratings: predict() returns the global mean for all items.
-            return np.full(self.n_items, float(np.clip(self.global_mean, rating_min,
-                                                       rating_max)))
+            value = float(self.global_mean)
+            if not raw_scores:
+                value = float(np.clip(value, rating_min, rating_max))
+            return np.full(self.n_items, value, dtype=np.float64)
 
         ratings = self._user_ratings_arr[user_idx]
         num = self._sim_csc[:, items] @ ratings
@@ -284,16 +296,17 @@ class ItemBasedCF:
         scores = np.full(self.n_items, user_mean, dtype=np.float64)
         has_nb = den > 1e-10
         scores[has_nb] = num[has_nb] / den[has_nb]
-        np.clip(scores, rating_min, rating_max, out=scores)
+        if not raw_scores:
+            np.clip(scores, rating_min, rating_max, out=scores)
         return scores
 
     def recommend(self, user_idx: int, n: int = 10,
                   exclude: set | None = None) -> list[tuple[int, float]]:
         """Recommend top-n items not in exclude set.
 
-        Every catalogue item is scored (full-catalogue ranking).
-        Returns list of (item_idx, predicted_rating) sorted by predicted rating
-        descending; ties are broken by ascending item index.
+        Every catalogue item is scored (full-catalogue ranking).  Items are
+        ordered by raw model scores; the reported predicted rating is clipped
+        to [1, 5] after selection.  Ties are broken by ascending item index.
         """
         if exclude is None:
             exclude = set()
@@ -301,8 +314,9 @@ class ItemBasedCF:
         train_items = set(self.train_user_ratings.get(user_idx, {}).keys())
         exclude = exclude | train_items
 
-        scores = self.score_all(user_idx)
-        return top_n_from_scores(scores, n, exclude)
+        raw_scores = self.score_all(user_idx, raw_scores=True)
+        ranked = top_n_from_scores(raw_scores, n, exclude)
+        return clip_ranked(ranked)
 
     # ------------------------------------------------------------------
     # Batched / vectorized paths
@@ -310,7 +324,11 @@ class ItemBasedCF:
 
     def _fallback_values(self, users: np.ndarray, rating_min: float,
                          rating_max: float) -> np.ndarray:
-        """Per-user fallback (user mean, else global mean), clipped."""
+        """Per-user training-only fallback (user mean, else global mean).
+
+        Clipped to the supplied bounds.  Pass ``(-inf, inf)`` when the values
+        are needed for raw-score ordering.
+        """
         users = np.asarray(users, dtype=np.int64)
         n_rows = self.user_means.shape[0]
         inr = (users >= 0) & (users < n_rows)
@@ -339,8 +357,11 @@ class ItemBasedCF:
         return np.clip(pred, rating_min, rating_max)
 
     def score_batch(self, user_indices, rating_min: float = 1.0,
-                    rating_max: float = 5.0) -> np.ndarray:
-        """Dense ``(n_users, n_items)`` version of :meth:`score_all`."""
+                    rating_max: float = 5.0, raw_scores: bool = False) -> np.ndarray:
+        """Dense ``(n_users, n_items)`` version of :meth:`score_all`.
+
+        ``raw_scores=True`` returns unclipped scores for ranking.
+        """
         users = np.asarray(user_indices, dtype=np.int64)
         num = (rows_or_empty(self._R_csr, users) @ self._simT_csr).toarray()
         den = (rows_or_empty(self._B_csr, users) @ self._abs_simT_csr).toarray()
@@ -348,6 +369,8 @@ class ItemBasedCF:
         scores = np.broadcast_to(fb[:, None], num.shape).copy()
         has_nb = den > 1e-10
         scores[has_nb] = num[has_nb] / den[has_nb]
+        if raw_scores:
+            return scores
         np.clip(scores, rating_min, rating_max, out=scores)
         return scores
 
@@ -363,6 +386,11 @@ class ItemBasedCF:
         fallback score and ties are broken by ascending index, this returns
         exactly the same lists as full-catalogue scoring restricted to
         ``candidate_mask`` (all items when None).
+
+        Items are ordered by raw scores, then each reported predicted rating
+        is clipped to ``[rating_min, rating_max]``.  An item with no stored
+        neighbours uses the documented training-only fallback: user mean, then
+        global training mean.
 
         Excluded: ``excludes[r]`` for each user plus the user's training items.
         """
@@ -395,11 +423,13 @@ class ItemBasedCF:
         cand_ok = reach & cm[den.indices] & ~np.isin(den_keys, ex_keys)
         c_rows = den_r[cand_ok]
         c_cols = den.indices[cand_ok].astype(np.int64)
-        c_vals = np.clip(num_on_den[cand_ok] / den.data[cand_ok], rating_min, rating_max)
+        # Raw scores: clipping happens only after top-n selection.
+        c_vals = num_on_den[cand_ok] / den.data[cand_ok]
 
         # (b) fallback items: n lowest-index eligible items that are neither
         # excluded nor neighbour-reachable (they all share the fallback score).
-        fb = self._fallback_values(users, rating_min, rating_max)
+        # The fallback is training-only: user mean, else global training mean.
+        fb = self._fallback_values(users, -np.inf, np.inf)
         eligible = np.flatnonzero(cm)
         reach_keys = den_keys[reach]
         blocked_keys = np.union1d(ex_keys, reach_keys)
@@ -418,4 +448,5 @@ class ItemBasedCF:
         rows = np.concatenate([c_rows, f_rows])
         cols = np.concatenate([c_cols, f_cols])
         vals = np.concatenate([c_vals, fb[f_rows]])
-        return top_n_batch_from_candidates(rows, cols, vals, b, n)
+        ranked = top_n_batch_from_candidates(rows, cols, vals, b, n)
+        return [clip_ranked(rows_i, rating_min, rating_max) for rows_i in ranked]

@@ -15,13 +15,36 @@ Selection semantics are identical everywhere:
 
   * excluded items (e.g. training items, ineligible items) are never returned;
   * NaN / -inf scores are never returned;
-  * items are ordered by score descending;
+  * items are ordered by the supplied score descending;
   * ties are broken by ascending item index — identical to a stable sort of
     ``[(item_idx, score) for item_idx in range(n_items)]`` by ``-score``.
+
+The selection helpers do **not** clip or otherwise transform scores.  Callers
+must pass the model's raw ordering score (for rating models, the unclipped
+prediction) and may clip only the returned rating after selection.  Clipping
+before selection creates artificial ties at the rating bounds and destroys the
+within-bound ordering information.
 """
 
 import numpy as np
 from scipy import sparse
+
+
+def clip_ranked(
+    ranked: list[tuple[int, float]],
+    rating_min: float = 1.0,
+    rating_max: float = 5.0,
+) -> list[tuple[int, float]]:
+    """Clip only the *reported* rating of an already-ordered recommendation list.
+
+    The ordering must have been computed from raw model scores before this
+    helper is called.  This keeps items with raw scores above 5 (or below 1)
+    in their correct relative order while returning a valid rating scale.
+    """
+    return [
+        (int(item_idx), float(np.clip(score, rating_min, rating_max)))
+        for item_idx, score in ranked
+    ]
 
 
 def top_n_from_scores(scores: np.ndarray, n: int,
