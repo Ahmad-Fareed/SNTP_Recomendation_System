@@ -1,94 +1,161 @@
 {
   "baseline": {
+    "validation": {
+      "mae": 0.8354058341198894,
+      "rmse": 1.0689938585016,
+      "n_evaluated": 100603,
+      "n_skipped": 0
+    },
     "prediction": {
-      "mae": 0.8206826846800975,
-      "rmse": 1.056503732078645,
+      "mae": 0.8324505388633175,
+      "rmse": 1.0677172720229162,
       "n_evaluated": 100558,
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0012,
-      "recall_at_k": 0.0021527777777777778,
-      "f1_at_k": 0.0015410107705053852,
-      "hit_rate_at_k": 0.01,
-      "ndcg_at_k": 0.0018984968321035286,
-      "coverage": 0.0004222187236113298,
+      "precision_at_k": 0.002,
+      "recall_at_k": 0.004846581196581197,
+      "f1_at_k": 0.0022928806281437863,
+      "hit_rate_at_k": 0.02,
+      "ndcg_at_k": 0.0030012894790014547,
+      "coverage": 0.0002862499821093761,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 2.19
+      "eval_time_seconds": 3.93
     }
   },
+  "selection": {
+    "criterion": "minimum validation RMSE; ties by validation MAE, then smaller lambda",
+    "candidates": [
+      {
+        "lambda": 0.0,
+        "mae": 0.8354058341198894,
+        "rmse": 1.0689938585016,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      {
+        "lambda": 0.3,
+        "mae": 0.8309497900571875,
+        "rmse": 1.0639739788042573,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      {
+        "lambda": 0.5,
+        "mae": 0.8323605654923426,
+        "rmse": 1.0693418803733004,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      }
+    ],
+    "best_lambda": 0.3,
+    "test_used_for_selection": false
+  },
+  "best_lambda": 0.3,
   "social_lambda_0.0": {
     "prediction": {
-      "mae": 0.8206826846800975,
-      "rmse": 1.056503732078645,
+      "mae": 0.8324505388633175,
+      "rmse": 1.0677172720229162,
       "n_evaluated": 100558,
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0012,
-      "recall_at_k": 0.0021527777777777778,
-      "f1_at_k": 0.0015410107705053852,
-      "hit_rate_at_k": 0.01,
-      "ndcg_at_k": 0.0018984968321035286,
-      "coverage": 0.0004222187236113298,
+      "precision_at_k": 0.002,
+      "recall_at_k": 0.004846581196581197,
+      "f1_at_k": 0.0022928806281437863,
+      "hit_rate_at_k": 0.02,
+      "ndcg_at_k": 0.0030012894790014547,
+      "coverage": 0.0002862499821093761,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.34
+      "eval_time_seconds": 6.24
     }
   },
   "social_lambda_0.3": {
     "prediction": {
-      "mae": 0.8178207896614221,
-      "rmse": 1.0531845943038312,
+      "mae": 0.8283763163128087,
+      "rmse": 1.0631862239265413,
       "n_evaluated": 100558,
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0014000000000000002,
-      "recall_at_k": 0.0024797008547008544,
-      "f1_at_k": 0.0017896128215013495,
-      "hit_rate_at_k": 0.012,
-      "ndcg_at_k": 0.002243979840585082,
-      "coverage": 0.0009303124418554724,
+      "precision_at_k": 0.0026,
+      "recall_at_k": 0.0060688034188034175,
+      "f1_at_k": 0.003074835515361831,
+      "hit_rate_at_k": 0.024,
+      "ndcg_at_k": 0.004150592104866214,
+      "coverage": 0.0006798437075097683,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.13
+      "eval_time_seconds": 6.23
     }
   },
   "social_lambda_0.5": {
     "prediction": {
-      "mae": 0.8201253061558468,
-      "rmse": 1.0595000136309982,
+      "mae": 0.8299804728463965,
+      "rmse": 1.0688670560811622,
       "n_evaluated": 100558,
       "n_skipped": 0
     },
     "ranking": {
-      "precision_at_k": 0.0015999999999999999,
-      "recall_at_k": 0.0034797008547008544,
-      "f1_at_k": 0.002192066630210743,
-      "hit_rate_at_k": 0.014,
-      "ndcg_at_k": 0.0027260607310831205,
-      "coverage": 0.00209678111895118,
+      "precision_at_k": 0.0030000000000000005,
+      "recall_at_k": 0.007652136752136752,
+      "f1_at_k": 0.003721660912187228,
+      "hit_rate_at_k": 0.028,
+      "ndcg_at_k": 0.004808313554033328,
+      "coverage": 0.00173896864131446,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 2.84
+      "eval_time_seconds": 6.59
     }
   },
   "sparse_users_analysis": {
@@ -96,14 +163,14 @@
     "n_test_ratings": 10235,
     "lambda_used": 0.3,
     "baseline": {
-      "mae": 0.865617050406175,
-      "rmse": 1.0991109818259832,
+      "mae": 0.8745344947352502,
+      "rmse": 1.1099789205754402,
       "n_evaluated": 10235,
       "n_skipped": 0
     },
     "social": {
-      "mae": 0.8637771808981722,
-      "rmse": 1.097370000396191,
+      "mae": 0.872489477009522,
+      "rmse": 1.1078486603988247,
       "n_evaluated": 10235,
       "n_skipped": 0
     }
@@ -114,20 +181,20 @@
     "n_sampled_users": 50,
     "n_test_ratings": 165,
     "baseline": {
-      "mae": 0.8589449329722971,
-      "rmse": 1.0883082848181271,
+      "mae": 0.8758722818356025,
+      "rmse": 1.10378502425733,
       "n_evaluated": 165,
       "n_skipped": 0
     },
     "trust_neighbors": {
-      "mae": 0.8594405063113509,
-      "rmse": 1.094297892539624,
+      "mae": 0.8770309274617032,
+      "rmse": 1.109415659920418,
       "n_evaluated": 165,
       "n_skipped": 0
     },
     "similar_unconnected": {
-      "mae": 0.8501171564163259,
-      "rmse": 1.083678950910086,
+      "mae": 0.8664656127734863,
+      "rmse": 1.0980741942739254,
       "n_evaluated": 165,
       "n_skipped": 0
     }

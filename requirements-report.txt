@@ -1,0 +1,4 @@
+# Optional dependencies for regenerating the searchable PDF report.
+# The experiments themselves only need requirements.txt.
+reportlab>=4.0
+matplotlib>=3.7

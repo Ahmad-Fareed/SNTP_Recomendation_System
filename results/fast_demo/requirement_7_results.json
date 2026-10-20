@@ -1,0 +1,369 @@
+{
+  "definitions": {
+    "split": "train / validation / test; test is used only for final observed evaluation",
+    "relevance_threshold": 4,
+    "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negative examples",
+    "candidate_definition": "all catalogue items except the user's training items; no negative-item sampling",
+    "cutoff_k": 10,
+    "f1_definition": "mean of per-user F1 scores",
+    "coverage_definition": "unique recommended items / catalogue size, over the evaluated user sample; sampling scope is reported per model",
+    "diversity_definition": "mean pairwise 1-cosine(item training-interaction feature vectors) within each recommendation list, on a bounded deterministic list sample",
+    "accuracy_note": "No accuracy classification metric is reported: relevance is defined only on held-out ratings, and unobserved items are not negatives."
+  },
+  "observed": {
+    "scope": "held-out test ratings and recommendations derived from training data",
+    "models": {
+      "item_based_cf": {
+        "prediction_error": {
+          "mae": 1.074,
+          "rmse": 1.4519,
+          "n_evaluated": 100558,
+          "n_skipped": 0
+        },
+        "ranking": {
+          "precision_at_k": 0.0004,
+          "recall_at_k": 0.00233,
+          "f1_at_k": 0.00061,
+          "hit_rate_at_k": 0.004,
+          "ndcg_at_k": 0.00086,
+          "coverage": 0.01481,
+          "diversity": 0.85904
+        },
+        "evaluation_metadata": {
+          "n_users_evaluated": 500,
+          "total_eligible_users": 25045,
+          "is_sampled": true,
+          "sample_seed": 42,
+          "catalog_size": 139738,
+          "diversity_n_lists": 500,
+          "diversity_is_sampled": false,
+          "diversity_sample_seed": null,
+          "eval_time_seconds": 1.01
+        }
+      },
+      "matrix_factorization": {
+        "prediction_error": {
+          "mae": 0.8325,
+          "rmse": 1.0677,
+          "n_evaluated": 100558,
+          "n_skipped": 0
+        },
+        "ranking": {
+          "precision_at_k": 0.002,
+          "recall_at_k": 0.00485,
+          "f1_at_k": 0.00229,
+          "hit_rate_at_k": 0.02,
+          "ndcg_at_k": 0.003,
+          "coverage": 0.00029,
+          "diversity": 0.98557
+        },
+        "evaluation_metadata": {
+          "n_users_evaluated": 500,
+          "total_eligible_users": 25045,
+          "is_sampled": true,
+          "sample_seed": 42,
+          "catalog_size": 139738,
+          "diversity_n_lists": 500,
+          "diversity_is_sampled": false,
+          "diversity_sample_seed": null,
+          "eval_time_seconds": 3.81
+        }
+      },
+      "social_recommender": {
+        "prediction_error": {
+          "mae": 0.8284,
+          "rmse": 1.0632,
+          "n_evaluated": 100558,
+          "n_skipped": 0
+        },
+        "ranking": {
+          "precision_at_k": 0.0026,
+          "recall_at_k": 0.00607,
+          "f1_at_k": 0.00307,
+          "hit_rate_at_k": 0.024,
+          "ndcg_at_k": 0.00415,
+          "coverage": 0.00068,
+          "diversity": 0.98476
+        },
+        "evaluation_metadata": {
+          "n_users_evaluated": 500,
+          "total_eligible_users": 25045,
+          "is_sampled": true,
+          "sample_seed": 42,
+          "catalog_size": 139738,
+          "diversity_n_lists": 500,
+          "diversity_is_sampled": false,
+          "diversity_sample_seed": null,
+          "eval_time_seconds": 6.05
+        }
+      }
+    },
+    "comparison": {
+      "mae": {
+        "direction": "lower",
+        "values": {
+          "item_based_cf": 1.074,
+          "matrix_factorization": 0.8325,
+          "social_recommender": 0.8284
+        },
+        "best_model": "social_recommender"
+      },
+      "rmse": {
+        "direction": "lower",
+        "values": {
+          "item_based_cf": 1.4519,
+          "matrix_factorization": 1.0677,
+          "social_recommender": 1.0632
+        },
+        "best_model": "social_recommender"
+      },
+      "precision_at_k": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.0004,
+          "matrix_factorization": 0.002,
+          "social_recommender": 0.0026
+        },
+        "best_model": "social_recommender"
+      },
+      "recall_at_k": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.00233,
+          "matrix_factorization": 0.00485,
+          "social_recommender": 0.00607
+        },
+        "best_model": "social_recommender"
+      },
+      "f1_at_k": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.00061,
+          "matrix_factorization": 0.00229,
+          "social_recommender": 0.00307
+        },
+        "best_model": "social_recommender"
+      },
+      "hit_rate_at_k": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.004,
+          "matrix_factorization": 0.02,
+          "social_recommender": 0.024
+        },
+        "best_model": "social_recommender"
+      },
+      "ndcg_at_k": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.00086,
+          "matrix_factorization": 0.003,
+          "social_recommender": 0.00415
+        },
+        "best_model": "social_recommender"
+      },
+      "coverage": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.01481,
+          "matrix_factorization": 0.00029,
+          "social_recommender": 0.00068
+        },
+        "best_model": "item_based_cf"
+      },
+      "diversity": {
+        "direction": "higher",
+        "values": {
+          "item_based_cf": 0.85904,
+          "matrix_factorization": 0.98557,
+          "social_recommender": 0.98476
+        },
+        "best_model": "matrix_factorization"
+      }
+    }
+  },
+  "simulated": {
+    "scope": "preference-aware ICM outcomes; not observed adoptions",
+    "models": {
+      "item_based_cf": {
+        "adopters": {
+          "n": 2,
+          "mean": 753.0,
+          "std": 72.0,
+          "min": 681.0,
+          "max": 825.0,
+          "coefficient_of_variation": 0.0956
+        },
+        "exposed": {
+          "n": 2,
+          "mean": 1924.0,
+          "std": 111.0,
+          "min": 1813.0,
+          "max": 2035.0,
+          "coefficient_of_variation": 0.0577
+        },
+        "rounds": {
+          "n": 2,
+          "mean": 16.0,
+          "std": 1.0,
+          "min": 15.0,
+          "max": 17.0,
+          "coefficient_of_variation": 0.0625
+        },
+        "adopter_satisfaction_proxy": {
+          "n": 1506,
+          "mean": 4.1388,
+          "std": 0.4271,
+          "min": 2.4545,
+          "max": 5.0,
+          "coefficient_of_variation": 0.1032
+        },
+        "runtime_seconds": 0.2115
+      },
+      "matrix_factorization": {
+        "adopters": {
+          "n": 2,
+          "mean": 789.0,
+          "std": 29.0,
+          "min": 760.0,
+          "max": 818.0,
+          "coefficient_of_variation": 0.0368
+        },
+        "exposed": {
+          "n": 2,
+          "mean": 2012.5,
+          "std": 51.5,
+          "min": 1961.0,
+          "max": 2064.0,
+          "coefficient_of_variation": 0.0256
+        },
+        "rounds": {
+          "n": 2,
+          "mean": 14.5,
+          "std": 1.5,
+          "min": 13.0,
+          "max": 16.0,
+          "coefficient_of_variation": 0.1034
+        },
+        "adopter_satisfaction_proxy": {
+          "n": 1578,
+          "mean": 4.0886,
+          "std": 0.2113,
+          "min": 2.9409,
+          "max": 4.9353,
+          "coefficient_of_variation": 0.0517
+        },
+        "runtime_seconds": 0.2093
+      },
+      "social_recommender": {
+        "adopters": {
+          "n": 2,
+          "mean": 850.0,
+          "std": 69.0,
+          "min": 781.0,
+          "max": 919.0,
+          "coefficient_of_variation": 0.0812
+        },
+        "exposed": {
+          "n": 2,
+          "mean": 2140.0,
+          "std": 143.0,
+          "min": 1997.0,
+          "max": 2283.0,
+          "coefficient_of_variation": 0.0668
+        },
+        "rounds": {
+          "n": 2,
+          "mean": 16.0,
+          "std": 2.0,
+          "min": 14.0,
+          "max": 18.0,
+          "coefficient_of_variation": 0.125
+        },
+        "adopter_satisfaction_proxy": {
+          "n": 1700,
+          "mean": 4.1148,
+          "std": 0.2188,
+          "min": 3.2386,
+          "max": 4.911,
+          "coefficient_of_variation": 0.0532
+        },
+        "runtime_seconds": 0.3156
+      }
+    },
+    "design": {
+      "model": "preference-aware ICM",
+      "target_item": {
+        "original_id": 3,
+        "idx": 2,
+        "train_rating_count": 1,
+        "median_train_rating_count": 1.0,
+        "band_lower_quantile": 0.4,
+        "band_upper_quantile": 0.6,
+        "band_lower_count": 1.0,
+        "band_upper_count": 2.0,
+        "band_size_items": 83981,
+        "n_items_with_train_ratings": 113971,
+        "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items in the inclusive [0.40, 0.60] training-count quantile band; ties by ascending original item ID.",
+        "used_median_fallback": false
+      },
+      "target_selection_uses": "training split only",
+      "graph_info": {
+        "type": "ego_subgraph",
+        "center_user": 0,
+        "hops": 2,
+        "n_users": 9883,
+        "n_edges": 301710,
+        "definition": "users reachable from the documented centre within the given number of trust/propagation hops; induced propagation edges only"
+      },
+      "n_eligible_users": 9882,
+      "seed_size": 5,
+      "n_simulations": 2,
+      "seed_sets": [
+        [
+          734,
+          3024,
+          4170,
+          7316,
+          13374
+        ],
+        [
+          883,
+          1357,
+          2386,
+          2860,
+          13374
+        ]
+      ],
+      "simulation_seeds": [
+        700049,
+        701049
+      ],
+      "same_seed_sets_and_seeds_for_all_models": true,
+      "propagation_prob": 0.05,
+      "base_adopt_prob": 0.5,
+      "max_rounds": 25,
+      "default_affinity": 0.3,
+      "satisfaction_proxy": "predicted rating 1 + 4 * affinity for adopters; a simulator-side proxy, not an observed rating"
+    }
+  },
+  "tradeoff_analysis": {
+    "simulated_spread_ranking": {
+      "item_based_cf": 753.0,
+      "matrix_factorization": 789.0,
+      "social_recommender": 850.0
+    },
+    "best_simulated_spread_model": "social_recommender",
+    "best_observed_ndcg_model": "social_recommender",
+    "best_observed_rmse_model": "social_recommender",
+    "observed_ndcg_and_simulated_spread_agree": true,
+    "finding": "The best observed nDCG@10 model was social_recommender; the largest simulated preference-aware spread was produced by social_recommender. The two rankings coincide in this run.",
+    "limitations": [
+      "Observed and simulated outcomes answer different questions and are not interchangeable.",
+      "The simulated cascade uses one target item chosen from a training popularity band; it is not a forecast of platform-wide adoption.",
+      "Ranking metrics are computed on a fixed seeded user sample when ranking_sample_users is set.",
+      "Unobserved items are not treated as negative examples.",
+      "Coverage and diversity depend on the evaluated list sample and the training-derived item features."
+    ]
+  }
+}

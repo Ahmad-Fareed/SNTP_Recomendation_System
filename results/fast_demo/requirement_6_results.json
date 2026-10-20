@@ -1,0 +1,806 @@
+{
+  "design": {
+    "group_construction": {
+      "matrix_source": "training split only (build_rating_matrix)",
+      "train_matrix_nnz": 463663,
+      "n_active_users": 9883,
+      "n_group_users": 9308,
+      "conflicting": true,
+      "n_groups_requested": 3,
+      "group_size": 4,
+      "seed": 42
+    },
+    "graph_info": {
+      "type": "ego_subgraph",
+      "center_user": 0,
+      "hops": 2,
+      "n_users": 9883,
+      "n_edges": 301710,
+      "definition": "users reachable from the documented centre within the given number of trust/propagation hops; induced propagation edges only"
+    },
+    "satisfaction_definition": "mean predicted rating across group members from the recommender trained on the training split; no held-out rating is used for group construction or reported satisfaction",
+    "diffusion_design": {
+      "model": "preference-aware ICM",
+      "propagation_prob": 0.05,
+      "base_adopt_prob": 0.5,
+      "n_simulations_per_item": 2,
+      "max_rounds": 25,
+      "default_affinity": 0.3,
+      "seed_users": "the group members",
+      "outcome_scope": "simulated"
+    }
+  },
+  "n_groups": 3,
+  "group_size": 4,
+  "conflicting": true,
+  "strategies": [
+    "average",
+    "least_misery",
+    "most_pleasure"
+  ],
+  "groups": {
+    "group_0": {
+      "members": [
+        5280,
+        20749,
+        3565,
+        1702
+      ],
+      "simulation_seeds": [
+        100049,
+        101049
+      ],
+      "strategies": {
+        "average": {
+          "top_recommendations": [
+            [
+              16353,
+              4.837505912495932
+            ],
+            [
+              8559,
+              4.833774186909645
+            ],
+            [
+              693,
+              4.830250172091675
+            ],
+            [
+              5841,
+              4.8302115035432935
+            ],
+            [
+              12496,
+              4.816267253241542
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.8375,
+          "satisfaction": {
+            "member_ratings": {
+              "5280": 4.7821,
+              "20749": 4.568,
+              "3565": 5.0,
+              "1702": 5.0
+            },
+            "mean": 4.8375,
+            "min": 4.568,
+            "max": 5.0,
+            "variance": 0.0321,
+            "range": 0.432
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.002
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": true
+        },
+        "least_misery": {
+          "top_recommendations": [
+            [
+              16353,
+              4.56796191286003
+            ],
+            [
+              8559,
+              4.560954097376786
+            ],
+            [
+              5841,
+              4.555757071761832
+            ],
+            [
+              693,
+              4.552782172734721
+            ],
+            [
+              12496,
+              4.523627005829671
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.568,
+          "satisfaction": {
+            "member_ratings": {
+              "5280": 4.7821,
+              "20749": 4.568,
+              "3565": 5.0,
+              "1702": 5.0
+            },
+            "mean": 4.8375,
+            "min": 4.568,
+            "max": 5.0,
+            "variance": 0.0321,
+            "range": 0.432
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.002
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": true
+        },
+        "most_pleasure": {
+          "top_recommendations": [
+            [
+              127,
+              5.0
+            ],
+            [
+              131,
+              5.0
+            ],
+            [
+              222,
+              5.0
+            ],
+            [
+              308,
+              5.0
+            ],
+            [
+              374,
+              5.0
+            ]
+          ],
+          "top_item": 127,
+          "group_score": 5.0,
+          "satisfaction": {
+            "member_ratings": {
+              "5280": 4.7141,
+              "20749": 4.5001,
+              "3565": 5.0,
+              "1702": 4.9907
+            },
+            "mean": 4.8012,
+            "min": 4.5001,
+            "max": 5.0,
+            "variance": 0.0434,
+            "range": 0.4999
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0031
+          },
+          "top_item_is_best_satisfaction": false,
+          "top_item_is_best_spread": true
+        }
+      },
+      "candidates": {
+        "items": [
+          127,
+          16353
+        ],
+        "satisfaction": {
+          "127": {
+            "member_ratings": {
+              "5280": 4.7141,
+              "20749": 4.5001,
+              "3565": 5.0,
+              "1702": 4.9907
+            },
+            "mean": 4.8012,
+            "min": 4.5001,
+            "max": 5.0,
+            "variance": 0.0434,
+            "range": 0.4999
+          },
+          "16353": {
+            "member_ratings": {
+              "5280": 4.7821,
+              "20749": 4.568,
+              "3565": 5.0,
+              "1702": 5.0
+            },
+            "mean": 4.8375,
+            "min": 4.568,
+            "max": 5.0,
+            "variance": 0.0321,
+            "range": 0.432
+          }
+        },
+        "spread": {
+          "127": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0031
+          },
+          "16353": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.002
+          }
+        },
+        "best_satisfaction_item": 16353,
+        "best_spread_item": 127,
+        "best_satisfaction_items": [
+          16353
+        ],
+        "best_spread_items": [
+          127,
+          16353
+        ],
+        "best_satisfaction_equals_best_spread": false,
+        "best_satisfaction_and_spread_overlap": true
+      }
+    },
+    "group_1": {
+      "members": [
+        2287,
+        1533,
+        3771,
+        4000
+      ],
+      "simulation_seeds": [
+        101049,
+        102049
+      ],
+      "strategies": {
+        "average": {
+          "top_recommendations": [
+            [
+              16353,
+              4.791042692021865
+            ],
+            [
+              8559,
+              4.78450117325443
+            ],
+            [
+              693,
+              4.779455149583752
+            ],
+            [
+              5841,
+              4.775948080089922
+            ],
+            [
+              731,
+              4.7481164071248845
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.791,
+          "satisfaction": {
+            "member_ratings": {
+              "2287": 4.7587,
+              "1533": 4.6856,
+              "3771": 4.8691,
+              "4000": 4.8507
+            },
+            "mean": 4.791,
+            "min": 4.6856,
+            "max": 4.8691,
+            "variance": 0.0055,
+            "range": 0.1835
+          },
+          "diffusion_spread": {
+            "mean_adopters": 587.5,
+            "std_adopters": 583.5,
+            "mean_exposed": 1269.5,
+            "mean_rounds": 7.0,
+            "adopter_counts": [
+              4,
+              1171
+            ],
+            "runtime_seconds": 0.1778
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": false
+        },
+        "least_misery": {
+          "top_recommendations": [
+            [
+              8559,
+              4.686494435595176
+            ],
+            [
+              16353,
+              4.685615612433486
+            ],
+            [
+              693,
+              4.679307597519185
+            ],
+            [
+              5841,
+              4.665462316225685
+            ],
+            [
+              5920,
+              4.6463942635372995
+            ]
+          ],
+          "top_item": 8559,
+          "group_score": 4.6865,
+          "satisfaction": {
+            "member_ratings": {
+              "2287": 4.7493,
+              "1533": 4.6865,
+              "3771": 4.8619,
+              "4000": 4.8403
+            },
+            "mean": 4.7845,
+            "min": 4.6865,
+            "max": 4.8619,
+            "variance": 0.005,
+            "range": 0.1754
+          },
+          "diffusion_spread": {
+            "mean_adopters": 601.5,
+            "std_adopters": 597.5,
+            "mean_exposed": 1287.0,
+            "mean_rounds": 8.0,
+            "adopter_counts": [
+              4,
+              1199
+            ],
+            "runtime_seconds": 0.1308
+          },
+          "top_item_is_best_satisfaction": false,
+          "top_item_is_best_spread": true
+        },
+        "most_pleasure": {
+          "top_recommendations": [
+            [
+              16353,
+              4.869134607563809
+            ],
+            [
+              8559,
+              4.8619193596100665
+            ],
+            [
+              693,
+              4.859522298603561
+            ],
+            [
+              5841,
+              4.853603726117014
+            ],
+            [
+              12496,
+              4.830312699672921
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.8691,
+          "satisfaction": {
+            "member_ratings": {
+              "2287": 4.7587,
+              "1533": 4.6856,
+              "3771": 4.8691,
+              "4000": 4.8507
+            },
+            "mean": 4.791,
+            "min": 4.6856,
+            "max": 4.8691,
+            "variance": 0.0055,
+            "range": 0.1835
+          },
+          "diffusion_spread": {
+            "mean_adopters": 587.5,
+            "std_adopters": 583.5,
+            "mean_exposed": 1269.5,
+            "mean_rounds": 7.0,
+            "adopter_counts": [
+              4,
+              1171
+            ],
+            "runtime_seconds": 0.1778
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": false
+        }
+      },
+      "candidates": {
+        "items": [
+          8559,
+          16353
+        ],
+        "satisfaction": {
+          "8559": {
+            "member_ratings": {
+              "2287": 4.7493,
+              "1533": 4.6865,
+              "3771": 4.8619,
+              "4000": 4.8403
+            },
+            "mean": 4.7845,
+            "min": 4.6865,
+            "max": 4.8619,
+            "variance": 0.005,
+            "range": 0.1754
+          },
+          "16353": {
+            "member_ratings": {
+              "2287": 4.7587,
+              "1533": 4.6856,
+              "3771": 4.8691,
+              "4000": 4.8507
+            },
+            "mean": 4.791,
+            "min": 4.6856,
+            "max": 4.8691,
+            "variance": 0.0055,
+            "range": 0.1835
+          }
+        },
+        "spread": {
+          "8559": {
+            "mean_adopters": 601.5,
+            "std_adopters": 597.5,
+            "mean_exposed": 1287.0,
+            "mean_rounds": 8.0,
+            "adopter_counts": [
+              4,
+              1199
+            ],
+            "runtime_seconds": 0.1308
+          },
+          "16353": {
+            "mean_adopters": 587.5,
+            "std_adopters": 583.5,
+            "mean_exposed": 1269.5,
+            "mean_rounds": 7.0,
+            "adopter_counts": [
+              4,
+              1171
+            ],
+            "runtime_seconds": 0.1778
+          }
+        },
+        "best_satisfaction_item": 16353,
+        "best_spread_item": 8559,
+        "best_satisfaction_items": [
+          16353
+        ],
+        "best_spread_items": [
+          8559
+        ],
+        "best_satisfaction_equals_best_spread": false,
+        "best_satisfaction_and_spread_overlap": false
+      }
+    },
+    "group_2": {
+      "members": [
+        2177,
+        28780,
+        10952,
+        9316
+      ],
+      "simulation_seeds": [
+        102049,
+        103049
+      ],
+      "strategies": {
+        "average": {
+          "top_recommendations": [
+            [
+              16353,
+              4.851673586874555
+            ],
+            [
+              8559,
+              4.844979280222758
+            ],
+            [
+              693,
+              4.8380292870310075
+            ],
+            [
+              5841,
+              4.836472735567101
+            ],
+            [
+              731,
+              4.809982079610484
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.8517,
+          "satisfaction": {
+            "member_ratings": {
+              "2177": 4.7131,
+              "28780": 4.7758,
+              "10952": 4.9808,
+              "9316": 4.9371
+            },
+            "mean": 4.8517,
+            "min": 4.7131,
+            "max": 4.9808,
+            "variance": 0.0122,
+            "range": 0.2677
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0038
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": true
+        },
+        "least_misery": {
+          "top_recommendations": [
+            [
+              16353,
+              4.713087907767693
+            ],
+            [
+              8559,
+              4.707422418085257
+            ],
+            [
+              5841,
+              4.698397916299195
+            ],
+            [
+              693,
+              4.695963120907537
+            ],
+            [
+              731,
+              4.671192678076041
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.7131,
+          "satisfaction": {
+            "member_ratings": {
+              "2177": 4.7131,
+              "28780": 4.7758,
+              "10952": 4.9808,
+              "9316": 4.9371
+            },
+            "mean": 4.8517,
+            "min": 4.7131,
+            "max": 4.9808,
+            "variance": 0.0122,
+            "range": 0.2677
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0038
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": true
+        },
+        "most_pleasure": {
+          "top_recommendations": [
+            [
+              16353,
+              4.980766882006041
+            ],
+            [
+              8559,
+              4.97087491244769
+            ],
+            [
+              693,
+              4.968717302628106
+            ],
+            [
+              5841,
+              4.96701634853509
+            ],
+            [
+              12496,
+              4.944473841499993
+            ]
+          ],
+          "top_item": 16353,
+          "group_score": 4.9808,
+          "satisfaction": {
+            "member_ratings": {
+              "2177": 4.7131,
+              "28780": 4.7758,
+              "10952": 4.9808,
+              "9316": 4.9371
+            },
+            "mean": 4.8517,
+            "min": 4.7131,
+            "max": 4.9808,
+            "variance": 0.0122,
+            "range": 0.2677
+          },
+          "diffusion_spread": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0038
+          },
+          "top_item_is_best_satisfaction": true,
+          "top_item_is_best_spread": true
+        }
+      },
+      "candidates": {
+        "items": [
+          16353
+        ],
+        "satisfaction": {
+          "16353": {
+            "member_ratings": {
+              "2177": 4.7131,
+              "28780": 4.7758,
+              "10952": 4.9808,
+              "9316": 4.9371
+            },
+            "mean": 4.8517,
+            "min": 4.7131,
+            "max": 4.9808,
+            "variance": 0.0122,
+            "range": 0.2677
+          }
+        },
+        "spread": {
+          "16353": {
+            "mean_adopters": 4.5,
+            "std_adopters": 0.5,
+            "mean_exposed": 6.0,
+            "mean_rounds": 0.5,
+            "adopter_counts": [
+              5,
+              4
+            ],
+            "runtime_seconds": 0.0038
+          }
+        },
+        "best_satisfaction_item": 16353,
+        "best_spread_item": 16353,
+        "best_satisfaction_items": [
+          16353
+        ],
+        "best_spread_items": [
+          16353
+        ],
+        "best_satisfaction_equals_best_spread": true,
+        "best_satisfaction_and_spread_overlap": true
+      }
+    }
+  },
+  "summary": {
+    "average": {
+      "n_groups": 3,
+      "avg_mean_satisfaction": 4.827,
+      "avg_min_satisfaction": 4.656,
+      "avg_max_satisfaction": 4.95,
+      "avg_disagreement_range": 0.294,
+      "avg_group_score": 4.827,
+      "avg_diffusion_spread": 198.833,
+      "avg_diffusion_std": 194.833,
+      "top_item_best_satisfaction_count": 3,
+      "top_item_best_spread_count": 2
+    },
+    "least_misery": {
+      "n_groups": 3,
+      "avg_mean_satisfaction": 4.825,
+      "avg_min_satisfaction": 4.656,
+      "avg_max_satisfaction": 4.948,
+      "avg_disagreement_range": 0.292,
+      "avg_group_score": 4.656,
+      "avg_diffusion_spread": 203.5,
+      "avg_diffusion_std": 199.5,
+      "top_item_best_satisfaction_count": 2,
+      "top_item_best_spread_count": 3
+    },
+    "most_pleasure": {
+      "n_groups": 3,
+      "avg_mean_satisfaction": 4.815,
+      "avg_min_satisfaction": 4.633,
+      "avg_max_satisfaction": 4.95,
+      "avg_disagreement_range": 0.317,
+      "avg_group_score": 4.95,
+      "avg_diffusion_spread": 198.833,
+      "avg_diffusion_std": 194.833,
+      "top_item_best_satisfaction_count": 2,
+      "top_item_best_spread_count": 2
+    }
+  },
+  "analysis": {
+    "n_groups_with_candidates": 3,
+    "n_best_satisfaction_and_spread_overlap": 2,
+    "agreement_rate": 0.6667,
+    "best_strategy_by_mean_satisfaction": "average",
+    "best_strategy_by_min_satisfaction": "average",
+    "best_strategy_by_simulated_spread": "least_misery",
+    "strategy_mean_satisfaction": {
+      "average": 4.827,
+      "least_misery": 4.825,
+      "most_pleasure": 4.815
+    },
+    "strategy_min_satisfaction": {
+      "average": 4.656,
+      "least_misery": 4.656,
+      "most_pleasure": 4.633
+    },
+    "strategy_simulated_spread": {
+      "average": 198.833,
+      "least_misery": 203.5,
+      "most_pleasure": 198.833
+    },
+    "findings": [
+      "Across 3 groups, the item with the highest mean predicted satisfaction was also the item with the highest simulated spread in 2 groups (66.7%).",
+      "Highest average mean satisfaction: average; highest average least-misery (minimum) satisfaction: average; highest average simulated spread: least_misery.",
+      "The strategy with the highest average member satisfaction did not coincide with the strategy whose top items produced the highest average simulated spread. This is the measured satisfaction/spread trade-off for these groups."
+    ],
+    "limitations": [
+      "Satisfaction is a model prediction, not an observed group rating.",
+      "Diffusion outcomes are simulated with preference-aware ICM.",
+      "Groups may overlap; each group is a distinct member set but the same user can appear in more than one group.",
+      "Different strategies choose different target items, so spread differences combine item effects and strategy effects; the candidate-item analysis reports the item-level detail.",
+      "Best-item agreement counts a non-empty overlap between the exact tied best sets; it does not require the two best sets to be equal."
+    ]
+  }
+}
