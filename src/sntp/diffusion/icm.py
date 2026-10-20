@@ -121,7 +121,8 @@ class ICMSimulator:
         }
 
     def run_preference_aware(self, seed_users: set[int],
-                             affinity_fn, base_adopt_prob: float = 0.5) -> dict:
+                             affinity_fn, base_adopt_prob: float = 0.5,
+                             min_affinity_threshold: float = 0.0) -> dict:
         """Run preference-aware ICM with separate exposure and adoption stages.
 
         Parameters
@@ -135,6 +136,9 @@ class ICMSimulator:
         base_adopt_prob : float
             Base adoption probability, multiplied by affinity.
             adoption_prob = base_adopt_prob * affinity(user)
+        min_affinity_threshold : float
+            Relevance threshold (intervention). Exposed users with affinity
+            below this threshold do not adopt or propagate the item.
 
         Returns
         -------
@@ -182,6 +186,10 @@ class ICMSimulator:
             # Stage 2: adoption decision for newly exposed users
             for user in newly_exposed:
                 aff = affinity_fn(user)
+                if min_affinity_threshold > 0.0 and aff < min_affinity_threshold:
+                    # Relevance intervention: low affinity blocks adoption and downstream propagation
+                    continue
+
                 adopt_prob = base_adopt_prob * aff
                 adopt_prob = min(max(adopt_prob, 0.0), 1.0)
 

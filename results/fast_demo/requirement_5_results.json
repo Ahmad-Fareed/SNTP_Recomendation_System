@@ -1,0 +1,115 @@
+{
+  "budgets": [
+    1,
+    3,
+    5
+  ],
+  "propagation_prob": 0.05,
+  "n_simulations": 3,
+  "candidate_pool_size": 30,
+  "methods": {
+    "random": {
+      "1": {
+        "seeds": [
+          4169
+        ],
+        "mean_spread": 2.33,
+        "std_spread": 1.89,
+        "marginal_gain": 2.33
+      },
+      "3": {
+        "seeds": [
+          4169,
+          7302,
+          3023
+        ],
+        "mean_spread": 3135.33,
+        "std_spread": 2215.26,
+        "marginal_gain": 3133.0
+      },
+      "5": {
+        "seeds": [
+          4169,
+          7302,
+          3023,
+          733,
+          13371
+        ],
+        "mean_spread": 4702.0,
+        "std_spread": 27.07,
+        "marginal_gain": 1566.67
+      }
+    },
+    "degree": {
+      "1": {
+        "seeds": [
+          494
+        ],
+        "mean_spread": 4693.0,
+        "std_spread": 37.42,
+        "marginal_gain": 4693.0
+      },
+      "3": {
+        "seeds": [
+          494,
+          180,
+          22
+        ],
+        "mean_spread": 4700.67,
+        "std_spread": 28.87,
+        "marginal_gain": 7.67
+      },
+      "5": {
+        "seeds": [
+          494,
+          180,
+          22,
+          321,
+          803
+        ],
+        "mean_spread": 4698.67,
+        "std_spread": 32.43,
+        "marginal_gain": -2.0
+      }
+    },
+    "greedy": {
+      "1": {
+        "seeds": [
+          93
+        ],
+        "mean_spread": 4729.67,
+        "std_spread": 21.67,
+        "marginal_gain": 4729.67
+      },
+      "3": {
+        "seeds": [
+          93
+        ],
+        "mean_spread": 4729.67,
+        "std_spread": 21.67,
+        "marginal_gain": 0.0
+      },
+      "5": {
+        "seeds": [
+          93
+        ],
+        "mean_spread": 4729.67,
+        "std_spread": 21.67,
+        "marginal_gain": 0.0
+      }
+    }
+  },
+  "adopter_overlaps": {
+    "random_vs_degree": 0.539,
+    "degree_vs_greedy": 0.541,
+    "random_vs_greedy": 0.539
+  },
+  "runtimes_seconds": {
+    "random": 0.001,
+    "degree": 0.009,
+    "greedy": 14.407
+  },
+  "analysis": {
+    "degree_vs_optimal": "Degree centrality selects nodes with high individual out-degree, but their downstream audiences heavily overlap due to clustering. Greedy selection considers the marginal contribution to the current seed set, effectively choosing diverse seeds across distinct network communities."
+  }
+}

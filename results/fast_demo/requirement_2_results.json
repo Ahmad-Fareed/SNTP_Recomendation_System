@@ -9,18 +9,22 @@
       "rmse": 1.5211547513455361,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 52.96
+      "train_time_seconds": 44.66
     },
     "ranking": {
       "precision_at_k": 0.0004,
+      "recall_at_k": 0.0023333333333333335,
+      "f1_at_k": 0.0006829268292682926,
       "hit_rate_at_k": 0.004,
+      "ndcg_at_k": 0.0008387771844565171,
+      "coverage": 0.01348953040690435,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 0.74
+      "eval_time_seconds": 0.4
     }
   },
   "matrix_factorization": {
@@ -36,18 +40,22 @@
       "rmse": 1.056503732078645,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 62.89
+      "train_time_seconds": 54.19
     },
     "ranking": {
       "precision_at_k": 0.0012,
+      "recall_at_k": 0.0021527777777777778,
+      "f1_at_k": 0.0015410107705053852,
       "hit_rate_at_k": 0.01,
+      "ndcg_at_k": 0.0018984968321035286,
+      "coverage": 0.0004222187236113298,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 2.29
+      "eval_time_seconds": 2.75
     },
     "epoch_history": [
       {

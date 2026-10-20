@@ -2,47 +2,47 @@
   "stages": [
     {
       "stage": "R1: load dataset",
-      "seconds": 7.46
+      "seconds": 5.8
     },
     {
       "stage": "R1: train/val/test split",
-      "seconds": 0.53
+      "seconds": 0.43
     },
     {
       "stage": "R2: item-based CF fit",
-      "seconds": 52.96
+      "seconds": 44.66
     },
     {
       "stage": "R2: item-based CF MAE/RMSE",
-      "seconds": 0.25
+      "seconds": 0.21
     },
     {
       "stage": "R2: item-based CF top-K ranking",
-      "seconds": 1.14
+      "seconds": 0.81
     },
     {
       "stage": "R2: MF training",
-      "seconds": 62.89
+      "seconds": 54.19
     },
     {
       "stage": "R2: MF MAE/RMSE",
-      "seconds": 0.1
+      "seconds": 0.09
     },
     {
       "stage": "R2: MF top-K ranking",
-      "seconds": 2.37
+      "seconds": 2.82
     },
     {
       "stage": "R2: behaviour/popularity group analysis",
-      "seconds": 1.13
+      "seconds": 1.41
     },
     {
       "stage": "R3: baseline evaluation",
-      "seconds": 2.68
+      "seconds": 2.61
     },
     {
       "stage": "R3: social lambda=0.0",
-      "seconds": 4.36
+      "seconds": 4.18
     },
     {
       "stage": "R3: social lambda=0.3",
@@ -50,28 +50,32 @@
     },
     {
       "stage": "R3: social lambda=0.5",
-      "seconds": 4.2
+      "seconds": 3.56
     },
     {
       "stage": "R3: sparse-user analysis",
-      "seconds": 1.09
+      "seconds": 0.76
     },
     {
       "stage": "R3: trust vs similar-user comparison",
-      "seconds": 1.83
+      "seconds": 1.58
     },
     {
       "stage": "R4: ICM canonical",
-      "seconds": 0.17
+      "seconds": 0.19
     },
     {
       "stage": "R4: ICM preference-aware",
-      "seconds": 0.04
+      "seconds": 0.06
     },
     {
       "stage": "R4: SIR",
-      "seconds": 5.51
+      "seconds": 5.57
+    },
+    {
+      "stage": "R5: Influence Maximization",
+      "seconds": 16.29
     }
   ],
-  "total_seconds": 156.6
+  "total_seconds": 152.77
 }

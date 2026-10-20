@@ -66,6 +66,87 @@ def hit_rate_at_k(recommended: list[int], relevant: set[int], k: int) -> float:
     return 1.0 if any(item in relevant for item in top_k) else 0.0
 
 
+def recall_at_k(recommended: list[int], relevant: set[int], k: int) -> float:
+    """Recall@K: fraction of relevant items that appear in recommended[:k]."""
+    if k <= 0 or not relevant:
+        return 0.0
+    top_k = recommended[:k]
+    if not top_k:
+        return 0.0
+    hits = sum(1 for item in top_k if item in relevant)
+    return float(hits / len(relevant))
+
+
+def f1_at_k(precision: float, recall: float) -> float:
+    """F1@K: harmonic mean of precision and recall."""
+    if np.isnan(precision) or np.isnan(recall) or (precision + recall) <= 0.0:
+        return 0.0
+    return float(2.0 * (precision * recall) / (precision + recall))
+
+
+def ndcg_at_k(recommended: list[int], relevant: set[int], k: int) -> float:
+    """Normalized Discounted Cumulative Gain at K (binary relevance)."""
+    if k <= 0 or not relevant:
+        return 0.0
+    top_k = recommended[:k]
+    if not top_k:
+        return 0.0
+
+    dcg = 0.0
+    for idx, item in enumerate(top_k):
+        if item in relevant:
+            dcg += 1.0 / np.log2(idx + 2)
+
+    n_ideal = min(k, len(relevant))
+    idcg = sum(1.0 / np.log2(idx + 2) for idx in range(n_ideal))
+    if idcg <= 0.0:
+        return 0.0
+    return float(dcg / idcg)
+
+
+def recommendation_coverage(all_recs: list[list[int]], n_total_items: int) -> float:
+    """Catalog coverage: fraction of unique items recommended at least once."""
+    if n_total_items <= 0 or not all_recs:
+        return 0.0
+    unique_items = set()
+    for rec_list in all_recs:
+        unique_items.update(rec_list)
+    return float(len(unique_items) / n_total_items)
+
+
+def intra_list_diversity(
+    recommended: list[int],
+    item_similarities: np.ndarray | dict | None = None,
+) -> float:
+    """Intra-list diversity: average pairwise distance (1 - similarity) in recommended list.
+
+    If item_similarities is None, distinct items are assumed to have distance 1.0.
+    """
+    n = len(recommended)
+    if n <= 1:
+        return 0.0
+
+    n_pairs = n * (n - 1) // 2
+    total_dist = 0.0
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            it_i, it_j = recommended[i], recommended[j]
+            if item_similarities is None:
+                sim = 1.0 if it_i == it_j else 0.0
+            elif callable(item_similarities):
+                sim = float(item_similarities(it_i, it_j))
+            elif isinstance(item_similarities, np.ndarray):
+                sim = float(item_similarities[it_i, it_j])
+            elif isinstance(item_similarities, dict):
+                sim = float(item_similarities.get((it_i, it_j), item_similarities.get((it_j, it_i), 0.0)))
+            else:
+                sim = 0.0
+            total_dist += (1.0 - sim)
+
+    return float(total_dist / n_pairs)
+
+
 def evaluate_predictions(recommender, test_ratings, user_to_idx, item_to_idx,
                          rating_min=1, rating_max=5):
     """Evaluate a recommender on held-out ratings using MAE and RMSE.
@@ -221,6 +302,9 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
     t_last = t_start
     precisions = []
     hit_rates = []
+    recalls = []
+    ndcgs = []
+    all_recs = []
 
     # Use batched recommendation if available
     if hasattr(recommender, "recommend_batch"):
@@ -232,8 +316,11 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
             for uidx, recs in zip(batch_u, batch_recs):
                 rel_items = user_relevant[uidx]
                 rec_list = [item_idx for item_idx, _ in recs]
+                all_recs.append(rec_list)
                 precisions.append(precision_at_k(rec_list, rel_items, k))
                 hit_rates.append(hit_rate_at_k(rec_list, rel_items, k))
+                recalls.append(recall_at_k(rec_list, rel_items, k))
+                ndcgs.append(ndcg_at_k(rec_list, rel_items, k))
 
             now = time.time()
             if now - t_last >= log_every_seconds:
@@ -252,8 +339,11 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
             exclude = train_user_items.get(uidx, set())
             recs = recommender.recommend(uidx, k, exclude=exclude)
             rec_list = [item_idx for item_idx, _ in recs]
+            all_recs.append(rec_list)
             precisions.append(precision_at_k(rec_list, rel_items, k))
             hit_rates.append(hit_rate_at_k(rec_list, rel_items, k))
+            recalls.append(recall_at_k(rec_list, rel_items, k))
+            ndcgs.append(ndcg_at_k(rec_list, rel_items, k))
 
             now = time.time()
             if now - t_last >= log_every_seconds:
@@ -269,9 +359,19 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
                 label, len(precisions), elapsed,
                 1000.0 * elapsed / max(len(precisions), 1))
 
+    mean_p = float(np.mean(precisions)) if precisions else float("nan")
+    mean_r = float(np.mean(recalls)) if recalls else float("nan")
+    mean_f1 = f1_at_k(mean_p, mean_r)
+    n_catalog = len(item_to_idx) if item_to_idx is not None else 0
+    cov = recommendation_coverage(all_recs, n_catalog)
+
     return {
-        "precision_at_k": float(np.mean(precisions)) if precisions else float("nan"),
+        "precision_at_k": mean_p,
+        "recall_at_k": mean_r,
+        "f1_at_k": mean_f1,
         "hit_rate_at_k": float(np.mean(hit_rates)) if hit_rates else float("nan"),
+        "ndcg_at_k": float(np.mean(ndcgs)) if ndcgs else float("nan"),
+        "coverage": cov,
         "k": k,
         "relevance_threshold": relevance_threshold,
         "n_users_evaluated": len(precisions),

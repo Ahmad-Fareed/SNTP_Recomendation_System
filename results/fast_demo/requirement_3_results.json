@@ -8,14 +8,18 @@
     },
     "ranking": {
       "precision_at_k": 0.0012,
+      "recall_at_k": 0.0021527777777777778,
+      "f1_at_k": 0.0015410107705053852,
       "hit_rate_at_k": 0.01,
+      "ndcg_at_k": 0.0018984968321035286,
+      "coverage": 0.0004222187236113298,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 2.2
+      "eval_time_seconds": 2.19
     }
   },
   "social_lambda_0.0": {
@@ -27,14 +31,18 @@
     },
     "ranking": {
       "precision_at_k": 0.0012,
+      "recall_at_k": 0.0021527777777777778,
+      "f1_at_k": 0.0015410107705053852,
       "hit_rate_at_k": 0.01,
+      "ndcg_at_k": 0.0018984968321035286,
+      "coverage": 0.0004222187236113298,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.5
+      "eval_time_seconds": 3.34
     }
   },
   "social_lambda_0.3": {
@@ -46,14 +54,18 @@
     },
     "ranking": {
       "precision_at_k": 0.0014000000000000002,
+      "recall_at_k": 0.0024797008547008544,
+      "f1_at_k": 0.0017896128215013495,
       "hit_rate_at_k": 0.012,
+      "ndcg_at_k": 0.002243979840585082,
+      "coverage": 0.0009303124418554724,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.29
+      "eval_time_seconds": 3.13
     }
   },
   "social_lambda_0.5": {
@@ -65,14 +77,18 @@
     },
     "ranking": {
       "precision_at_k": 0.0015999999999999999,
+      "recall_at_k": 0.0034797008547008544,
+      "f1_at_k": 0.002192066630210743,
       "hit_rate_at_k": 0.014,
+      "ndcg_at_k": 0.0027260607310831205,
+      "coverage": 0.00209678111895118,
       "k": 10,
       "relevance_threshold": 4,
       "n_users_evaluated": 500,
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.24
+      "eval_time_seconds": 2.84
     }
   },
   "sparse_users_analysis": {
