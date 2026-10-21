@@ -79,3 +79,7 @@ $RECYCLE.BIN/
 .agents/
 .agent/
 skills-lock.json
+
+# Local report-proofing scratch artifacts
+build_report_preview/
+*_extracted.txt
