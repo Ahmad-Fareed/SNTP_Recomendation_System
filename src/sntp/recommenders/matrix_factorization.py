@@ -132,11 +132,19 @@ class BiasedMF:
         self.user_factors = rng.normal(0, scale, (n_users, self.n_factors))
         self.item_factors = rng.normal(0, scale, (n_items, self.n_factors))
 
+        # Track which users/items have at least one training observation.
+        # Rows without observations are cold starts and must not retain their
+        # random initial factors (see the fallback rules at the end of fit()).
+        self._user_seen = np.zeros(self.n_users, dtype=bool)
+        self._item_seen = np.zeros(self.n_items, dtype=bool)
+
         # Build training user items for exclusion during recommendation
         from collections import defaultdict
         self._train_user_items = defaultdict(set)
         for uidx, iidx, _ in indexed:
             self._train_user_items[uidx].add(iidx)
+            self._user_seen[uidx] = True
+            self._item_seen[iidx] = True
 
         # Prepare validation if provided (as index arrays for vectorized RMSE)
         val_u = val_i = val_r = None
@@ -229,19 +237,35 @@ class BiasedMF:
         self.user_bias = np.asarray(bu, dtype=np.float64)
         self.item_bias = np.asarray(bi, dtype=np.float64)
 
+        # Enforce the documented cold-start fallbacks.  An untrained user/item
+        # contributes no bias and no latent factor; the prediction therefore
+        # reduces to global_mean plus the trained side when only one is known.
+        self.user_bias[~self._user_seen] = 0.0
+        self.user_factors[~self._user_seen] = 0.0
+        self.item_bias[~self._item_seen] = 0.0
+        self.item_factors[~self._item_seen] = 0.0
+        self.n_users_with_training_ratings = int(self._user_seen.sum())
+        self.n_items_with_training_ratings = int(self._item_seen.sum())
+
         elapsed = time.time() - t0
         logger.info("MF trained in %.1fs over %d epochs.", elapsed, self.n_epochs)
         self.epoch_history = epoch_history
 
     def _raw_predict(self, user_idx: int, item_idx: int) -> float:
-        """Raw prediction without clipping (used during training)."""
+        """Raw prediction without clipping (used during training).
+
+        Out-of-range or untrained rows contribute nothing beyond the
+        documented cold-start fallback because their parameters are zero.
+        """
+        u_ok = 0 <= user_idx < self.n_users
+        i_ok = 0 <= item_idx < self.n_items
         pred = self.global_mean
-        if self.user_bias is not None and user_idx < self.n_users:
+        if self.user_bias is not None and u_ok:
             pred += self.user_bias[user_idx]
-        if self.item_bias is not None and item_idx < self.n_items:
+        if self.item_bias is not None and i_ok:
             pred += self.item_bias[item_idx]
         if (self.user_factors is not None and self.item_factors is not None
-                and user_idx < self.n_users and item_idx < self.n_items):
+                and u_ok and i_ok):
             pred += self.user_factors[user_idx].dot(self.item_factors[item_idx])
         return pred
 
@@ -249,8 +273,10 @@ class BiasedMF:
                 rating_min: float = 1.0, rating_max: float = 5.0) -> float:
         """Predict and clip rating for (user, item).
 
-        Returns clipped prediction. Never returns None — cold-start users/items
-        get global_mean + available biases.
+        Returns a clipped prediction and never returns None.  Cold-start
+        fallbacks (trained on training data only) are: untrained user +
+        trained item -> μ + b_i; trained user + untrained item -> μ + b_u;
+        both untrained -> μ.  No random initial factor is used.
         """
         pred = self._raw_predict(user_idx, item_idx)
         return float(np.clip(pred, rating_min, rating_max))
@@ -263,12 +289,15 @@ class BiasedMF:
         scale.  ``raw_scores=True`` returns the unclipped model score for
         ranking; callers must clip only the reported rating after selection.
         """
-        if user_idx < self.n_users:
+        if self.item_bias is None:
+            preds = np.full(self.n_items, self.global_mean, dtype=np.float64)
+        elif 0 <= user_idx < self.n_users and self.user_factors is not None:
             preds = (self.global_mean
                      + self.user_bias[user_idx]
                      + self.item_bias
                      + self.item_factors.dot(self.user_factors[user_idx]))
         else:
+            # Untrained/out-of-range user: global_mean + trained item biases.
             preds = self.global_mean + self.item_bias
         if raw_scores:
             return np.asarray(preds, dtype=np.float64)
@@ -322,8 +351,11 @@ class BiasedMF:
         users = np.asarray(user_indices, dtype=np.int64)
         out = np.empty((users.shape[0], self.n_items), dtype=np.float64)
         inr = (users >= 0) & (users < self.n_users)
-        out[~inr] = self.global_mean + self.item_bias
-        if inr.any():
+        if self.item_bias is None:
+            out[:] = self.global_mean
+        else:
+            out[~inr] = self.global_mean + self.item_bias
+        if inr.any() and self.user_bias is not None and self.item_bias is not None:
             uu = users[inr]
             # Same left-to-right addition order as score_all().
             out[inr] = ((self.global_mean + self.user_bias[uu])[:, None]

@@ -50,8 +50,15 @@ diffusion:
   recovery_probs: [0.0, 0.2]
   base_adopt_prob: 0.5
   default_affinity: 0.3
-  target_min_train_ratings: 6
-  target_max_train_ratings: 20
+  # Part 4 keeps the original rare-item experiment and adds a documented
+  # moderate-popularity target under the same models, seeds, and graph.
+  target_items:
+    rare:
+      min_train_ratings: 1
+      max_train_ratings: 1
+    moderate:
+      min_train_ratings: 6
+      max_train_ratings: 20
   network_structure_comparison:
     enabled: true
     swap_multiplier: 2
@@ -83,8 +90,9 @@ evaluation:
   interaction_base_adopt_prob: 0.5
   interaction_max_rounds: 25
   interaction_default_affinity: 0.3
-  target_min_train_ratings: 6
-  target_max_train_ratings: 20
+  # Retain the original rare-item simulated interaction.
+  target_min_train_ratings: 1
+  target_max_train_ratings: 1
 
 intervention:
   thresholds: [0.0, 0.3, 0.6, 0.8, 0.9]
@@ -94,8 +102,9 @@ intervention:
   seed_size: 5
   max_rounds: 25
   default_affinity: 0.3
-  target_min_train_ratings: 6
-  target_max_train_ratings: 20
+  # Retain the original rare-item intervention.
+  target_min_train_ratings: 1
+  target_max_train_ratings: 1
   seed: 42
   celf:
     budget: 3

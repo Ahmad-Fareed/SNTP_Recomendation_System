@@ -309,6 +309,28 @@ class TestBiasedMF(unittest.TestCase):
                 self.assertGreaterEqual(pred, 1.0)
                 self.assertLessEqual(pred, 5.0)
 
+    def test_cold_start_fallbacks_ignore_random_factors(self):
+        mf = BiasedMF(n_factors=5, lr=0.01, reg=0.01, n_epochs=5, seed=42)
+        mf.fit(self.train, 4, 4, self.u2i, self.i2i)
+        self.assertFalse(mf._user_seen[3])
+        self.assertFalse(mf._item_seen[3])
+        self.assertEqual(mf.n_users_with_training_ratings, 3)
+        self.assertEqual(mf.n_items_with_training_ratings, 3)
+        np.testing.assert_array_equal(mf.user_factors[3], np.zeros(5))
+        np.testing.assert_array_equal(mf.item_factors[3], np.zeros(5))
+
+        mu = mf.global_mean
+        # Untrained user + trained item: global mean + item bias.
+        self.assertAlmostEqual(mf.predict(3, 0), mu + mf.item_bias[0], places=10)
+        # Trained user + untrained item: global mean + user bias.
+        self.assertAlmostEqual(mf.predict(0, 3), mu + mf.user_bias[0], places=10)
+        # Both untrained: global mean.
+        self.assertAlmostEqual(mf.predict(3, 3), mu, places=10)
+        # The vectorized raw score path uses the same fallback.
+        raw = mf.score_all(3, raw_scores=True)
+        self.assertAlmostEqual(raw[0], mu + mf.item_bias[0], places=10)
+        self.assertAlmostEqual(raw[3], mu, places=10)
+
     def test_training_reduces_error(self):
         """Training RMSE should decrease over epochs."""
         first = self.mf.epoch_history[0]["train_rmse"]

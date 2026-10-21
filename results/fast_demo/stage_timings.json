@@ -2,96 +2,104 @@
   "stages": [
     {
       "stage": "R1: load dataset",
-      "seconds": 11.54
+      "seconds": 6.68
     },
     {
       "stage": "R1: train/val/test split",
-      "seconds": 0.85
+      "seconds": 0.58
     },
     {
       "stage": "R2: item-based CF fit",
-      "seconds": 87.84
+      "seconds": 50.14
     },
     {
       "stage": "R2: item-based CF MAE/RMSE",
-      "seconds": 0.43
+      "seconds": 0.24
     },
     {
       "stage": "R2: item-based CF top-K ranking",
-      "seconds": 1.42
+      "seconds": 0.9
     },
     {
       "stage": "R2: MF training",
-      "seconds": 83.69
+      "seconds": 40.7
     },
     {
       "stage": "R2: MF MAE/RMSE",
-      "seconds": 0.22
+      "seconds": 0.1
     },
     {
       "stage": "R2: MF top-K ranking",
-      "seconds": 3.95
+      "seconds": 2.48
     },
     {
       "stage": "R2: behaviour/popularity group analysis",
-      "seconds": 2.44
+      "seconds": 1.0
     },
     {
       "stage": "R3: baseline evaluation",
-      "seconds": 5.16
+      "seconds": 2.81
     },
     {
       "stage": "R3: validation lambda selection",
-      "seconds": 6.38
+      "seconds": 2.68
     },
     {
       "stage": "R3: social lambda=0.0",
-      "seconds": 8.44
+      "seconds": 4.38
     },
     {
       "stage": "R3: social lambda=0.3",
-      "seconds": 9.09
+      "seconds": 4.75
     },
     {
       "stage": "R3: social lambda=0.5",
-      "seconds": 8.7
+      "seconds": 4.03
     },
     {
       "stage": "R3: sparse-user analysis",
-      "seconds": 1.64
+      "seconds": 0.63
     },
     {
       "stage": "R3: trust vs similar-user comparison",
-      "seconds": 5.09
+      "seconds": 2.06
     },
     {
       "stage": "R4: ICM canonical",
-      "seconds": 0.77
+      "seconds": 0.26
+    },
+    {
+      "stage": "R4: network-structure comparison",
+      "seconds": 3.39
     },
     {
       "stage": "R4: ICM preference-aware",
-      "seconds": 0.21
+      "seconds": 0.11
     },
     {
       "stage": "R4: SIR",
-      "seconds": 20.23
+      "seconds": 8.56
+    },
+    {
+      "stage": "R4: moderate-popularity target",
+      "seconds": 0.25
     },
     {
       "stage": "R5: Influence Maximization",
-      "seconds": 42.12
+      "seconds": 27.73
     },
     {
       "stage": "R6: Group Recommendation",
-      "seconds": 4.46
+      "seconds": 2.05
     },
     {
       "stage": "R7: Comprehensive Evaluation",
-      "seconds": 19.38
+      "seconds": 10.12
     },
     {
       "stage": "R8: Intervention & Cost Analysis",
-      "seconds": 212.73
+      "seconds": 83.91
     }
   ],
-  "total_seconds": 545.7
+  "total_seconds": 264.53
 }

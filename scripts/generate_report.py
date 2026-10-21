@@ -306,6 +306,20 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     split_info = metrics["split_info"]
     config = metrics["config"]
 
+    r2_icf = r2["item_based_cf"]
+    r2_mf = r2["matrix_factorization"]
+    best_lambda_key = f"social_lambda_{r3['best_lambda']:.1f}"
+    r3_best = r3[best_lambda_key]
+    r4_can_01 = r4["icm_canonical"]["p=0.01"]["summary"]
+    r4_can_05 = r4["icm_canonical"]["p=0.05"]["summary"]
+    r4_pref_01 = r4["icm_preference_aware"]["p=0.01"]["summary"]
+    r4_pref_05 = r4["icm_preference_aware"]["p=0.05"]["summary"]
+    r8_by_threshold = {
+        float(row["threshold"]): row
+        for row in r8["intervention"]["results"].values()
+    }
+    celf_cmp = r8["celf_optimization"]["comparison"]
+
     title = "Recommendation and Information Diffusion on Epinions"
     today = date.today().strftime("%d %B %Y")
 
@@ -402,30 +416,41 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "ratings. Models are fitted on train; validation selects the social weight; "
         "test is used only for the final observed evaluation."
     )
+    t08 = r8_by_threshold.get(0.8, {})
+    t08_rel = t08.get("relative_to_baseline", {})
+    t08_spread = t08_rel.get("spread_change_pct")
+    t08_proxy = t08_rel.get("adopter_satisfaction_change")
+    r6_means = [r6["summary"][k]["avg_mean_satisfaction"]
+                for k in ("average", "least_misery", "most_pleasure")
+                if k in r6["summary"]]
     p(
         "The strongest measured result is that matrix factorization and the "
         "trust-aware social model substantially outperform item-based CF on rating "
         "error. The social model is best on test MAE/RMSE and on all top-K ranking "
-        "metrics in this run. Influence maximization does <b>not</b> show greedy "
-        "superiority: on the restricted top-degree candidate pool, degree centrality "
-        "wins at budgets 3 and 5, and the paired greedy−degree difference at budget 5 "
-        "is negative. Group-strategy satisfaction differences are small, and the "
-        "spread comparison is dominated by rare large cascades. The threshold "
-        "intervention has a cliff at 0.8: it removes ~99% of simulated spread while "
-        "slightly raising the simulator-side adopter rating proxy, but it is not an "
-        "online experiment. CELF used 24.2% fewer evaluations and was 1.22× faster "
-        "in this single noisy-Monte-Carlo measurement, while selecting different "
-        "seeds; a deterministic controlled check reproduced standard greedy exactly."
+        "metrics in this run. Rankings are ordered by unclipped model scores; only "
+        "the reported predicted ratings are clipped to [1, 5]. Influence "
+        "maximization does <b>not</b> show greedy superiority: on the restricted "
+        "top-degree candidate pool, degree centrality wins at budgets 3 and 5, and "
+        "the paired greedy−degree difference at budget 5 is negative. Group-strategy "
+        "satisfaction differences are small, and the spread comparison is dominated "
+        "by rare large cascades. The threshold intervention has a cliff at 0.8: it "
+        f"removes {num(abs(t08_spread), 2)}% of simulated spread while changing the "
+        "simulator-side adopter rating proxy by "
+        f"{num(t08_proxy, 4)}, but it is not an online experiment. CELF used "
+        f"{num(celf_cmp['evaluation_reduction_pct'], 2)}% fewer evaluations and was "
+        f"{num(celf_cmp['speedup_factor'], 2)}× faster in this single noisy "
+        "Monte-Carlo measurement, while selecting different seeds; a deterministic "
+        "controlled check reproduced standard greedy exactly."
     )
     rows = [
         ["1. Data", "Parse ratings/trust, validate, split, represent", f"{data_summary['n_users']:,} users; {split_info['train_size']:,}/{split_info['val_size']:,}/{split_info['test_size']:,} split"],
-        ["2. Recommenders", "Item-based CF and MF; top-K", "MF test MAE 0.8325, RMSE 1.0677"],
-        ["3. Trust-aware", "Social blend; λ selected on validation", "λ=0.3; test MAE 0.8284"],
-        ["4. Diffusion", "ICM, SIR, preference-aware; controlled seeds", "p=0.05 canonical 4,684 adopters; preference 501"],
+        ["2. Recommenders", "Item-based CF and MF; top-K; raw-score ordering", f"MF test MAE {num(r2_mf['prediction']['mae'], 4)}, RMSE {num(r2_mf['prediction']['rmse'], 4)}"],
+        ["3. Trust-aware", "Social blend; λ selected on validation", f"λ={r3['best_lambda']:.1f}; test MAE {num(r3_best['prediction']['mae'], 4)}"],
+        ["4. Diffusion", "ICM, SIR, preference-aware; rare + moderate targets; controlled network null", f"p=0.05 rare canonical {num(r4_can_05['mean_adopters'], 0)}; moderate {num(r4['target_popularity_comparison']['moderate']['icm_canonical']['p=0.05']['summary']['mean_adopters'], 0)}"],
         ["5. Influence", "Random/degree/greedy; shared pool and seeds", "Degree best at budgets 3 and 5"],
-        ["6. Groups", "Average / least misery / most pleasure; train-only groups", "Mean satisfaction 4.827 / 4.825 / 4.815"],
+        ["6. Groups", "Average / least misery / most pleasure; train-only groups", "Mean satisfaction " + " / ".join(num(v, 3) for v in r6_means)],
         ["7. Evaluation", "MAE/RMSE/P/R/F1/HR/nDCG/coverage/diversity", "Social best ranking; ICF broadest coverage"],
-        ["8. Intervention", "Threshold, CELF, network/item/budget scaling", "0.8: −99.09% spread, +0.0264 proxy; CELF 1.22×"],
+        ["8. Intervention", "Threshold, CELF, network/item/budget scaling", f"0.8: {num(t08_spread, 2)}% spread, proxy {num(t08_proxy, 4)}; CELF {num(celf_cmp['speedup_factor'], 2)}×"],
     ]
     add(table(["Requirement", "Implementation", "Headline measured outcome"], rows,
               [27 * mm, 66 * mm, 84 * mm], font_size=7.4))
@@ -494,9 +519,10 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     p(
         "The item popularity distribution is extremely long-tailed: 99,715 items "
         "have only 1–5 training/test interactions in the item-popularity analysis, "
-        "while 3,449 items have 21+. This is why top-K ranking metrics are low and "
-        "why the diffusion target is deliberately drawn from the middle training "
-        "popularity band rather than from a popular item."
+        "while 3,449 items have 21+. This is why top-K ranking metrics are low. "
+        "Part 4 retains the original one-training-rating rare target and adds a "
+        "separate 6–20-training-rating moderate target for comparison; neither is "
+        "drawn from the popular head of the distribution."
     )
 
     # ---------------- R2 ----------------
@@ -507,12 +533,24 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "Item-based CF uses cosine similarity between item interaction vectors, "
         "at most 20 neighbours, and at least 2 co-rated items. Matrix factorization "
         "uses 10 latent factors, learning rate 0.005, L2 regularization 0.02, "
-        "6 epochs, and seed 42. Both are fitted on the training split."
+        "6 epochs, and seed 42. Both are fitted on the training split. MF tracks "
+        "which users and items have at least one training observation; untrained "
+        "rows have zero bias and zero latent factors, so the fallback is μ+b_i for "
+        "an untrained user with a trained item, μ+b_u for a trained user with an "
+        "untrained item, and μ when both are unseen. Random initial factors are "
+        "never used as a cold-start prediction."
     )
     p(
         "Top-K excludes the user's training items and ranks the remaining catalogue. "
-        "Ranking metrics use a fixed seeded sample of 500 eligible users; MAE/RMSE "
-        "use all test ratings. Unobserved items are not treated as negative examples."
+        "Items are ordered by the <b>unclipped</b> prediction score; only the "
+        "predicted rating shown with a returned item is clipped to [1, 5]. This "
+        "prevents artificial ties at 5.0 from replacing confidence ordering with "
+        "item-ID ordering. For item-based CF an item with no stored neighbours is "
+        "unsupported by the item-item model, so its documented fallback uses "
+        "training data only: the user's training mean, then the global training "
+        "mean. Ranking metrics use a fixed seeded sample of 500 eligible users; "
+        "MAE/RMSE use all test ratings. Unobserved items are not treated as "
+        "negative examples."
     )
     rows = []
     for key, label in (("item_based_cf", "Item-based CF"), ("matrix_factorization", "Matrix factorization")):
@@ -541,7 +579,8 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         ax.set_title("Rating prediction error on the test split")
         ax.legend(frameon=False)
         ax.grid(axis="y", alpha=0.25)
-    fig(fig_r2, "Figure 1. Test MAE and RMSE for the two baselines. MF reduces both errors substantially.")
+    fig(fig_r2, "Figure 1. Test MAE and RMSE for the two baselines. MF reduces both errors substantially.",
+        name="fig01_test_error.png")
     h2("4.2 Behaviour and popularity slices")
     p(
         "MF is consistently better than item-based CF on short, medium, and long "
@@ -574,7 +613,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         rows.append([num(cand["lambda"], 1), num(cand["mae"], 5), num(cand["rmse"], 5), num(cand["n_evaluated"], 0)])
     add(table(["λ", "Validation MAE", "Validation RMSE", "N"], rows,
               [30 * mm, 45 * mm, 45 * mm, 35 * mm], font_size=7.8))
-    caption("Table 4. Validation selection. λ=0.3 has the lowest validation RMSE and is selected before test is examined.")
+    caption(f"Table 4. Validation selection. λ={r3['best_lambda']:.1f} has the lowest validation RMSE and is selected before test is examined.")
     rows = []
     for key, label in (("social_lambda_0.0", "0.0 (baseline)"), ("social_lambda_0.3", "0.3 (selected)"), ("social_lambda_0.5", "0.5")):
         m = r3[key]
@@ -583,12 +622,14 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      num(rk["hit_rate_at_k"], 4), num(rk["ndcg_at_k"], 5)])
     add(table(["λ", "Test MAE", "Test RMSE", "P@10", "HR@10", "nDCG@10"], rows,
               [35 * mm, 30 * mm, 30 * mm, 25 * mm, 25 * mm, 30 * mm], font_size=7.8))
-    caption("Table 5. Test metrics reported after selection. λ=0.3 improves error and ranking relative to the baseline.")
+    caption(f"Table 5. Test metrics reported after selection. λ={r3['best_lambda']:.1f} is the validation-selected row.")
     p(
         f"Sparse users (1–5 ratings, {r3['sparse_users_analysis']['n_sparse_users']:,} users) "
         f"improve from MAE {num(r3['sparse_users_analysis']['baseline']['mae'], 5)} "
         f"to {num(r3['sparse_users_analysis']['social']['mae'], 5)} at λ=0.3. "
-        "The trust-vs-similarity comparison sampled 50 users (165 test ratings): "
+        f"The trust-vs-similarity comparison sampled "
+        f"{r3['trust_vs_similarity_comparison']['n_sampled_users']} users "
+        f"({r3['trust_vs_similarity_comparison']['n_test_ratings']} test ratings): "
         f"trusted neighbours MAE {num(r3['trust_vs_similarity_comparison']['trust_neighbors']['mae'], 5)}, "
         f"unconnected similar users {num(r3['trust_vs_similarity_comparison']['similar_unconnected']['mae'], 5)}, "
         f"baseline {num(r3['trust_vs_similarity_comparison']['baseline']['mae'], 5)}. "
@@ -596,11 +637,10 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "trust signal is not uniformly superior; the result is descriptive."
     )
     p(
-        "The λ=0.5 test ranking is higher than λ=0.3 even though its validation "
-        "RMSE is worse and its test RMSE is worse. This is exactly why the "
-        "selection rule is fixed in advance: choosing λ=0.5 after seeing test "
-        "ranking would be test leakage. The report keeps λ=0.3 and shows the "
-        "post-selection λ=0.5 row for transparency."
+        "The post-selection rows are shown for transparency. The selection rule is "
+        "fixed in advance on validation RMSE; choosing a different λ after seeing "
+        "test ranking would be test leakage. No test metric is used to change the "
+        "submitted model."
     )
 
     # ---------------- R4 ----------------
@@ -608,32 +648,44 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     h1("6. Requirement 4 — ICM, SIR, and preference-aware diffusion")
     h2("6.1 Design and target popularity")
     target = r4["design"]["target_item"]
+    moderate_target = r4["design"]["target_item_moderate"]
     p(
-        "The target item is selected from the <b>training-only</b> rating-count "
-        "distribution. The rule chooses the count closest to the median count in "
-        "the inclusive [0.40, 0.60] training-count quantile band, with ties by "
-        "ascending original item ID. The selected item is original ID "
-        f"<b>{target['original_id']}</b> (matrix index {target['idx']}), with "
-        f"{target['train_rating_count']} training rating. The band covers counts "
-        f"{target['band_lower_count']:.0f}–{target['band_upper_count']:.0f} and "
-        f"{target['band_size_items']:,} items. It is intentionally a low-popularity "
-        "item; absolute spreads are not a catalogue-wide forecast."
+        "Part 4 keeps the original <b>rare-item</b> experiment and adds a separate "
+        "<b>moderate-popularity</b> target. Both are selected from the training-only "
+        "rating-count distribution. The rare rule uses the explicit inclusive band "
+        f"[{target['band_min_train_ratings']}, {target['band_max_train_ratings']}] "
+        f"training rating and selects original ID <b>{target['original_id']}</b> "
+        f"(matrix index {target['idx']}, {target['train_rating_count']} training "
+        f"rating); {target['band_size_items']:,} items satisfy that band. The "
+        "moderate rule uses the inclusive 6–20 band and selects original ID "
+        f"<b>{moderate_target['original_id']}</b> (matrix index "
+        f"{moderate_target['idx']}, {moderate_target['train_rating_count']} training "
+        f"ratings); the band contains {moderate_target['band_size_items']:,} items. "
+        "The rule chooses the count closest to the band median, with ties by "
+        "ascending original item ID. This retains the earlier ultra-rare case "
+        "instead of replacing it."
     )
     p(
         "The three seed sets (five users each) and the Monte Carlo seeds are "
-        "pre-generated once and reused for every ICM and SIR setting. The design "
-        "therefore compares propagation models, not different random seeds:"
+        "pre-generated once and reused for every ICM and SIR setting on the rare "
+        "target. The moderate target uses the same generation seed, model settings, "
+        "graph, and simulation seeds, but its seed users are drawn from the "
+        "target-specific eligible set (users without a training rating for that "
+        "item). This is a target comparison, not a claim that both targets share "
+        "identical seed users. Rare-target seed sets:"
     )
     for seed_set in r4["design"]["seed_sets"]:
         add(Paragraph(f"<font face='Courier'>{seed_set}</font>", STYLE_BODY))
+    graph_info = r4["design"]["graph_info"]
     p(
-        "The fast demo uses 9,883 users and 301,710 propagation edges (2-hop ego "
-        "subgraph centered on user 0), three simulations per setting, and at most "
-        "25 rounds. The SIR recovery probability γ=0 uses all 25 rounds because "
-        "infected users never recover; those round counts are capped by the "
-        "configured maximum, not evidence that the cascade naturally lasted 25 rounds."
+        f"The fast demo uses {graph_info['n_users']:,} users and "
+        f"{graph_info['n_edges']:,} propagation edges (2-hop ego subgraph centered "
+        "on user 0), three simulations per setting, and at most 25 rounds. The SIR "
+        "recovery probability γ=0 uses all 25 rounds because infected users never "
+        "recover; those round counts are capped by the configured maximum, not "
+        "evidence that the cascade naturally lasted 25 rounds."
     )
-    h2("6.2 Measured spreads")
+    h2("6.2 Measured spreads — retained rare target")
     rows = []
     for setting, values in r4["icm_canonical"].items():
         s = values["summary"]
@@ -646,19 +698,19 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         rows.append(["SIR", setting, num(s["mean_ever_infected"], 2), num(s["std_ever_infected"], 2), num(s["mean_rounds"], 2), num(values["runtime_seconds"], 3)])
     add(table(["Model", "Setting", "Mean adopters/infected", "Std", "Mean rounds", "Runtime (s)"], rows,
               [35 * mm, 35 * mm, 32 * mm, 25 * mm, 23 * mm, 23 * mm], font_size=7.0))
-    caption("Table 6. Diffusion outcomes. Means and standard deviations are across the same three pre-generated seed sets and controlled simulation seeds.")
+    caption("Table 6. Rare-target diffusion outcomes. Means and standard deviations are across the same three pre-generated seed sets and controlled simulation seeds.")
     def fig_r4(fig_obj):
         ax = fig_obj.add_subplot(111)
         labels, means, stds, colors_ = [], [], [], []
         for setting, values in r4["icm_canonical"].items():
             s = values["summary"]
-            labels.append("ICM " + setting.replace("p=", "p="))
+            labels.append("ICM " + setting)
             means.append(s["mean_adopters"])
             stds.append(s["std_adopters"])
             colors_.append(MPL_COLORS["blue"])
         for setting, values in r4["icm_preference_aware"].items():
             s = values["summary"]
-            labels.append("Pref " + setting.replace("p=", "p="))
+            labels.append("Pref " + setting)
             means.append(s["mean_adopters"])
             stds.append(s["std_adopters"])
             colors_.append(MPL_COLORS["accent"])
@@ -673,25 +725,151 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         ax.set_yscale("log")
         ax.set_xticks(x, labels, rotation=35, ha="right", fontsize=6)
         ax.set_ylabel("Adopters / ever infected (log scale)")
-        ax.set_title("Diffusion outcomes with one-standard-deviation bars")
+        ax.set_title("Rare-target diffusion outcomes with one-standard-deviation bars")
         ax.grid(axis="y", alpha=0.25)
-    fig(fig_r4, "Figure 2. Diffusion outcomes on a log scale. The p=0.01 canonical ICM is extremely heavy-tailed; preference-aware adoption strongly suppresses spread at the same seeds.", height=84 * mm)
-    h2("6.3 Interpretation")
+    fig(fig_r4, "Figure 2. Rare-target diffusion outcomes on a log scale. The p=0.01 canonical ICM is heavy-tailed; preference-aware adoption strongly suppresses spread at the same seeds.",
+        height=84 * mm, name="fig02_rare_target_diffusion.png")
+    h2("6.3 Interpretation — retained rare target")
+    canon05 = r4_can_05["mean_adopters"]
+    pref05 = r4_pref_05["mean_adopters"]
+    pct05 = r4["comparison"]["p=0.05"]["preference_relative_change_pct"]
+    pct01 = r4["comparison"]["p=0.01"]["preference_relative_change_pct"]
+    sir00 = r4["sir"]["beta=0.05_gamma=0.0"]["summary"]["mean_ever_infected"]
+    sir02 = r4["sir"]["beta=0.05_gamma=0.2"]["summary"]["mean_ever_infected"]
     p(
-        "Canonical ICM at p=0.05 reaches about 4,684 of 9,883 active users (47%), "
-        "consistent with a dense ego graph. Preference-aware adoption requires "
-        "predicted affinity and cuts the p=0.05 mean to 501 (−89.3%); at p=0.01 "
-        "it cuts the mean from 125.3 to 6.0 (−95.2%). This is a model-design "
-        "effect, not evidence that real users would adopt at that rate. SIR at "
-        "β=0.05 reaches 8,182 with γ=0 and 6,021 with γ=0.2; recovery reduces "
+        f"Canonical ICM at p=0.05 reaches about {num(canon05, 0)} of "
+        f"{graph_info['n_users']:,} active users "
+        f"({100.0*canon05/graph_info['n_users']:.1f}%), consistent with a dense ego "
+        "graph. Preference-aware adoption requires predicted affinity and cuts the "
+        f"p=0.05 mean to {num(pref05, 0)} ({num(pct05, 1)}%); at p=0.01 it changes "
+        f"the mean by {num(pct01, 1)}%. This is a model-design effect, not evidence "
+        f"that real users would adopt at that rate. SIR at β=0.05 reaches "
+        f"{num(sir00, 0)} with γ=0 and {num(sir02, 0)} with γ=0.2; recovery reduces "
         "ever-infected counts but the γ=0 runs remain active to the round cap."
     )
+    can01_std = r4_can_01["std_adopters"]
+    can01_max = r4_can_01["adopters"]["max"]
     p(
-        "The p=0.01 canonical ICM has mean 125.3 but standard deviation 167.4 and "
-        "a maximum of 362: one simulation found a large cascade and two did not. "
-        "With only three simulations, the mean is unstable. This is reported "
-        "explicitly rather than hidden; the full configuration uses 20 simulations."
+        f"The p=0.01 canonical ICM has mean {num(r4_can_01['mean_adopters'], 1)} "
+        f"but standard deviation {num(can01_std, 1)} and a maximum of "
+        f"{num(can01_max, 0)}: the three simulations are highly unequal. With only "
+        "three simulations, the mean is unstable. This is reported explicitly "
+        "rather than hidden; the full configuration uses 20 simulations."
     )
+
+    h2("6.4 Moderate-popularity target comparison")
+    comp = r4["target_popularity_comparison"]
+    comp_design = comp["design"]
+    mod = comp["moderate"]
+    p(
+        f"The added target is original ID <b>{moderate_target['original_id']}</b> "
+        f"with <b>{moderate_target['train_rating_count']} training ratings</b> "
+        f"(versus {target['train_rating_count']} for the retained rare target). "
+        "The same graph, canonical/preference-aware ICM implementations, propagation "
+        "probabilities, simulation seeds, and seed size are used; only the target "
+        "item and its target-specific eligible seed pool differ. This makes the "
+        "comparison descriptive rather than a claim that popularity alone is "
+        "identified."
+    )
+    rows = []
+    for key in ("p=0.01", "p=0.05"):
+        c = comp["comparison"][key]
+        rows.append(["Canonical", key, num(c["rare_canonical_mean_adopters"], 2),
+                     num(c["moderate_canonical_mean_adopters"], 2),
+                     num(c["moderate_minus_rare_canonical"], 2),
+                     pct(c["moderate_relative_canonical_pct"])])
+        rows.append(["Preference-aware", key, num(c["rare_preference_mean_adopters"], 2),
+                     num(c["moderate_preference_mean_adopters"], 2),
+                     num(c["moderate_minus_rare_preference"], 2),
+                     pct(c["moderate_relative_preference_pct"])])
+    add(table(["Model", "Setting", "Rare target mean", "Moderate target mean",
+               "Difference (moderate−rare)", "Relative"],
+              rows, [32 * mm, 20 * mm, 30 * mm, 34 * mm, 37 * mm, 25 * mm],
+              font_size=7.2))
+    caption("Table 7. Retained rare target versus the added 6–20-training-rating target. Seed users are target-specific; all other controls are shared.")
+    def fig_target(fig_obj):
+        ax = fig_obj.add_subplot(111)
+        labels = ["Canonical p=0.05", "Preference p=0.05"]
+        rare_vals = [
+            comp["comparison"]["p=0.05"]["rare_canonical_mean_adopters"],
+            comp["comparison"]["p=0.05"]["rare_preference_mean_adopters"],
+        ]
+        mod_vals = [
+            comp["comparison"]["p=0.05"]["moderate_canonical_mean_adopters"],
+            comp["comparison"]["p=0.05"]["moderate_preference_mean_adopters"],
+        ]
+        x = np.arange(len(labels))
+        ax.bar(x - 0.18, rare_vals, 0.36, label="Rare target (1 training rating)",
+               color=MPL_COLORS["blue"])
+        ax.bar(x + 0.18, mod_vals, 0.36,
+               label=f"Moderate target ({moderate_target['train_rating_count']} training ratings)",
+               color=MPL_COLORS["accent"])
+        ax.set_xticks(x, labels)
+        ax.set_ylabel("Mean simulated adopters")
+        ax.set_title("Part 4 target-popularity comparison at p=0.05")
+        ax.legend(frameon=False, fontsize=7)
+        ax.grid(axis="y", alpha=0.25)
+    fig(fig_target, "Figure 3. Rare versus moderate target at p=0.05. The comparison is descriptive: targets have different seed pools and different training popularity.",
+        height=68 * mm, name="fig03_target_popularity.png")
+
+    h2("6.5 Controlled network-structure comparison")
+    net = r4.get("network_structure_comparison", {})
+    if net:
+        net_design = net["design"]
+        rand_info = net_design["randomized_graph"]["randomization"]
+        p(
+            "To test whether the observed edge arrangement matters, the active "
+            "directed graph is randomized while preserving its node set, edge count, "
+            "and directed in/out-degree sequence. The canonical ICM then runs on the "
+            "randomized graph with the <b>same rare-target seed users, simulation "
+            "seeds, propagation probabilities, and round cap</b>. The null model is "
+            "one seeded degree-preserving rearrangement, not a fully mixed sample of "
+            "all graphs with that degree sequence."
+        )
+        p(
+            f"Randomization preserved {rand_info['n_nodes']:,} nodes and "
+            f"{rand_info['n_edges']:,} directed edges; "
+            f"{rand_info['swaps_accepted']:,} of {rand_info['swaps_attempted']:,} "
+            f"double-edge swaps were accepted "
+            f"({100.0*rand_info['acceptance_rate']:.1f}%). The degree sequence "
+            "equality is checked before the comparison is accepted."
+        )
+        rows = []
+        for key, values in net["settings"].items():
+            rows.append([key, num(values["observed"]["mean_adopters"], 2),
+                         num(values["randomized"]["mean_adopters"], 2),
+                         num(values["paired_randomized_minus_observed"]["mean_difference"], 2),
+                         pct(values["relative_change_pct"])])
+        add(table(["Setting", "Observed mean", "Randomized mean",
+                   "Paired difference (random−observed)", "Relative"],
+                  rows, [28 * mm, 32 * mm, 34 * mm, 50 * mm, 27 * mm], font_size=7.4))
+        caption("Table 8. Canonical ICM on observed versus degree-preserving randomized structure. Differences are simulation outcomes, not observed cascades.")
+        def fig_net(fig_obj):
+            ax = fig_obj.add_subplot(111)
+            keys = list(net["settings"])
+            x = np.arange(len(keys))
+            obs = [net["settings"][k]["observed"]["mean_adopters"] for k in keys]
+            rnd = [net["settings"][k]["randomized"]["mean_adopters"] for k in keys]
+            ax.bar(x - 0.18, obs, 0.36, label="Observed graph", color=MPL_COLORS["blue"])
+            ax.bar(x + 0.18, rnd, 0.36, label="Degree-preserving randomized", color=MPL_COLORS["accent"])
+            ax.set_xticks(x, keys)
+            ax.set_ylabel("Mean simulated adopters")
+            ax.set_title("Network-structure null comparison (canonical ICM)")
+            ax.legend(frameon=False, fontsize=7)
+            ax.grid(axis="y", alpha=0.25)
+        fig(fig_net, "Figure 4. Observed versus degree-preserving randomized graph under the same seeds and canonical ICM. This isolates the edge-arrangement effect within the selected null model.",
+            height=68 * mm, name="fig04_network_structure.png")
+        best_key = max(net["settings"], key=lambda k: abs(net["settings"][k]["relative_change_pct"] or 0.0))
+        best = net["settings"][best_key]
+        p(
+            f"The largest relative difference in this run is at {best_key}: "
+            f"observed mean {num(best['observed']['mean_adopters'], 1)} versus "
+            f"randomized mean {num(best['randomized']['mean_adopters'], 1)}. "
+            "This is evidence about this seeded null model and three simulations, "
+            "not a general estimate of how much structure matters in Epinions."
+        )
+    else:
+        p("The network-structure comparison was not present in the saved results; no claim is made.")
 
     # ---------------- R5 ----------------
     add(PageBreak())
@@ -721,7 +899,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         rows.append(row)
     add(table(["Budget", "Random mean", "Degree mean", "Greedy mean", "Best measured"], rows,
               [28 * mm, 38 * mm, 38 * mm, 38 * mm, 45 * mm], font_size=8.0))
-    caption("Table 7. Mean simulated spread under common evaluation seeds. The restricted top-degree pool favors degree; greedy is best only at budget 1.")
+    caption("Table 9. Mean simulated spread under common evaluation seeds. The restricted top-degree pool favors degree; greedy is best only at budget 1.")
     def fig_r5(fig_obj):
         ax = fig_obj.add_subplot(111)
         budgets = [int(b) for b in r5["design"]["budgets"]]
@@ -734,7 +912,8 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         ax.set_title("Influence spread vs seed budget (shared top-degree candidate pool)")
         ax.legend(frameon=False)
         ax.grid(alpha=0.25)
-    fig(fig_r5, "Figure 3. Greedy, degree, and random spreads. Differences are small relative to the saturated baseline and do not show greedy superiority.", height=72 * mm)
+    fig(fig_r5, "Figure 5. Greedy, degree, and random spreads. Differences are small relative to the saturated baseline and do not show greedy superiority.",
+        height=72 * mm, name="fig05_influence_spread.png")
     h2("7.1 Marginal gains and uncertainty")
     rows = []
     for method in ("random", "degree", "greedy"):
@@ -747,7 +926,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                          f"{m.get('marginal_gain_wins', '—')}/{m.get('marginal_gain_losses', '—')}"])
     add(table(["Method", "Budget", "Paired marginal gain", "95% CI", "Wins/losses"], rows,
               [25 * mm, 23 * mm, 38 * mm, 45 * mm, 36 * mm], font_size=7.5))
-    caption("Table 8. Marginal gains relative to the previous evaluated budget. Negative values are legitimate under finite Monte Carlo sampling; they are not clipped to zero.")
+    caption("Table 10. Marginal gains relative to the previous evaluated budget. Negative values are legitimate under finite Monte Carlo sampling; they are not clipped to zero.")
     p(
         "At budget 5, greedy − degree = −12.0 adopters (paired 95% CI "
         "[−19.84, −4.16]), and greedy loses both paired trials. Greedy exceeds "
@@ -791,7 +970,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      num(s["avg_diffusion_spread"], 3), num(s["avg_diffusion_std"], 3)])
     add(table(["Strategy", "Mean satisfaction", "Mean min", "Mean range", "Mean spread", "Spread std"], rows,
               [38 * mm, 31 * mm, 27 * mm, 28 * mm, 27 * mm, 28 * mm], font_size=7.2))
-    caption("Table 9. Group strategy outcomes across three groups. Satisfaction differences are small; spread variability is large.")
+    caption("Table 11. Group strategy outcomes across three groups. Satisfaction differences are small; spread variability is large.")
     p(
         "The average strategy has the highest mean and minimum satisfaction, while "
         "least misery has the highest mean simulated spread. The differences are "
@@ -841,20 +1020,25 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      num(rk["diversity"], 4)])
     add(table(["Model", "MAE", "RMSE", "P@10", "R@10", "F1@10", "HR@10", "nDCG@10", "Coverage", "Diversity"],
               rows, [26 * mm, 15 * mm, 15 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 16 * mm, 16 * mm, 16 * mm], font_size=6.8))
-    caption("Table 10. Observed test metrics (500 seeded users for ranking; all test ratings for MAE/RMSE). Social is best on error and ranking; ICF has the broadest coverage.")
+    caption("Table 12. Observed test metrics (500 seeded users for ranking; all test ratings for MAE/RMSE). Social is best on error and ranking; ICF has the broadest coverage.")
+    r7_models = r7["observed"]["models"]
     p(
-        "The social model is best on MAE, RMSE, precision, recall, F1, hit rate, "
-        "and nDCG. Item-based CF has much higher coverage but its ranking accuracy "
-        "is far lower. MF has very low coverage because its top-10 lists concentrate "
-        "on a small set of high-scoring items; this is a known coverage/accuracy "
-        "trade-off. The diversity values are high for MF/social (≈0.985) because "
-        "their lists mix items with different interaction vectors, while ICF is "
-        "lower (0.859)."
+        "The social model is best on observed MAE, RMSE, precision, recall, F1, hit "
+        "rate, and nDCG in this run. Item-based CF has the broadest coverage "
+        f"({num(r7_models['item_based_cf']['ranking']['coverage'], 4)}) while its "
+        f"ranking accuracy is lower; MF coverage is "
+        f"{num(r7_models['matrix_factorization']['ranking']['coverage'], 4)}. "
+        "The coverage/accuracy trade-off is reported, not hidden. Feature diversity "
+        f"is {num(r7_models['matrix_factorization']['ranking']['diversity'], 4)} for "
+        f"MF, {num(r7_models['social_recommender']['ranking']['diversity'], 4)} for "
+        f"social, and {num(r7_models['item_based_cf']['ranking']['diversity'], 4)} "
+        "for item-based CF; it is not category diversity."
     )
     h2("9.3 Separate simulated interaction")
     p(
-        "The simulated interaction uses one training-selected target item and "
-        "common seeds; it is not an observed adoption forecast. Mean adopters are "
+        "The simulated interaction retains the original rare training-selected "
+        "target item and common seeds; it is not an observed adoption forecast. "
+        "Mean adopters are "
         f"ICF {num(r7['tradeoff_analysis']['simulated_spread_ranking']['item_based_cf'], 1)}, "
         f"MF {num(r7['tradeoff_analysis']['simulated_spread_ranking']['matrix_factorization'], 1)}, "
         f"social {num(r7['tradeoff_analysis']['simulated_spread_ranking']['social_recommender'], 1)}. "
@@ -883,7 +1067,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      pct(rel.get("spread_change_pct")), num(rel.get("adopter_satisfaction_change"), 4) if rel else "—"])
     add(table(["Threshold", "Mean adopters", "Mean exposed", "Conversion", "Rating proxy", "Spread change", "Proxy change"], rows,
               [23 * mm, 26 * mm, 26 * mm, 24 * mm, 27 * mm, 25 * mm, 25 * mm], font_size=7.2))
-    caption("Table 11. Intervention results relative to threshold 0. The rating proxy is 1+4×predicted affinity and is not an observed satisfaction rating.")
+    caption("Table 13. Intervention results relative to threshold 0. The rating proxy is 1+4×predicted affinity and is not an observed satisfaction rating.")
     aff = r8["intervention"].get("baseline_exposed_affinity") or {}
     if aff:
         p(
@@ -919,7 +1103,8 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax.legend(lines + lines2, labels_ + labels2, frameon=False, loc="lower left")
         ax.grid(alpha=0.25)
-    fig(fig_r8, "Figure 4. The 0.3 threshold is inactive; 0.6 is near baseline; 0.8 collapses spread and slightly raises the proxy; 0.9 lowers the proxy.", height=72 * mm)
+    fig(fig_r8, "Figure 6. Threshold intervention. The 0.8 threshold collapses simulated spread; the proxy change is simulator-side, not observed satisfaction.",
+        height=72 * mm, name="fig06_intervention.png")
     p(
         "The honest reading: this intervention can strongly limit simulated "
         "diffusion at a high threshold, but the effect is not monotone and the "
@@ -938,12 +1123,14 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      plain(m["seeds"]), plain(m["marginal_gains"])])
     add(table(["Method", "Evaluations", "Runtime (s)", "Selected seeds", "Marginal gains"], rows,
               [34 * mm, 24 * mm, 24 * mm, 38 * mm, 45 * mm], font_size=7.3))
-    caption("Table 12. CELF vs standard greedy at budget 3, 12 candidates, 2 simulations. CELF used 24.24% fewer evaluations and was 1.224× faster, but selected different seeds under noisy estimates.")
+    caption(f"Table 14. CELF vs standard greedy at budget {celf_cmp['test_budget']}, {celf_cmp['candidate_pool_size']} candidates, {celf_cmp['n_simulations']} simulations. CELF used {num(celf_cmp['evaluation_reduction_pct'], 2)}% fewer evaluations and was {num(celf_cmp['speedup_factor'], 3)}× faster, but selected different seeds under noisy estimates.")
     p(
         f"CELF's lazy bound is exact for a deterministic monotone submodular "
-        f"objective, not for a finite-sample noisy estimate. The measured 1.22× "
-        f"speedup and 24.2% evaluation reduction are therefore reported as "
-        f"single-run measurements, not an unconditional guarantee. A controlled "
+        f"objective, not for a finite-sample noisy estimate. The measured "
+        f"{num(celf_cmp['speedup_factor'], 2)}× speedup and "
+        f"{num(celf_cmp['evaluation_reduction_pct'], 2)}% evaluation reduction are "
+        f"therefore reported as single-run measurements, not an unconditional "
+        f"guarantee. A controlled "
         f"deterministic check (p=1.0, one simulation, 120 nodes, 20 candidates, "
         f"budget 2) gave {controlled['standard_n_evaluations']} "
         f"evaluations for both methods and identical seeds "
@@ -961,13 +1148,13 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
              num(r["n_evaluations"], 0), num(r["memory"]["tracemalloc_peak_mb"], 2)] for r in net]
     add(table(["Network nodes", "Edges", "Runtime (s)", "Evaluations", "Tracemalloc peak (MB)"], rows,
               [33 * mm, 36 * mm, 30 * mm, 30 * mm, 45 * mm], font_size=7.5))
-    caption("Table 13. Network-size scaling for greedy selection from scratch on BFS-induced subgraphs.")
+    caption("Table 15. Network-size scaling for greedy selection from scratch on BFS-induced subgraphs.")
     items = r8["scaling"]["item_catalogue"]["rows"]
     rows = [[num(r["n_items"], 0), num(r["ms_per_user"], 3), num(r["runtime_seconds"], 3),
              num(r["memory"]["tracemalloc_peak_mb"], 2)] for r in items]
     add(table(["Catalogue items", "ms/user", "Runtime (s)", "Tracemalloc peak (MB)"], rows,
               [45 * mm, 32 * mm, 34 * mm, 45 * mm], font_size=7.5))
-    caption("Table 14. Item-catalogue scaling for MF scoring/ranking. This isolates scoring, not model training.")
+    caption("Table 16. Item-catalogue scaling for MF scoring/ranking. This isolates scoring, not model training.")
     def fig_r8_scale(fig_obj):
         ax = fig_obj.add_subplot(111)
         nodes = [r["n_nodes"] for r in net]
@@ -977,12 +1164,13 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         ax.set_ylabel("Greedy selection runtime (s)")
         ax.set_title("Network-size scaling (15 candidates, budget 2)")
         ax.grid(alpha=0.25)
-    fig(fig_r8_scale, "Figure 5. Measured network scaling. The slope is machine-dependent; the report compares relative growth within this run.", height=65 * mm)
+    fig(fig_r8_scale, "Figure 7. Measured network scaling. The slope is machine-dependent; the report compares relative growth within this run.",
+        height=65 * mm, name="fig07_network_scaling.png")
     budget = r8["scaling"]["promotion_budget"]["rows"]
     rows = [[num(r["budget"], 0), num(r["n_evaluations"], 0), num(r["runtime_seconds"], 2)] for r in budget]
     add(table(["Seed budget", "Evaluations", "Runtime (s)"], rows,
               [40 * mm, 40 * mm, 40 * mm], font_size=7.8))
-    caption("Table 15. Promotion-budget scaling on a 2,471-node subgraph. Evaluations grow with budget because greedy re-evaluates candidates.")
+    caption("Table 17. Promotion-budget scaling on a bounded subgraph. Evaluations grow with budget because greedy re-evaluates candidates.")
     r8_times = r8["bottleneck_analysis"]["r8_sub_experiment_seconds"]
     p(
         f"Within R8, the CELF comparison is the dominant cost "
@@ -1008,30 +1196,36 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     h1("11. Verification, tests, and reproducibility")
     h2("11.1 Automated tests")
     p(
-        "The latest local run was <b>87 passed</b> with "
-        "<font face='Courier'>python -m pytest -q</font>. The leakage/fairness "
-        "regressions are explicit:"
+        "The latest full local run was <b>92 passed</b> with "
+        "<font face='Courier'>python -m pytest -q</font> after installing "
+        "<font face='Courier'>requirements-dev.txt</font>. The regression coverage "
+        "is explicit:"
     )
+    bullet("Ranking preserves raw-score order and clips only reported ratings; batch and single-user paths agree.")
+    bullet("Item-based unsupported-item fallback uses training-only user mean, then global training mean.")
+    bullet("MF cold starts use μ+b_i, μ+b_u, or μ and never random initial factors.")
+    bullet("Moderate (6–20) and rare (1) target bands, deterministic seed-set generation, and training-only target selection.")
+    bullet("Degree-preserving directed randomization preserves nodes, edges, and in/out degrees, and is reproducible.")
     bullet("Training-only matrix construction and R6 groups unaffected by mutating the full observed matrix.")
     bullet("Social λ selected on validation when test ratings are perturbed.")
-    bullet("Target-item selection and seed-set generation deterministic and training-only.")
     bullet("Greedy continues after a negative Monte Carlo marginal gain; explicit candidate pool respected.")
     bullet("Paired marginal gains equal the difference of the paired spread estimates.")
     bullet("Feature diversity, per-user F1, and hand-checkable metric examples.")
     h2("11.2 Exact commands")
     commands = [
+        "python -m pip install -r requirements-dev.txt",
         "python -m pytest -q",
         "python -m sntp.cli inspect --data-dir Assignment",
         "python -m sntp.cli run --config configs/fast_demo.yaml",
         "python -m pip install -r requirements-report.txt",
-        "python scripts/generate_report.py --results results/fast_demo --output report/SNTP_Assignment_02_Report.pdf --roll-number <roll> --student \"Ahmad Fareed\"",
+        "python scripts/generate_report.py --results results/fast_demo --output report/SNTP_Assignment_02_Report.pdf --figures-dir results/fast_demo/plots --roll-number 23F3008 --student \"Ahmad Fareed\"",
     ]
     for cmd in commands:
         add(Paragraph(f"<font face='Courier'>{cmd}</font>", STYLE_BODY))
     h2("11.3 Runtime and seeds")
     rows = [[s["stage"], num(s["seconds"], 2)] for s in timings["stages"]]
     add(table(["Stage", "Seconds"], rows, [140 * mm, 30 * mm], font_size=7.0))
-    caption(f"Table 16. Stage timings from the submitted run. Total CLI wall clock: {num(timings['total_seconds'], 1)} s.")
+    caption(f"Table 18. Stage timings from the submitted run. Total CLI wall clock: {num(timings['total_seconds'], 1)} s.")
     p(
         "Config: <font face='Courier'>configs/fast_demo.yaml</font> (resolved copy in "
         "<font face='Courier'>results/fast_demo/experiment_config.json</font>). "
@@ -1044,7 +1238,8 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     )
 
     # ---------------- Limitations/conclusions ----------------
-    add(PageBreak())
+    # No forced page break here: the seed paragraph at the end of Section 11
+    # previously overflowed onto an otherwise almost-empty page.
     h1("12. Limitations and conclusions")
     h2("12.1 Limitations")
     bullet("<b>Full-scale run not executed.</b> The full config uses the full graph, 20 simulations, larger candidate pools, and larger budgets; estimated cost is many hours. No full-scale number is claimed.")
@@ -1052,24 +1247,27 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     bullet("<b>Monte Carlo noise.</b> R4 uses 3 simulations; R5 uses 2 evaluation simulations and 3 random trials; R6 uses 2 per item; R8 CELF uses 2. Heavy tails make small mean differences unstable.")
     bullet("<b>R5 does not show greedy superiority.</b> Degree wins at budgets 3 and 5; the paired greedy−degree difference at budget 5 is negative. The dense graph is near saturation (~47% of active users), compressing differences.")
     bullet("<b>R6 differences are small.</b> Satisfaction ranges 4.815–4.827; spread is dominated by one rare cascade. Candidate items are only the union of strategy top items.")
-    bullet("<b>R7 is sample-based.</b> Ranking uses 500 users, coverage/diversity are list-sample properties, and unobserved items are not negatives. The simulation uses one low-popularity target item.")
-    bullet("<b>R8 is a simulator intervention.</b> No online experiment; the rating proxy is predicted, not observed; the threshold cliff is a property of the affinity distribution; CELF's 1.22× is a single noisy measurement and seeds differ. The deterministic check is the correctness evidence.")
+    bullet("<b>R7 is sample-based.</b> Ranking uses 500 users, coverage/diversity are list-sample properties, and unobserved items are not negatives. The simulated interaction uses the retained rare target; Part 4 separately adds a moderate 6–20-rating target.")
+    bullet("<b>R8 is a simulator intervention.</b> No online experiment; the rating proxy is predicted, not observed; the threshold cliff is a property of the affinity distribution; CELF's single-run speedup is noisy and seeds differ. The deterministic check is the correctness evidence.")
+    bullet("<b>Cold starts are fallback-only.</b> MF deliberately returns μ+b_i, μ+b_u, or μ for untrained rows; it does not learn a representation for users/items absent from training.")
+    bullet("<b>Ranking scores are not rating estimates.</b> Raw scores order the lists; returned ratings are clipped. Raw order is only meaningful within the model and catalogue used here.")
+    bullet("<b>Network null is not fully mixed.</b> The degree-preserving directed randomization is one seeded rearrangement, not an exhaustive null distribution; three simulations per setting limit precision.")
     bullet("<b>Memory measurement.</b> tracemalloc undercounts NumPy native buffers; RSS deltas are near zero because arrays are already resident.")
-    bullet("<b>Runtime variability.</b> Prior runs of the same fast config ranged 365–596 s; the saved stage timings are one run and should not be treated as a benchmark.")
+    bullet("<b>Runtime variability.</b> Prior runs of the same fast config varied with machine load; the saved stage timings are one run and should not be treated as a benchmark.")
     h2("12.2 Conclusions by requirement")
     conclusions = [
         ("Data/split", "The parser is clean (zero malformed/duplicate/out-of-range ratings) and the 70/15/15 split is reproducible with per-user coverage."),
         ("Baselines", "MF clearly beats item-based CF on rating error; both have low absolute top-K metrics on this sparse catalogue. MF is better across user-history and item-popularity slices."),
-        ("Trust-aware", "Validation-selected λ=0.3 gives a small but consistent test improvement (MAE 0.83245→0.82838) and better ranking. The trust-vs-similarity comparison is small and descriptive."),
-        ("Diffusion", "Canonical ICM at p=0.05 saturates the ego graph; preference-aware adoption reduces spread by ~89–95% at the same seeds. SIR recovery reduces ever-infected counts. Results are simulation-only and heavy-tailed at low p."),
+        ("Trust-aware", f"Validation-selected λ={r3['best_lambda']:.1f} gives test MAE {num(r3_best['prediction']['mae'], 5)}. The trust-vs-similarity comparison is descriptive and small."),
+        ("Diffusion", f"On the retained rare target, canonical ICM at p=0.05 has mean {num(r4_can_05['mean_adopters'], 0)}; preference-aware adoption is {num(r4_pref_05['mean_adopters'], 0)} at the same seeds. The added moderate target is reported separately. Results are simulation-only and heavy-tailed at low p."),
         ("Influence", "On a shared top-degree pool, degree is best at budgets 3 and 5; greedy is best only at budget 1. There is no evidence for greedy superiority, and the pool restriction is material."),
         ("Groups", "Average has the best predicted mean/min satisfaction; least misery has the largest (but noisy) simulated spread. Differences are small; one rare cascade dominates spread."),
-        ("Evaluation", "Social is best on observed error and ranking; ICF gives the broadest coverage; MF gives the highest feature diversity. Observed and simulated outcomes are reported separately."),
-        ("Intervention/optimization", "Threshold 0.8 reduces simulated spread by 99.09% with a +0.0264 proxy change; 0.9 reduces spread slightly more but lowers the proxy. CELF uses 24.2% fewer evaluations and is 1.22× faster in the noisy run, with different seeds; a deterministic check matches standard greedy exactly."),
+        ("Evaluation", "Social is best on observed error and ranking; ICF gives the broadest coverage; feature diversity is reported separately. Observed and simulated outcomes are not merged."),
+        ("Intervention/optimization", f"Threshold 0.8 changes simulated spread by {num(t08_spread, 2)}% with a {num(t08_proxy, 4)} proxy change. CELF uses {num(celf_cmp['evaluation_reduction_pct'], 2)}% fewer evaluations and is {num(celf_cmp['speedup_factor'], 2)}× faster in the noisy run, with different seeds; a deterministic check matches standard greedy exactly."),
     ]
     rows = [[a, b] for a, b in conclusions]
     add(table(["Requirement", "Conclusion"], rows, [35 * mm, 140 * mm], font_size=7.4))
-    caption("Table 17. Conclusions tied to measured evidence. No unexecuted configuration is presented as a result.")
+    caption("Table 19. Conclusions tied to measured evidence. No unexecuted configuration is presented as a result.")
     p(
         "The codebase is runnable, the eight requirements are implemented, and the "
         "submitted numbers are reproducible from the saved configuration and JSON. "
@@ -1092,6 +1290,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default="report/SNTP_Assignment_02_Report.pdf", help="Output PDF")
     parser.add_argument("--roll-number", default="ROLL_NUMBER", help="Student roll number")
     parser.add_argument("--student", default="Ahmad Fareed", help="Student name")
+    parser.add_argument("--figures-dir", default="results/fast_demo/plots",
+                        help="Directory for standalone PNG chart exports")
     return parser.parse_args()
 
 

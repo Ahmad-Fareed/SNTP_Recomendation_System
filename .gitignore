@@ -52,6 +52,10 @@ nosetests.xml
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Generated submission archives and optional full-scale outputs
+*.zip
+results/full/
+
 # OS generated files
 .DS_Store
 .DS_Store?

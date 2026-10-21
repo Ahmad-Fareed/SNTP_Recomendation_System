@@ -4,19 +4,32 @@
       "original_id": 3,
       "idx": 2,
       "train_rating_count": 1,
-      "median_train_rating_count": 1.0,
-      "band_lower_quantile": 0.4,
-      "band_upper_quantile": 0.6,
-      "band_lower_count": 1.0,
-      "band_upper_count": 2.0,
-      "band_size_items": 83981,
+      "band_min_train_ratings": 1,
+      "band_max_train_ratings": 1,
+      "band_median_train_rating_count": 1.0,
+      "band_size_items": 66605,
       "n_items_with_train_ratings": 113971,
-      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items in the inclusive [0.40, 0.60] training-count quantile band; ties by ascending original item ID.",
-      "used_median_fallback": false
+      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 1\u20131 training ratings (inclusive); ties by ascending original item ID.",
+      "used_count_band_fallback": false
     },
+    "target_item_moderate": {
+      "original_id": 69,
+      "idx": 68,
+      "train_rating_count": 9,
+      "band_min_train_ratings": 6,
+      "band_max_train_ratings": 20,
+      "band_median_train_rating_count": 9.0,
+      "band_size_items": 10807,
+      "n_items_with_train_ratings": 113971,
+      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 6\u201320 training ratings (inclusive); ties by ascending original item ID.",
+      "used_count_band_fallback": false
+    },
+    "target_popularity_design": "The rare target is the retained original Part 4 experiment. The moderate target is an additional training-only comparison under the same graph, models, seed schedule, and seed size.",
     "target_selection_uses": "training split only",
     "n_train_raters_of_target": 1,
     "n_eligible_users": 9882,
+    "n_train_raters_of_moderate_target": 9,
+    "n_eligible_users_moderate_target": 9875,
     "seed_size": 5,
     "n_simulations": 3,
     "seed_sets": [
@@ -109,7 +122,7 @@
         "std_adopters": 167.3566,
         "mean_rounds": 9.0
       },
-      "runtime_seconds": 0.0659
+      "runtime_seconds": 0.0251
     },
     "p=0.05": {
       "propagation_prob": 0.05,
@@ -157,7 +170,7 @@
         "std_adopters": 21.7,
         "mean_rounds": 11.0
       },
-      "runtime_seconds": 0.7023
+      "runtime_seconds": 0.2318
     }
   },
   "icm_preference_aware": {
@@ -220,7 +233,7 @@
         "std_exposed": 2.4495,
         "mean_rounds": 1.0
       },
-      "runtime_seconds": 0.0048
+      "runtime_seconds": 0.0016
     },
     "p=0.05": {
       "propagation_prob": 0.05,
@@ -281,7 +294,7 @@
         "std_exposed": 914.6403,
         "mean_rounds": 7.6667
       },
-      "runtime_seconds": 0.2004
+      "runtime_seconds": 0.1062
     }
   },
   "sir": {
@@ -344,7 +357,7 @@
         "std_ever_infected": 915.1568,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 5.6624
+      "runtime_seconds": 1.8803
     },
     "beta=0.01_gamma=0.2": {
       "transmission_prob": 0.01,
@@ -405,7 +418,7 @@
         "std_ever_infected": 692.3931,
         "mean_rounds": 17.6667
       },
-      "runtime_seconds": 1.3961
+      "runtime_seconds": 0.4654
     },
     "beta=0.05_gamma=0.0": {
       "transmission_prob": 0.05,
@@ -414,12 +427,12 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_ever_infected": 8193,
+          "n_ever_infected": 8188,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 1690,
-          "final_I": 8193,
+          "final_S": 1695,
+          "final_I": 8188,
           "final_R": 0
         },
         {
@@ -448,11 +461,11 @@
       "summary": {
         "ever_infected": {
           "n": 3,
-          "mean": 8182.0,
-          "std": 116.6105,
+          "mean": 8180.3333,
+          "std": 116.477,
           "min": 8034.0,
           "max": 8319.0,
-          "coefficient_of_variation": 0.0143
+          "coefficient_of_variation": 0.0142
         },
         "rounds": {
           "n": 3,
@@ -462,11 +475,11 @@
           "max": 25.0,
           "coefficient_of_variation": 0.0
         },
-        "mean_ever_infected": 8182.0,
-        "std_ever_infected": 116.6105,
+        "mean_ever_infected": 8180.3333,
+        "std_ever_infected": 116.477,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 8.5248
+      "runtime_seconds": 3.2494
     },
     "beta=0.05_gamma=0.2": {
       "transmission_prob": 0.05,
@@ -486,13 +499,13 @@
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_ever_infected": 6008,
-          "n_final_recovered": 5714,
+          "n_ever_infected": 6064,
+          "n_final_recovered": 5720,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 3875,
-          "final_I": 294,
-          "final_R": 5714
+          "final_S": 3819,
+          "final_I": 344,
+          "final_R": 5720
         },
         {
           "simulation_index": 2,
@@ -509,11 +522,11 @@
       "summary": {
         "ever_infected": {
           "n": 3,
-          "mean": 6021.0,
-          "std": 20.5426,
+          "mean": 6039.6667,
+          "std": 25.1705,
           "min": 6005.0,
-          "max": 6050.0,
-          "coefficient_of_variation": 0.0034
+          "max": 6064.0,
+          "coefficient_of_variation": 0.0042
         },
         "rounds": {
           "n": 3,
@@ -523,11 +536,11 @@
           "max": 25.0,
           "coefficient_of_variation": 0.0
         },
-        "mean_ever_infected": 6021.0,
-        "std_ever_infected": 20.5426,
+        "mean_ever_infected": 6039.6667,
+        "std_ever_infected": 25.1705,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 4.6463
+      "runtime_seconds": 2.9651
     }
   },
   "comparison": {
@@ -545,5 +558,856 @@
       "preference_relative_change_pct": -89.3,
       "note": "Both variants reuse the same seed sets and Monte Carlo seeds; differences are simulation outcomes, not observed adoptions."
     }
+  },
+  "target_popularity_comparison": {
+    "design": {
+      "question": "How do the same diffusion models behave on the retained rare-item target versus a documented 6-20 training-rating target?",
+      "rare_target_item": {
+        "original_id": 3,
+        "idx": 2,
+        "train_rating_count": 1,
+        "band_min_train_ratings": 1,
+        "band_max_train_ratings": 1,
+        "band_median_train_rating_count": 1.0,
+        "band_size_items": 66605,
+        "n_items_with_train_ratings": 113971,
+        "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 1\u20131 training ratings (inclusive); ties by ascending original item ID.",
+        "used_count_band_fallback": false
+      },
+      "moderate_target_item": {
+        "original_id": 69,
+        "idx": 68,
+        "train_rating_count": 9,
+        "band_min_train_ratings": 6,
+        "band_max_train_ratings": 20,
+        "band_median_train_rating_count": 9.0,
+        "band_size_items": 10807,
+        "n_items_with_train_ratings": 113971,
+        "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 6\u201320 training ratings (inclusive); ties by ascending original item ID.",
+        "used_count_band_fallback": false
+      },
+      "same_graph": {
+        "type": "ego_subgraph",
+        "center_user": 0,
+        "hops": 2,
+        "n_users": 9883,
+        "n_edges": 301710,
+        "definition": "users reachable from the documented centre within the given number of trust/propagation hops; induced propagation edges only"
+      },
+      "same_models": [
+        "canonical ICM",
+        "preference-aware ICM"
+      ],
+      "same_propagation_probs": [
+        0.01,
+        0.05
+      ],
+      "same_simulation_seeds": [
+        49,
+        1049,
+        2049
+      ],
+      "target_specific_seed_sets": true,
+      "rare_seed_sets": [
+        [
+          734,
+          3024,
+          4170,
+          7316,
+          13374
+        ],
+        [
+          883,
+          1357,
+          2386,
+          2860,
+          13374
+        ],
+        [
+          1413,
+          6945,
+          7018,
+          7985,
+          10792
+        ]
+      ],
+      "moderate_seed_sets": [
+        [
+          106,
+          2154,
+          3439,
+          12381,
+          24676
+        ],
+        [
+          1735,
+          2971,
+          6613,
+          14929,
+          17394
+        ],
+        [
+          986,
+          8694,
+          12716,
+          20559,
+          45609
+        ]
+      ],
+      "n_rare_eligible_users": 9882,
+      "n_moderate_eligible_users": 9875,
+      "outcome_scope": "simulated adoptions with target-specific seed users; the rare experiment is retained, not replaced"
+    },
+    "rare": {
+      "target_item": {
+        "original_id": 3,
+        "idx": 2,
+        "train_rating_count": 1,
+        "band_min_train_ratings": 1,
+        "band_max_train_ratings": 1,
+        "band_median_train_rating_count": 1.0,
+        "band_size_items": 66605,
+        "n_items_with_train_ratings": 113971,
+        "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 1\u20131 training ratings (inclusive); ties by ascending original item ID.",
+        "used_count_band_fallback": false
+      },
+      "seed_sets": [
+        [
+          734,
+          3024,
+          4170,
+          7316,
+          13374
+        ],
+        [
+          883,
+          1357,
+          2386,
+          2860,
+          13374
+        ],
+        [
+          1413,
+          6945,
+          7018,
+          7985,
+          10792
+        ]
+      ],
+      "icm_canonical": {
+        "p=0.01": {
+          "propagation_prob": 0.01,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 9,
+              "n_rounds": 2,
+              "rounds_attempted": 3
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 362,
+              "n_rounds": 25,
+              "rounds_attempted": 25
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 125.3333,
+              "std": 167.3566,
+              "min": 5.0,
+              "max": 362.0,
+              "coefficient_of_variation": 1.3353
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 9.0,
+              "std": 11.3431,
+              "min": 0.0,
+              "max": 25.0,
+              "coefficient_of_variation": 1.2603
+            },
+            "mean_adopters": 125.3333,
+            "std_adopters": 167.3566,
+            "mean_rounds": 9.0
+          },
+          "runtime_seconds": 0.0251
+        },
+        "p=0.05": {
+          "propagation_prob": 0.05,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 4712,
+              "n_rounds": 11,
+              "rounds_attempted": 12
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 4682,
+              "n_rounds": 9,
+              "rounds_attempted": 10
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 4659,
+              "n_rounds": 13,
+              "rounds_attempted": 14
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 4684.3333,
+              "std": 21.7,
+              "min": 4659.0,
+              "max": 4712.0,
+              "coefficient_of_variation": 0.0046
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 11.0,
+              "std": 1.633,
+              "min": 9.0,
+              "max": 13.0,
+              "coefficient_of_variation": 0.1485
+            },
+            "mean_adopters": 4684.3333,
+            "std_adopters": 21.7,
+            "mean_rounds": 11.0
+          },
+          "runtime_seconds": 0.2318
+        }
+      },
+      "icm_preference_aware": {
+        "p=0.01": {
+          "propagation_prob": 0.01,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 6,
+              "n_exposed": 8,
+              "n_rounds": 1,
+              "rounds_attempted": 2
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 7,
+              "n_exposed": 11,
+              "n_rounds": 2,
+              "rounds_attempted": 3
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 6.0,
+              "std": 0.8165,
+              "min": 5.0,
+              "max": 7.0,
+              "coefficient_of_variation": 0.1361
+            },
+            "exposed": {
+              "n": 3,
+              "mean": 8.0,
+              "std": 2.4495,
+              "min": 5.0,
+              "max": 11.0,
+              "coefficient_of_variation": 0.3062
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 1.0,
+              "std": 0.8165,
+              "min": 0.0,
+              "max": 2.0,
+              "coefficient_of_variation": 0.8165
+            },
+            "mean_adopters": 6.0,
+            "std_adopters": 0.8165,
+            "mean_exposed": 8.0,
+            "std_exposed": 2.4495,
+            "mean_rounds": 1.0
+          },
+          "runtime_seconds": 0.0016
+        },
+        "p=0.05": {
+          "propagation_prob": 0.05,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 717,
+              "n_exposed": 1898,
+              "n_rounds": 12,
+              "rounds_attempted": 13
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 782,
+              "n_exposed": 1993,
+              "n_rounds": 11,
+              "rounds_attempted": 12
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_exposed": 7,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 501.3333,
+              "std": 351.9624,
+              "min": 5.0,
+              "max": 782.0,
+              "coefficient_of_variation": 0.7021
+            },
+            "exposed": {
+              "n": 3,
+              "mean": 1299.3333,
+              "std": 914.6403,
+              "min": 7.0,
+              "max": 1993.0,
+              "coefficient_of_variation": 0.7039
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 7.6667,
+              "std": 5.4365,
+              "min": 0.0,
+              "max": 12.0,
+              "coefficient_of_variation": 0.7091
+            },
+            "mean_adopters": 501.3333,
+            "std_adopters": 351.9624,
+            "mean_exposed": 1299.3333,
+            "std_exposed": 914.6403,
+            "mean_rounds": 7.6667
+          },
+          "runtime_seconds": 0.1062
+        }
+      }
+    },
+    "moderate": {
+      "target_item": {
+        "original_id": 69,
+        "idx": 68,
+        "train_rating_count": 9,
+        "band_min_train_ratings": 6,
+        "band_max_train_ratings": 20,
+        "band_median_train_rating_count": 9.0,
+        "band_size_items": 10807,
+        "n_items_with_train_ratings": 113971,
+        "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 6\u201320 training ratings (inclusive); ties by ascending original item ID.",
+        "used_count_band_fallback": false
+      },
+      "seed_sets": [
+        [
+          106,
+          2154,
+          3439,
+          12381,
+          24676
+        ],
+        [
+          1735,
+          2971,
+          6613,
+          14929,
+          17394
+        ],
+        [
+          986,
+          8694,
+          12716,
+          20559,
+          45609
+        ]
+      ],
+      "icm_canonical": {
+        "p=0.01": {
+          "propagation_prob": 0.01,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 5.0,
+              "std": 0.0,
+              "min": 5.0,
+              "max": 5.0,
+              "coefficient_of_variation": 0.0
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 0.0,
+              "std": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "coefficient_of_variation": null
+            },
+            "mean_adopters": 5.0,
+            "std_adopters": 0.0,
+            "mean_rounds": 0.0
+          },
+          "runtime_seconds": 0.0037
+        },
+        "p=0.05": {
+          "propagation_prob": 0.05,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 4699,
+              "n_rounds": 11
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 4630,
+              "n_rounds": 10
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 3111.3333,
+              "std": 2196.69,
+              "min": 5.0,
+              "max": 4699.0,
+              "coefficient_of_variation": 0.706
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 7.0,
+              "std": 4.9666,
+              "min": 0.0,
+              "max": 11.0,
+              "coefficient_of_variation": 0.7095
+            },
+            "mean_adopters": 3111.3333,
+            "std_adopters": 2196.69,
+            "mean_rounds": 7.0
+          },
+          "runtime_seconds": 0.2454
+        }
+      },
+      "icm_preference_aware": {
+        "p=0.01": {
+          "propagation_prob": 0.01,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 5.0,
+              "std": 0.0,
+              "min": 5.0,
+              "max": 5.0,
+              "coefficient_of_variation": 0.0
+            },
+            "exposed": {
+              "n": 3,
+              "mean": 5.0,
+              "std": 0.0,
+              "min": 5.0,
+              "max": 5.0,
+              "coefficient_of_variation": 0.0
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 0.0,
+              "std": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "coefficient_of_variation": null
+            },
+            "mean_adopters": 5.0,
+            "std_adopters": 0.0,
+            "mean_exposed": 5.0,
+            "std_exposed": 0.0,
+            "mean_rounds": 0.0
+          },
+          "runtime_seconds": 0.0013
+        },
+        "p=0.05": {
+          "propagation_prob": 0.05,
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 22,
+              "n_exposed": 47,
+              "n_rounds": 6
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_exposed": 10,
+              "n_rounds": 0
+            }
+          ],
+          "summary": {
+            "adopters": {
+              "n": 3,
+              "mean": 10.6667,
+              "std": 8.0139,
+              "min": 5.0,
+              "max": 22.0,
+              "coefficient_of_variation": 0.7513
+            },
+            "exposed": {
+              "n": 3,
+              "mean": 20.6667,
+              "std": 18.732,
+              "min": 5.0,
+              "max": 47.0,
+              "coefficient_of_variation": 0.9064
+            },
+            "rounds": {
+              "n": 3,
+              "mean": 2.0,
+              "std": 2.8284,
+              "min": 0.0,
+              "max": 6.0,
+              "coefficient_of_variation": 1.4142
+            },
+            "mean_adopters": 10.6667,
+            "std_adopters": 8.0139,
+            "mean_exposed": 20.6667,
+            "std_exposed": 18.732,
+            "mean_rounds": 2.0
+          },
+          "runtime_seconds": 0.0038
+        }
+      }
+    },
+    "comparison": {
+      "p=0.01": {
+        "rare_canonical_mean_adopters": 125.3333,
+        "moderate_canonical_mean_adopters": 5.0,
+        "moderate_minus_rare_canonical": -120.3333,
+        "moderate_relative_canonical_pct": -96.01063723687162,
+        "rare_preference_mean_adopters": 6.0,
+        "moderate_preference_mean_adopters": 5.0,
+        "moderate_minus_rare_preference": -1.0,
+        "moderate_relative_preference_pct": -16.666666666666668
+      },
+      "p=0.05": {
+        "rare_canonical_mean_adopters": 4684.3333,
+        "moderate_canonical_mean_adopters": 3111.3333,
+        "moderate_minus_rare_canonical": -1573.0000000000005,
+        "moderate_relative_canonical_pct": -33.580018740340286,
+        "rare_preference_mean_adopters": 501.3333,
+        "moderate_preference_mean_adopters": 10.6667,
+        "moderate_minus_rare_preference": -490.6666,
+        "moderate_relative_preference_pct": -97.87233363512857
+      }
+    },
+    "runtime_seconds": 0.2546
+  },
+  "network_structure_comparison": {
+    "design": {
+      "question": "How much of the simulated cascade is explained by the observed directed edge arrangement rather than by node count, edge count, and degree sequence?",
+      "model": "canonical ICM",
+      "observed_graph": {
+        "type": "ego_subgraph",
+        "center_user": 0,
+        "hops": 2,
+        "n_users": 9883,
+        "n_edges": 301710,
+        "definition": "users reachable from the documented centre within the given number of trust/propagation hops; induced propagation edges only"
+      },
+      "randomized_graph": {
+        "type": "degree_preserving_randomization",
+        "n_users": 9883,
+        "n_edges": 301710,
+        "definition": "same node set, edge count, and directed in/out-degree sequence as the observed active graph; edges rearranged by accepted double-edge swaps",
+        "randomization": {
+          "n_nodes": 9883,
+          "n_edges": 301710,
+          "swaps_attempted": 603420,
+          "swaps_accepted": 521458,
+          "acceptance_rate": 0.864171,
+          "swap_multiplier": 2,
+          "seed": 4242,
+          "duplicate_edges_removed": 0,
+          "self_loops_removed": 0,
+          "degree_sequence_preserved": true,
+          "max_out_degree": 1889
+        },
+        "randomization_runtime_seconds": 3.1505,
+        "null_model_note": "This is one seeded degree-preserving rearrangement, not a claim of full mixing over all graphs with that degree sequence."
+      },
+      "same_seed_sets": [
+        [
+          734,
+          3024,
+          4170,
+          7316,
+          13374
+        ],
+        [
+          883,
+          1357,
+          2386,
+          2860,
+          13374
+        ],
+        [
+          1413,
+          6945,
+          7018,
+          7985,
+          10792
+        ]
+      ],
+      "same_simulation_seeds": [
+        49,
+        1049,
+        2049
+      ],
+      "only_structure_changes": true,
+      "outcome_scope": "simulated adoptions, not observed cascades"
+    },
+    "settings": {
+      "p=0.01": {
+        "propagation_prob": 0.01,
+        "observed": {
+          "adopters": {
+            "n": 3,
+            "mean": 125.3333,
+            "std": 167.3566,
+            "min": 5.0,
+            "max": 362.0,
+            "coefficient_of_variation": 1.3353
+          },
+          "rounds": {
+            "n": 3,
+            "mean": 9.0,
+            "std": 11.3431,
+            "min": 0.0,
+            "max": 25.0,
+            "coefficient_of_variation": 1.2603
+          },
+          "mean_adopters": 125.3333,
+          "std_adopters": 167.3566,
+          "mean_rounds": 9.0
+        },
+        "randomized": {
+          "adopters": {
+            "n": 3,
+            "mean": 7.3333,
+            "std": 1.6997,
+            "min": 5.0,
+            "max": 9.0,
+            "coefficient_of_variation": 0.2318
+          },
+          "rounds": {
+            "n": 3,
+            "mean": 1.0,
+            "std": 0.8165,
+            "min": 0.0,
+            "max": 2.0,
+            "coefficient_of_variation": 0.8165
+          },
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 9,
+              "n_rounds": 2
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 8,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            }
+          ],
+          "mean_adopters": 7.3333,
+          "std_adopters": 1.6997,
+          "mean_rounds": 1.0
+        },
+        "paired_randomized_minus_observed": {
+          "n": 3,
+          "mean_difference": -118.0,
+          "std_difference": 204.382,
+          "ci95_low": -349.28,
+          "ci95_high": 113.28,
+          "wins": 0,
+          "ties": 2,
+          "losses": 1
+        },
+        "relative_change_pct": -94.149,
+        "runtime_seconds": 0.0017
+      },
+      "p=0.05": {
+        "propagation_prob": 0.05,
+        "observed": {
+          "adopters": {
+            "n": 3,
+            "mean": 4684.3333,
+            "std": 21.7,
+            "min": 4659.0,
+            "max": 4712.0,
+            "coefficient_of_variation": 0.0046
+          },
+          "rounds": {
+            "n": 3,
+            "mean": 11.0,
+            "std": 1.633,
+            "min": 9.0,
+            "max": 13.0,
+            "coefficient_of_variation": 0.1485
+          },
+          "mean_adopters": 4684.3333,
+          "std_adopters": 21.7,
+          "mean_rounds": 11.0
+        },
+        "randomized": {
+          "adopters": {
+            "n": 3,
+            "mean": 4780.0,
+            "std": 20.3142,
+            "min": 4758.0,
+            "max": 4807.0,
+            "coefficient_of_variation": 0.0042
+          },
+          "rounds": {
+            "n": 3,
+            "mean": 9.6667,
+            "std": 0.4714,
+            "min": 9.0,
+            "max": 10.0,
+            "coefficient_of_variation": 0.0488
+          },
+          "runs": [
+            {
+              "simulation_index": 0,
+              "sim_seed": 49,
+              "n_adopters": 4775,
+              "n_rounds": 9
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
+              "n_adopters": 4807,
+              "n_rounds": 10
+            },
+            {
+              "simulation_index": 2,
+              "sim_seed": 2049,
+              "n_adopters": 4758,
+              "n_rounds": 10
+            }
+          ],
+          "mean_adopters": 4780.0,
+          "std_adopters": 20.3142,
+          "mean_rounds": 9.6667
+        },
+        "paired_randomized_minus_observed": {
+          "n": 3,
+          "mean_difference": 95.6667,
+          "std_difference": 31.1341,
+          "ci95_low": 60.4351,
+          "ci95_high": 130.8982,
+          "wins": 3,
+          "ties": 0,
+          "losses": 0
+        },
+        "relative_change_pct": 2.042,
+        "runtime_seconds": 0.2344
+      }
+    },
+    "runtime_seconds": 0.237
   }
 }

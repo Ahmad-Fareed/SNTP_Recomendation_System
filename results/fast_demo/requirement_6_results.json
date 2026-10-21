@@ -98,7 +98,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.002
+            "runtime_seconds": 0.0005
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": true
@@ -150,7 +150,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.002
+            "runtime_seconds": 0.0005
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": true
@@ -202,7 +202,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0031
+            "runtime_seconds": 0.0006
           },
           "top_item_is_best_satisfaction": false,
           "top_item_is_best_spread": true
@@ -251,7 +251,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0031
+            "runtime_seconds": 0.0006
           },
           "16353": {
             "mean_adopters": 4.5,
@@ -262,7 +262,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.002
+            "runtime_seconds": 0.0005
           }
         },
         "best_satisfaction_item": 16353,
@@ -337,7 +337,7 @@
               4,
               1171
             ],
-            "runtime_seconds": 0.1778
+            "runtime_seconds": 0.0479
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": false
@@ -389,7 +389,7 @@
               4,
               1199
             ],
-            "runtime_seconds": 0.1308
+            "runtime_seconds": 0.0581
           },
           "top_item_is_best_satisfaction": false,
           "top_item_is_best_spread": true
@@ -441,7 +441,7 @@
               4,
               1171
             ],
-            "runtime_seconds": 0.1778
+            "runtime_seconds": 0.0479
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": false
@@ -490,7 +490,7 @@
               4,
               1199
             ],
-            "runtime_seconds": 0.1308
+            "runtime_seconds": 0.0581
           },
           "16353": {
             "mean_adopters": 587.5,
@@ -501,7 +501,7 @@
               4,
               1171
             ],
-            "runtime_seconds": 0.1778
+            "runtime_seconds": 0.0479
           }
         },
         "best_satisfaction_item": 16353,
@@ -575,7 +575,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0038
+            "runtime_seconds": 0.001
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": true
@@ -627,7 +627,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0038
+            "runtime_seconds": 0.001
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": true
@@ -679,7 +679,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0038
+            "runtime_seconds": 0.001
           },
           "top_item_is_best_satisfaction": true,
           "top_item_is_best_spread": true
@@ -714,7 +714,7 @@
               5,
               4
             ],
-            "runtime_seconds": 0.0038
+            "runtime_seconds": 0.001
           }
         },
         "best_satisfaction_item": 16353,

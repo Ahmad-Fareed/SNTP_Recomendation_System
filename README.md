@@ -23,10 +23,10 @@ equivalent on Linux/macOS with the usual virtual-environment activation.
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 
-# 87 tests (the suite runs in a few seconds)
+# 92 tests (the suite runs in a few seconds)
 python -m pytest -q
 
 # Inspect the dataset without fitting models
@@ -36,8 +36,8 @@ python -m sntp.cli inspect --data-dir Assignment
 python -m sntp.cli run --config configs/fast_demo.yaml
 ```
 
-The demo above took **545.7 s (9.1 min)** on the development machine. Previous
-runs of the same configuration took 365–596 s as machine load varied, so treat
+The demo above took **264.53 s (4.4 min)** on the development machine. Earlier
+runs of the same configuration varied substantially with machine load, so treat
 wall-clock times as machine-dependent. Most of the cost is item-based CF
 fitting, MF training, and the R8 CELF/scaling measurements, not the diffusion
 simulations.
@@ -48,6 +48,7 @@ To regenerate the PDF report after installing the optional report packages
 ```powershell
 python scripts/generate_report.py --results results/fast_demo `
   --output report/SNTP_Assignment_02_Report.pdf `
+  --figures-dir results/fast_demo/plots `
   --roll-number 23F3008 --student "Ahmad Fareed"
 ```
 
@@ -130,13 +131,21 @@ Two recommenders are trained on the training split:
   regularization 0.02, 6 epochs, seed 42.
 
 Top-K recommendation excludes every item in the user’s **training** history.
-Ranking metrics use a fixed seeded sample of 500 eligible users; MAE/RMSE use
-all 100,558 test ratings. The test ranking is:
+Items are ordered by the **unclipped** prediction score; only the predicted
+rating returned with an item is clipped to [1, 5]. This prevents ties at 5.0
+from replacing confidence ordering with item-ID ordering. Item-based CF treats
+an item with no stored neighbours as unsupported by the item-item model and
+uses a documented training-only fallback: the user’s training mean, then the
+global training mean. MF tracks which users/items have training observations;
+untrained rows have zero bias/factors, giving μ+b_i, μ+b_u, or μ as documented
+fallbacks instead of random initial factors. Ranking metrics use a fixed seeded
+sample of 500 eligible users; MAE/RMSE use all 100,558 test ratings. The test
+ranking is:
 
 | Model | Test MAE | Test RMSE | P@10 | R@10 | F1@10 | HR@10 | nDCG@10 | Coverage | Train (s) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Item-based CF | 1.0740 | 1.4519 | 0.0004 | 0.00233 | 0.00061 | 0.0040 | 0.00086 | 0.01481 | 87.84 |
-| Matrix factorization | **0.8325** | **1.0677** | 0.0020 | 0.00485 | 0.00229 | 0.0200 | 0.00300 | 0.00029 | 83.69 |
+| Item-based CF | 1.0740 | 1.4519 | 0.0008 | 0.00281 | 0.00105 | 0.0080 | 0.00163 | 0.01715 | 50.14 |
+| Matrix factorization | **0.8324** | **1.0677** | 0.0020 | 0.00515 | 0.00238 | 0.0200 | 0.00343 | 0.00011 | 40.70 |
 
 MF is much better than item-based CF on rating error here. The ranking numbers
 are low because the catalogue is large, test items are sparse, and a single
@@ -158,31 +167,34 @@ selection.
 
 | λ | Validation RMSE | Test MAE | Test RMSE | P@10 | HR@10 | nDCG@10 |
 |---:|---:|---:|---:|---:|---:|---:|
-| 0.0 (baseline) | 1.06899 | 0.83245 | 1.06772 | 0.0020 | 0.020 | 0.00300 |
-| **0.3 (selected)** | **1.06397** | **0.82838** | **1.06319** | 0.0026 | 0.024 | 0.00415 |
-| 0.5 | 1.06934 | 0.82998 | 1.06887 | 0.0030 | 0.028 | 0.00481 |
+| 0.0 (baseline) | 1.06899 | 0.83245 | 1.06771 | 0.0020 | 0.020 | 0.00343 |
+| **0.3 (selected)** | **1.06397** | **0.82837** | **1.06318** | 0.0024 | 0.022 | 0.00419 |
+| 0.5 | 1.06934 | 0.82998 | 1.06886 | 0.0028 | 0.026 | 0.00481 |
 
-The selected λ = 0.3 improves test MAE by 0.0041 and RMSE by 0.0045, and also
+The selected λ = 0.3 improves test MAE by 0.00407 and RMSE by 0.00453, and also
 improves ranking. Sparse users (21,911 users with 1–5 ratings) improve from MAE
-0.87453 to 0.87249. In the controlled trust-vs-similarity comparison on 50
-sampled users / 165 test ratings, trusted neighbours gave MAE 0.87703,
-unconnected similar users 0.86647, and the baseline 0.87587 — a small sample,
+0.87454 to 0.87250. In the controlled trust-vs-similarity comparison on 50
+sampled users / 165 test ratings, trusted neighbours gave MAE 0.87692,
+unconnected similar users 0.86635, and the baseline 0.87576 — a small sample,
 so this comparison is descriptive, not a significance test.
 
 ### Requirement 4 — diffusion models
 
 All diffusion runs use the same pre-generated seed sets and the same controlled
-Monte Carlo seed schedule across comparable settings. The target item is chosen
-from a documented **training-only** popularity band: the item whose training
-rating count is closest to the median count of the inclusive [0.40, 0.60]
-training-count quantile band, ties by ascending item ID. This selected original
-item **3** (index 2), with training count 1; the band was counts 1–2 and
-contained 83,981 items. This is deliberately a low-popularity target, so the
-absolute spreads are not representative of the whole catalogue.
+Monte Carlo seed schedule across comparable settings. Part 4 retains the
+original **rare-item** target: original item **3** (index 2), with 1 training
+rating, selected from the explicit inclusive 1-rating band (66,605 eligible
+items). It adds a **moderate-popularity** target: original item **69** (index
+68), with 9 training ratings, selected from the explicit 6–20 training-rating
+band (10,807 eligible items). Both selections use training ratings only and
+choose the count closest to the band median, with ascending item-ID ties. The
+moderate experiment uses the same graph, models, propagation probabilities,
+simulation seeds, and seed size; its seed users are drawn from its own
+target-specific eligible pool. The rare experiment is retained, not replaced.
 
 Fast-demo design: 5 seeds, 3 simulations, 2-hop ego subgraph (9,883 users,
-301,710 edges), max 25 rounds. The same three seed sets are reused for every
-ICM/SIR setting:
+301,710 edges), max 25 rounds. The same three rare-target seed sets are reused
+for every rare ICM/SIR setting:
 
 ```
 [734, 3024, 4170, 7316, 13374]
@@ -198,8 +210,8 @@ ICM/SIR setting:
 | Preference-aware ICM | p = 0.05 | 501.33 | 351.96 | 7.67 |
 | SIR | β = 0.01, γ = 0.0 | 2,024.00 | 915.16 | 25.00 |
 | SIR | β = 0.01, γ = 0.2 | 530.67 | 692.39 | 17.67 |
-| SIR | β = 0.05, γ = 0.0 | 8,182.00 | 116.61 | 25.00 |
-| SIR | β = 0.05, γ = 0.2 | 6,021.00 | 20.54 | 25.00 |
+| SIR | β = 0.05, γ = 0.0 | 8,180.33 | 116.48 | 25.00 |
+| SIR | β = 0.05, γ = 0.2 | 6,039.67 | 25.17 | 25.00 |
 
 The p = 0.01 canonical ICM result is extremely heavy-tailed: only 3 simulations
 produced one cascade of 362 adopters and two near-seed-only cascades. The large
@@ -209,6 +221,38 @@ runs with γ = 0 use all 25 rounds because infection never recovers; their
 much smaller cascades at the same seed sets because predicted affinity gates
 exposure/adoption. Mean rounds, min/max, CV, runtime, and per-simulation rows
 are in `requirement_4_results.json`.
+
+**Moderate-popularity target experiment.** The same canonical and
+preference-aware ICM models are run on item 69 at the same propagation
+probabilities and simulation seeds. The seed pool changes because it is
+target-specific; the graph and Monte Carlo schedule do not. The measured means
+are:
+
+| Model | Rare target p=0.01 | Moderate target p=0.01 | Rare target p=0.05 | Moderate target p=0.05 |
+|---|---:|---:|---:|---:|
+| Canonical ICM | 125.33 | 5.00 | 4,684.33 | 3,111.33 |
+| Preference-aware ICM | 6.00 | 5.00 | 501.33 | 10.67 |
+
+The moderate target changes the canonical p=0.05 mean by −33.58% and the
+preference-aware p=0.05 mean by −97.87%. Results are stored in
+`target_popularity_comparison` and are descriptive, not an identified
+popularity effect.
+
+**Controlled network-structure null.** The active graph is randomized by
+degree-preserving directed double-edge swaps: node set, edge count, and every
+in/out degree are preserved. Of 603,420 attempted swaps, 521,458 were accepted
+(86.4%), with zero self-loops or duplicate edges and an identical degree
+sequence. Canonical ICM then uses the same rare-target seed sets, simulation
+seeds, probabilities, and round cap on the randomized graph:
+
+| Setting | Observed mean | Randomized mean | Difference | Relative |
+|---|---:|---:|---:|---:|
+| p=0.01 | 125.33 | 7.33 | −118.00 | −94.15% |
+| p=0.05 | 4,684.33 | 4,780.00 | +95.67 | +2.04% |
+
+This isolates edge arrangement within one seeded null model; it is not a fully
+mixed null distribution. Exact swap counts and per-setting outcomes are saved
+in `network_structure_comparison`.
 
 ### Requirement 5 — influence maximization
 
@@ -240,8 +284,8 @@ dense graph, and near-saturation spreads (about 47% of the 9,883 active users)
 make differences small. Degree and greedy adopter sets overlap substantially
 (mean Jaccard 0.551). Greedy selected the full budget in every row; the
 standard-greedy sentinel is `-inf`, so a negative Monte Carlo marginal gain does
-not stop selection. Greedy selection took 34.04 s for 65 evaluations; degree
-selection was effectively instant; random selection for all trials took 4.31 s.
+not stop selection. Greedy selection took 23.98 s for 65 evaluations; degree
+selection was effectively instant; random selection for all trials took 1.71 s.
 
 ### Requirement 6 — group recommendation
 
@@ -301,9 +345,9 @@ for MAE/RMSE):
 
 | Model | MAE | RMSE | P@10 | R@10 | F1@10 | HR@10 | nDCG@10 | Coverage | Diversity |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Item-based CF | 1.0740 | 1.4519 | 0.0004 | 0.00233 | 0.00061 | 0.0040 | 0.00086 | **0.01481** | 0.8590 |
-| Matrix factorization | 0.8325 | 1.0677 | 0.0020 | 0.00485 | 0.00229 | 0.0200 | 0.00300 | 0.00029 | **0.9856** |
-| Social (λ=0.3) | **0.8284** | **1.0632** | **0.0026** | **0.00607** | **0.00307** | **0.0240** | **0.00415** | 0.00068 | 0.9848 |
+| Item-based CF | 1.0740 | 1.4519 | 0.0008 | 0.00281 | 0.00105 | 0.0080 | 0.00163 | **0.01715** | 0.8741 |
+| Matrix factorization | 0.8324 | 1.0677 | 0.0020 | 0.00515 | 0.00238 | 0.0200 | 0.00343 | 0.00011 | **0.9858** |
+| Social (λ=0.3) | **0.8284** | **1.0632** | **0.0024** | **0.00587** | **0.00287** | **0.0220** | **0.00419** | 0.00060 | 0.9850 |
 
 The social model is best on error and all ranking metrics in this run;
 item-based CF has the broadest catalogue coverage but much worse accuracy.
@@ -326,9 +370,9 @@ same seed sets/seeds as the intervention rows.
 |---:|---:|---:|---:|---:|---:|---:|
 | 0.0 (baseline) | 771.0 | 1,984.0 | 0.3886 | 4.0774 | — | — |
 | 0.3 | 771.0 | 1,984.0 | 0.3886 | 4.0774 | 0.00% | 0.0000 |
-| 0.6 | 772.2 | 2,030.8 | 0.3802 | 4.0921 | +0.16% | +0.0147 |
-| **0.8** | **7.0** | **31.0** | 0.2258 | **4.1038** | **−99.09%** | **+0.0264** |
-| 0.9 | 5.2 | 17.2 | 0.3023 | 4.0489 | −99.33% | −0.0285 |
+| 0.6 | 772.2 | 2,030.8 | 0.3802 | 4.0920 | +0.16% | +0.0146 |
+| **0.8** | **7.0** | **31.0** | 0.2258 | **4.1039** | **−99.09%** | **+0.0265** |
+| 0.9 | 5.2 | 17.2 | 0.3023 | 4.0490 | −99.33% | −0.0284 |
 
 The threshold effect is a cliff, not a smooth trade-off. In the baseline
 exposure population (4,850 users), affinity ranged 0.4434–0.9838; 0% were below
@@ -346,34 +390,34 @@ and selection seeds:
 
 | Method | Evaluations | Runtime (s) | Seeds | Marginal gains |
 |---|---:|---:|---|---|
-| Standard greedy | 33 | 83.45 | 22, 321, 570 | 4760.5, 0.5, 9.5 |
-| CELF | 25 | 68.17 | 22, 321, 206 | 4760.5, 0.5, −13.5 |
+| Standard greedy | 33 | 36.92 | 22, 321, 570 | 4760.5, 0.5, 9.5 |
+| CELF | 25 | 22.83 | 22, 321, 206 | 4760.5, 0.5, −13.5 |
 
-CELF used 24.24% fewer evaluations and was **1.22× faster in this measured
+CELF used 24.24% fewer evaluations and was **1.62× faster in this measured
 setting**, but it selected a different third seed under noisy Monte Carlo
 estimates. CELF’s lazy bound is exact for a deterministic monotone submodular
 objective, not for a finite-sample noisy estimate. A controlled deterministic
 check (`p=1.0`, one simulation, 120 nodes, 20 candidates, budget 2) gave 39
 evaluations for both methods and identical seeds `[494, 158]`, confirming the
 implementation rather than asserting an unconditional speedup. Memory:
-tracemalloc peak 8.452 MB (standard) vs 8.453 MB (CELF); RSS deltas were 1.41 MB
-and 0.016 MB. NumPy native allocations may be under-represented.
+tracemalloc peak 8.452 MB (standard) vs 8.453 MB (CELF); RSS deltas were 1.23 MB
+and −0.016 MB. NumPy native allocations may be under-represented.
 
 **Measured scaling.**
 
 | Dimension | Setting | Runtime | Evaluations | Memory (tracemalloc peak) |
 |---|---|---:|---:|---:|
-| Network | 2,471 nodes / 78,115 edges | 10.05 s | 29 | 2.35 MB |
-| Network | 4,942 nodes / 227,570 edges | 23.86 s | 29 | 5.36 MB |
-| Budget | budget 1 | 5.61 s | 15 | 2.27 MB |
-| Budget | budget 3 | 15.58 s | 42 | 2.35 MB |
-| Item catalogue 25% | 34,934 items | 2.20 ms/user | — | 1.07 MB |
-| Item catalogue 50% | 69,869 items | 2.95 ms/user | — | 2.13 MB |
-| Item catalogue 100% | 139,738 items | 9.33 ms/user | — | 4.27 MB |
+| Network | 2,471 nodes / 78,115 edges | 3.62 s | 29 | 2.35 MB |
+| Network | 4,942 nodes / 227,570 edges | 8.56 s | 29 | 5.36 MB |
+| Budget | budget 1 | 2.00 s | 15 | 2.27 MB |
+| Budget | budget 3 | 7.44 s | 42 | 2.35 MB |
+| Item catalogue 25% | 34,934 items | 0.99 ms/user | — | 1.07 MB |
+| Item catalogue 50% | 69,869 items | 2.17 ms/user | — | 2.13 MB |
+| Item catalogue 100% | 139,738 items | 5.73 ms/user | — | 4.27 MB |
 
 Network and budget costs grow with graph size and number of evaluations; the
 item-catalogue measurement isolates MF scoring/ranking, not training. The
-non-monotone 2.20 → 2.95 → 9.33 ms/user pattern is a measured cache/allocation
+0.99 → 2.17 → 5.73 ms/user pattern is a measured cache/allocation
 effect, not a claimed linear law. Absolute times are machine-dependent; compare
 relative slopes within this run. RSS deltas were near zero because large arrays
 were already resident; tracemalloc undercounts NumPy native buffers.
@@ -388,10 +432,11 @@ The experiment pipeline enforces the following separation:
 2. `build_rating_matrix` is called with the training triples for all
    group-construction and social/feature work. The full
    `dataset.rating_matrix` is not passed into R6.
-3. The diffusion target item is selected from a **training-only** popularity
-   band.
-4. Seed sets are generated once from the training-derived eligible-user pool
-   and reused across every comparable ICM/SIR setting.
+3. Diffusion targets are selected from **training-only** count bands: the
+   retained rare target uses the 1-rating band, and the added moderate target
+   uses the inclusive 6–20 band.
+4. Seed sets are generated once from each target-specific training-derived
+   eligible-user pool and reused across every comparable ICM/SIR setting.
 5. Social λ is selected on validation RMSE. Test is reported only after the
    choice is frozen (`test_used_for_selection: false` in the JSON).
 6. R7 observed metrics use test ratings only as labels. Test ratings never
@@ -407,8 +452,11 @@ Regression tests specifically guard the leakage and fairness claims:
 * `tests/test_leakage.py`
   * training-only matrix construction;
   * full `dataset.rating_matrix` mutation does not change R6 groups;
-  * target-item selection is deterministic/training-only;
+  * rare (1) and moderate (6–20) target bands, deterministic training-only
+    target selection;
   * seed-set generation is reproducible;
+  * degree-preserving directed randomization preserves nodes, edges, and
+    in/out degrees and is reproducible;
   * group score aggregation is a pure function of member scores;
   * R3 selects λ on validation even when test ratings are perturbed;
   * R6 tie-aware best-set bookkeeping.
@@ -419,10 +467,13 @@ Regression tests specifically guard the leakage and fairness claims:
   * marginal gains equal paired spread increments;
   * manual/hand-checkable metric and group cases.
 * `tests/test_all.py`, `tests/test_vectorized_ranking.py`
-  * data loading, split guarantees, recommender correctness, vectorized
-    ranking equivalence.
+  * data loading, split guarantees, recommender correctness;
+  * raw-score ordering with post-selection rating clipping;
+  * item-based unsupported-item fallback;
+  * MF cold-start fallbacks (μ+b_i, μ+b_u, μ);
+  * vectorized ranking equivalence.
 
-Latest test run: **87 passed** in 4.72 s (`python -m pytest -q`); the suite is a few seconds, not a long-running experiment.
+Latest full test run: **92 passed** in 1.83 s (`python -m pytest -q`); the suite is a few seconds, not a long-running experiment.
 
 ---
 
@@ -435,6 +486,7 @@ also saved as `results/fast_demo/experiment_config.json`. Key seeds:
 * MF seed 42; group seed 42
 * diffusion seed 42, 3 seed sets, 3 simulations; seed-set generator uses
   `seed=42`
+* R4 network randomization seed 4242, `2 × n_edges` swap attempts
 * R5 selection seeds `[49, 1049]`, evaluation seeds `[500049, 501049]`
 * R6 per-group simulation seeds `[100049, 101049]`, `[101049, 102049]`,
   `[102049, 103049]`
@@ -464,29 +516,29 @@ run; see below.
 
 ## 6. Results summary and runtime
 
-**Measured fast-demo runtime: 545.7 s (9.1 min)**, including data loading,
+**Measured fast-demo runtime: 264.53 s (4.4 min)**, including data loading,
 model fitting, all eight requirement stages, and result serialization. Major
 stages:
 
 | Stage | Seconds |
 |---|---:|
-| R1 load dataset | 11.54 |
-| R1 split | 0.85 |
-| R2 item-based CF fit | 87.84 |
-| R2 MF training | 83.69 |
-| R3 social evaluations (all λ + comparisons) | ~44.5 |
-| R4 ICM + SIR | 21.21 |
-| R5 influence maximization | 42.12 |
-| R6 group recommendation | 4.46 |
-| R7 comprehensive evaluation | 19.38 |
-| R8 intervention + CELF + scaling | 212.73 |
-| Total (CLI wall clock) | **545.7** |
+| R1 load dataset | 6.68 |
+| R1 split | 0.58 |
+| R2 item-based CF fit | 50.14 |
+| R2 MF training | 40.70 |
+| R3 social evaluations (all λ + comparisons) | 21.34 |
+| R4 ICM + SIR + target/network comparisons | 12.57 |
+| R5 influence maximization | 27.73 |
+| R6 group recommendation | 2.05 |
+| R7 comprehensive evaluation | 10.12 |
+| R8 intervention + CELF + scaling | 83.91 |
+| Total (CLI wall clock) | **264.53** |
 
 The R8 CELF/scaling block is the largest single stage because it runs repeated
 Monte Carlo greedy evaluations from scratch. The R5 stage is also
-Monte-Carlo-dominated. Earlier runs of the same configuration varied from 365 s
-to 596 s depending on machine load; the saved `stage_timings.json` is the
-authoritative record for the submitted run.
+Monte-Carlo-dominated. Run-to-run wall clock has varied substantially with
+machine load; the saved `stage_timings.json` is the authoritative record for
+the submitted run.
 
 ---
 
@@ -501,12 +553,16 @@ authoritative record:
 python -m pip install -r requirements-report.txt
 python scripts/generate_report.py --results results/fast_demo `
   --output report/SNTP_Assignment_02_Report.pdf `
+  --figures-dir results/fast_demo/plots `
   --roll-number 23F3008 --student "Ahmad Fareed"
 ```
 
 `requirements-report.txt` adds `reportlab` and `matplotlib`; the core
-experiments need only `requirements.txt`. The generated PDF contains selectable
-text (it is not a scanned image).
+experiments need only `requirements.txt`, and tests need
+`requirements-dev.txt`. The generated PDF contains selectable text (it is not a
+scanned image). The same command writes seven standalone charts to
+`results/fast_demo/plots/` (`fig01_test_error.png` through
+`fig07_network_scaling.png`).
 
 ---
 
@@ -538,32 +594,38 @@ text (it is not a scanned image).
 .
 ├── README.md
 ├── requirements.txt
+├── requirements-dev.txt        # test dependency (pytest)
 ├── requirements-report.txt
 ├── pyproject.toml
+├── .gitignore
 ├── configs/
 │   ├── fast_demo.yaml          # submitted, measured configuration
 │   └── default.yaml            # full-scale config, not run
 ├── src/sntp/                   # package
-├── tests/                      # 87 tests
-├── scripts/generate_report.py  # regenerates the PDF from JSON
+├── tests/                      # 92 tests
+├── scripts/generate_report.py  # regenerates the PDF and PNGs from JSON
 ├── report/SNTP_Assignment_02_Report.pdf
 ├── results/fast_demo/          # submitted measured results
 │   ├── data_summary.json
 │   ├── split_info.json
 │   ├── experiment_config.json
 │   ├── stage_timings.json
-│   └── requirement_{2..8}_results.json
+│   ├── requirement_{2..8}_results.json
+│   └── plots/                  # 7 standalone PNG figures
 └── Assignment/ratings_data/epinions/
     ├── ratings_data.txt
     └── trust_data.txt
 ```
 
-Submission archive (created after the roll number is supplied):
+Submission archive:
 
 ```
-<RollNumber>_SNTP_Assignment.zip
-└── <RollNumber>_SNTP_Assignment/
+23F3008_SNTP_Assignment.zip
+└── 23F3008_SNTP_Assignment/
 ```
+
+The archive uses forward-slash paths, contains one inner folder, and excludes
+`__pycache__`, `.pytest_cache`, `.git`, logs, and prior ZIPs.
 
 ---
 
@@ -594,13 +656,14 @@ Submission archive (created after the roll number is supplied):
 6. **R7 is a sample-based evaluation.** Ranking uses 500 seeded users, not all
    25,045 eligible users. Coverage/diversity are list-sample properties.
    Unobserved items are not negatives, so precision/recall are conservative and
-   no accuracy metric is reported. The simulation uses one low-popularity target
-   item, so it is not a platform-wide adoption forecast.
+   no accuracy metric is reported. The simulation retains the rare target and
+   separately adds a moderate-popularity target in Part 4; neither is a
+   platform-wide adoption forecast.
 7. **R8 threshold is a simulator intervention.** No online randomized
    experiment was run. The 0.8 threshold produces a cliff because 80.9% of
    baseline-exposed users have affinity below 0.8; 0.3 is inactive because no
    baseline-exposed user is below 0.3. The rating proxy is predicted, not
-   observed. CELF’s 1.22× speedup is a single noisy-Monte-Carlo measurement;
+   observed. CELF’s 1.62× speedup is a single noisy-Monte-Carlo measurement;
    CELF selected different seeds and is not guaranteed to be faster or
    identical under finite samples. The deterministic controlled check is the
    correctness evidence.
@@ -637,11 +700,21 @@ problems that were fixed before the submitted results:
   Candidate-pool restriction and common evaluation seeds are explicit.
 * R5’s marginal gains were not paired. They are now paired differences on the
   same Monte Carlo trials, with CIs and win/loss counts.
+* Recommendation ranking used clipped scores, creating artificial 5.0 ties.
+  It now orders by unclipped model scores and clips only the reported predicted
+  rating; batch and single-user paths have regression coverage. Item-based CF
+  unsupported items now use a documented training-only fallback.
+* MF cold-start users/items could expose random initial factors. Training
+  observations are tracked, untrained rows are zeroed, and the documented
+  fallbacks are μ+b_i, μ+b_u, or μ.
 * R7’s F1 was an aggregate harmonic mean. It is now the mean of per-user F1
   values, and diversity is feature-based from training item vectors, with
   sampling metadata.
 * R7’s simulated diffusion was mixed with observed metrics. It is now a
   separate section with its own seeds and target item.
+* R4 used a quantile popularity band without an explicit rare item. It now
+  retains the one-training-rating rare target and adds a documented 6–20
+  moderate target, plus a degree-preserving network-structure comparison.
 * R8 contained asserted CELF/speedup/seed claims. Conclusions are now generated
   from measured evaluations, runtime, memory, seed agreement, and a controlled
   deterministic check.
@@ -652,7 +725,11 @@ problems that were fixed before the submitted results:
   report actual attempted rounds and direct ever-infected counts.
 * Tests were added for leakage, seed reproducibility, tie-aware group
   bookkeeping, feature diversity, negative-gain greedy behavior, candidate-pool
-  respect, and paired marginal gains.
+  respect, paired marginal gains, raw-score ranking, cold starts, explicit
+  target bands, and degree-preserving randomization.
+* The report generator now reads target/network keys dynamically, exports
+  seven PNG charts under `results/fast_demo/plots/`, and no longer forces a
+  page break that produced an almost-empty page.
 
 All reported results were produced after these fixes. The pre-fix baseline
 artifacts were used only to confirm the defects and are not part of the

@@ -160,6 +160,13 @@ def test_select_target_item_is_training_only_and_documented():
     # independent of validation/test triples (none are passed to the helper).
     assert 6 <= selected["train_rating_count"] <= 20
 
+    # The rare-item experiment can be retained with an explicit 1-rating band.
+    rare = select_target_item(train, item_to_idx, 1, 1)
+    assert rare["train_rating_count"] == 1
+    assert rare["band_min_train_ratings"] == 1
+    assert rare["band_max_train_ratings"] == 1
+    assert rare["original_id"] == 0
+
 
 def test_select_target_item_records_empty_band_fallback():
     train = [(u, item, 4) for item in range(5) for u in range(item + 1)]

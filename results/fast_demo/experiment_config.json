@@ -50,8 +50,21 @@
     ],
     "base_adopt_prob": 0.5,
     "default_affinity": 0.3,
-    "target_lower_quantile": 0.4,
-    "target_upper_quantile": 0.6
+    "target_items": {
+      "rare": {
+        "min_train_ratings": 1,
+        "max_train_ratings": 1
+      },
+      "moderate": {
+        "min_train_ratings": 6,
+        "max_train_ratings": 20
+      }
+    },
+    "network_structure_comparison": {
+      "enabled": true,
+      "swap_multiplier": 2,
+      "seed": 4242
+    }
   },
   "influence": {
     "budgets": [
@@ -83,8 +96,8 @@
     "interaction_base_adopt_prob": 0.5,
     "interaction_max_rounds": 25,
     "interaction_default_affinity": 0.3,
-    "target_lower_quantile": 0.4,
-    "target_upper_quantile": 0.6
+    "target_min_train_ratings": 1,
+    "target_max_train_ratings": 1
   },
   "intervention": {
     "thresholds": [
@@ -100,6 +113,8 @@
     "seed_size": 5,
     "max_rounds": 25,
     "default_affinity": 0.3,
+    "target_min_train_ratings": 1,
+    "target_max_train_ratings": 1,
     "seed": 42,
     "celf": {
       "budget": 3,

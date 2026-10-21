@@ -4,15 +4,13 @@
       "original_id": 3,
       "idx": 2,
       "train_rating_count": 1,
-      "median_train_rating_count": 1.0,
-      "band_lower_quantile": 0.4,
-      "band_upper_quantile": 0.6,
-      "band_lower_count": 1.0,
-      "band_upper_count": 2.0,
-      "band_size_items": 83981,
+      "band_min_train_ratings": 1,
+      "band_max_train_ratings": 1,
+      "band_median_train_rating_count": 1.0,
+      "band_size_items": 66605,
       "n_items_with_train_ratings": 113971,
-      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items in the inclusive [0.40, 0.60] training-count quantile band; ties by ascending original item ID.",
-      "used_median_fallback": false
+      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 1\u20131 training ratings (inclusive); ties by ascending original item ID.",
+      "used_count_band_fallback": false
     },
     "target_selection_uses": "training split only",
     "graph_info": {
@@ -165,7 +163,7 @@
             "n_nonseed_adopters": 814,
             "n_rounds": 17,
             "mean_adopter_rating": 4.0686,
-            "mean_nonseed_adopter_rating": 4.0692
+            "mean_nonseed_adopter_rating": 4.0693
           },
           {
             "simulation_index": 3,
@@ -188,7 +186,7 @@
             "mean_nonseed_adopter_rating": 4.0803
           }
         ],
-        "runtime_seconds": 0.5261
+        "runtime_seconds": 0.2635
       },
       "threshold_0.3": {
         "threshold": 0.3,
@@ -259,7 +257,7 @@
             "n_nonseed_adopters": 814,
             "n_rounds": 17,
             "mean_adopter_rating": 4.0686,
-            "mean_nonseed_adopter_rating": 4.0692
+            "mean_nonseed_adopter_rating": 4.0693
           },
           {
             "simulation_index": 3,
@@ -282,7 +280,7 @@
             "mean_nonseed_adopter_rating": 4.0803
           }
         ],
-        "runtime_seconds": 0.615,
+        "runtime_seconds": 0.2345,
         "relative_to_baseline": {
           "spread_change": 0.0,
           "spread_change_pct": 0.0,
@@ -319,11 +317,11 @@
         "mean_adopters": 772.2,
         "mean_exposed": 2030.8,
         "conversion_efficiency": 0.3802,
-        "mean_adopter_rating_proxy": 4.0921,
-        "mean_nonseed_adopter_rating_proxy": 4.0926,
+        "mean_adopter_rating_proxy": 4.092,
+        "mean_nonseed_adopter_rating_proxy": 4.0925,
         "adopter_rating_proxy_distribution": {
           "n": 3861,
-          "mean": 4.0921,
+          "mean": 4.092,
           "std": 0.2088,
           "min": 3.405,
           "max": 4.9353,
@@ -339,7 +337,7 @@
             "n_nonseed_adopters": 644,
             "n_rounds": 12,
             "mean_adopter_rating": 4.1013,
-            "mean_nonseed_adopter_rating": 4.1025
+            "mean_nonseed_adopter_rating": 4.1024
           },
           {
             "simulation_index": 1,
@@ -382,11 +380,11 @@
             "mean_nonseed_adopter_rating": 4.0981
           }
         ],
-        "runtime_seconds": 0.6755,
+        "runtime_seconds": 0.2558,
         "relative_to_baseline": {
           "spread_change": 1.2,
           "spread_change_pct": 0.16,
-          "adopter_satisfaction_change": 0.0147,
+          "adopter_satisfaction_change": 0.0146,
           "exposed_change": 46.8
         }
       },
@@ -419,11 +417,11 @@
         "mean_adopters": 7.0,
         "mean_exposed": 31.0,
         "conversion_efficiency": 0.2258,
-        "mean_adopter_rating_proxy": 4.1038,
+        "mean_adopter_rating_proxy": 4.1039,
         "mean_nonseed_adopter_rating_proxy": 4.3235,
         "adopter_rating_proxy_distribution": {
           "n": 35,
-          "mean": 4.1038,
+          "mean": 4.1039,
           "std": 0.2231,
           "min": 3.4876,
           "max": 4.5393,
@@ -468,7 +466,7 @@
             "n_exposed": 29,
             "n_nonseed_adopters": 2,
             "n_rounds": 1,
-            "mean_adopter_rating": 4.0115,
+            "mean_adopter_rating": 4.0117,
             "mean_nonseed_adopter_rating": 4.3554
           },
           {
@@ -478,15 +476,15 @@
             "n_exposed": 62,
             "n_nonseed_adopters": 4,
             "n_rounds": 2,
-            "mean_adopter_rating": 4.2024,
+            "mean_adopter_rating": 4.2026,
             "mean_nonseed_adopter_rating": 4.2771
           }
         ],
-        "runtime_seconds": 0.0069,
+        "runtime_seconds": 0.004,
         "relative_to_baseline": {
           "spread_change": -764.0,
           "spread_change_pct": -99.09,
-          "adopter_satisfaction_change": 0.0264,
+          "adopter_satisfaction_change": 0.0265,
           "exposed_change": -1953.0
         }
       },
@@ -519,11 +517,11 @@
         "mean_adopters": 5.2,
         "mean_exposed": 17.2,
         "conversion_efficiency": 0.3023,
-        "mean_adopter_rating_proxy": 4.0489,
+        "mean_adopter_rating_proxy": 4.049,
         "mean_nonseed_adopter_rating_proxy": 4.8728,
         "adopter_rating_proxy_distribution": {
           "n": 26,
-          "mean": 4.0489,
+          "mean": 4.049,
           "std": 0.2526,
           "min": 3.4876,
           "max": 4.8728,
@@ -568,7 +566,7 @@
             "n_exposed": 30,
             "n_nonseed_adopters": 1,
             "n_rounds": 1,
-            "mean_adopter_rating": 4.0404,
+            "mean_adopter_rating": 4.0406,
             "mean_nonseed_adopter_rating": 4.8728
           },
           {
@@ -578,25 +576,25 @@
             "n_exposed": 21,
             "n_nonseed_adopters": 0,
             "n_rounds": 0,
-            "mean_adopter_rating": 4.1427,
+            "mean_adopter_rating": 4.143,
             "mean_nonseed_adopter_rating": null
           }
         ],
-        "runtime_seconds": 0.005,
+        "runtime_seconds": 0.0017,
         "relative_to_baseline": {
           "spread_change": -765.8,
           "spread_change_pct": -99.33,
-          "adopter_satisfaction_change": -0.0285,
+          "adopter_satisfaction_change": -0.0284,
           "exposed_change": -1966.8
         }
       }
     },
     "findings": [
       "Threshold 0.30: spread changed by 0.0% and mean adopter rating proxy changed by 0.0 relative to the no-threshold baseline.",
-      "Threshold 0.60: spread changed by 0.16% and mean adopter rating proxy changed by 0.0147 relative to the no-threshold baseline.",
-      "Threshold 0.80: spread changed by -99.09% and mean adopter rating proxy changed by 0.0264 relative to the no-threshold baseline.",
-      "Threshold 0.90: spread changed by -99.33% and mean adopter rating proxy changed by -0.0285 relative to the no-threshold baseline.",
-      "The largest measured spread reduction among thresholds with a non-negative proxy change was at threshold 0.80: -99.09% versus baseline, with an adopter-rating-proxy change of 0.0264. This is the measured spread/satisfaction trade-off; the proxy is simulator-side, not an observed satisfaction rating.",
+      "Threshold 0.60: spread changed by 0.16% and mean adopter rating proxy changed by 0.0146 relative to the no-threshold baseline.",
+      "Threshold 0.80: spread changed by -99.09% and mean adopter rating proxy changed by 0.0265 relative to the no-threshold baseline.",
+      "Threshold 0.90: spread changed by -99.33% and mean adopter rating proxy changed by -0.0284 relative to the no-threshold baseline.",
+      "The largest measured spread reduction among thresholds with a non-negative proxy change was at threshold 0.80: -99.09% versus baseline, with an adopter-rating-proxy change of 0.0265. This is the measured spread/satisfaction trade-off; the proxy is simulator-side, not an observed satisfaction rating.",
       "A threshold can reduce low-affinity adoption, but the measured table, not an assumed monotone effect, is the evidence. The rating proxy is simulator-side and is not observed satisfaction."
     ],
     "limitations": [
@@ -616,13 +614,13 @@
       ],
       "standard_greedy": {
         "n_evaluations": 33,
-        "runtime_seconds": 83.4472,
+        "runtime_seconds": 36.9236,
         "memory": {
           "tracemalloc_peak_mb": 8.452,
-          "tracemalloc_current_mb": 0.015,
-          "rss_before_mb": 707.191,
-          "rss_after_mb": 708.602,
-          "rss_delta_mb": 1.41
+          "tracemalloc_current_mb": 0.014,
+          "rss_before_mb": 706.977,
+          "rss_after_mb": 708.207,
+          "rss_delta_mb": 1.23
         },
         "seeds": [
           22,
@@ -637,13 +635,13 @@
       },
       "celf_greedy": {
         "n_evaluations": 25,
-        "runtime_seconds": 68.1722,
+        "runtime_seconds": 22.8272,
         "memory": {
           "tracemalloc_peak_mb": 8.453,
           "tracemalloc_current_mb": 0.016,
-          "rss_before_mb": 708.605,
-          "rss_after_mb": 708.621,
-          "rss_delta_mb": 0.016
+          "rss_before_mb": 708.211,
+          "rss_after_mb": 708.195,
+          "rss_delta_mb": -0.016
         },
         "seeds": [
           22,
@@ -656,7 +654,7 @@
           -13.5
         ]
       },
-      "speedup_factor": 1.224,
+      "speedup_factor": 1.618,
       "evaluation_reduction_pct": 24.24,
       "identical_seeds": false,
       "seed_jaccard": 0.5,
@@ -682,7 +680,7 @@
       ],
       "note": "Deterministic ICM (p=1.0, one Monte Carlo trial) gives a monotone submodular objective, so CELF should match standard greedy with no more evaluations."
     },
-    "finding": "CELF used 25 evaluations versus 33 for standard greedy and ran 1.22x faster in this measured setting. The selected seed sets differed under noisy estimates."
+    "finding": "CELF used 25 evaluations versus 33 for standard greedy and ran 1.62x faster in this measured setting. The selected seed sets differed under noisy estimates."
   },
   "scaling": {
     "network": {
@@ -695,13 +693,13 @@
           "n_edges": 78115,
           "n_candidates": 15,
           "budget": 2,
-          "runtime_seconds": 10.0494,
+          "runtime_seconds": 3.6236,
           "memory": {
             "tracemalloc_peak_mb": 2.354,
             "tracemalloc_current_mb": 0.015,
-            "rss_before_mb": 708.711,
-            "rss_after_mb": 708.711,
-            "rss_delta_mb": 0.0
+            "rss_before_mb": 708.293,
+            "rss_after_mb": 708.289,
+            "rss_delta_mb": -0.004
           },
           "n_evaluations": 29,
           "seeds": [
@@ -716,13 +714,13 @@
           "n_edges": 227570,
           "n_candidates": 15,
           "budget": 2,
-          "runtime_seconds": 23.8604,
+          "runtime_seconds": 8.5594,
           "memory": {
             "tracemalloc_peak_mb": 5.357,
             "tracemalloc_current_mb": 0.015,
-            "rss_before_mb": 708.723,
-            "rss_after_mb": 708.727,
-            "rss_delta_mb": 0.004
+            "rss_before_mb": 708.312,
+            "rss_after_mb": 708.332,
+            "rss_delta_mb": 0.02
           },
           "n_evaluations": 29,
           "seeds": [
@@ -739,13 +737,13 @@
           "fraction": 0.25,
           "n_items": 34934,
           "n_users_measured": 15,
-          "runtime_seconds": 0.033,
-          "ms_per_user": 2.2024,
+          "runtime_seconds": 0.0149,
+          "ms_per_user": 0.99,
           "memory": {
             "tracemalloc_peak_mb": 1.067,
             "tracemalloc_current_mb": 0.0,
-            "rss_before_mb": 708.727,
-            "rss_after_mb": 708.727,
+            "rss_before_mb": 708.344,
+            "rss_after_mb": 708.344,
             "rss_delta_mb": 0.0
           },
           "item_factor_bytes": 2794720
@@ -754,14 +752,14 @@
           "fraction": 0.5,
           "n_items": 69869,
           "n_users_measured": 15,
-          "runtime_seconds": 0.0442,
-          "ms_per_user": 2.9487,
+          "runtime_seconds": 0.0326,
+          "ms_per_user": 2.1746,
           "memory": {
             "tracemalloc_peak_mb": 2.133,
             "tracemalloc_current_mb": 0.0,
-            "rss_before_mb": 708.727,
-            "rss_after_mb": 708.734,
-            "rss_delta_mb": 0.008
+            "rss_before_mb": 708.344,
+            "rss_after_mb": 708.348,
+            "rss_delta_mb": 0.004
           },
           "item_factor_bytes": 5589520
         },
@@ -769,13 +767,13 @@
           "fraction": 1.0,
           "n_items": 139738,
           "n_users_measured": 15,
-          "runtime_seconds": 0.1399,
-          "ms_per_user": 9.3265,
+          "runtime_seconds": 0.0859,
+          "ms_per_user": 5.7267,
           "memory": {
             "tracemalloc_peak_mb": 4.265,
             "tracemalloc_current_mb": 0.0,
-            "rss_before_mb": 708.734,
-            "rss_after_mb": 708.734,
+            "rss_before_mb": 708.348,
+            "rss_after_mb": 708.348,
             "rss_delta_mb": 0.0
           },
           "item_factor_bytes": 11179040
@@ -787,25 +785,25 @@
       "rows": [
         {
           "budget": 1,
-          "runtime_seconds": 5.6129,
+          "runtime_seconds": 1.997,
           "memory": {
             "tracemalloc_peak_mb": 2.274,
             "tracemalloc_current_mb": 0.015,
-            "rss_before_mb": 708.734,
-            "rss_after_mb": 708.734,
-            "rss_delta_mb": 0.0
+            "rss_before_mb": 708.352,
+            "rss_after_mb": 708.348,
+            "rss_delta_mb": -0.004
           },
           "n_evaluations": 15,
           "n_seeds": 1
         },
         {
           "budget": 3,
-          "runtime_seconds": 15.5754,
+          "runtime_seconds": 7.44,
           "memory": {
             "tracemalloc_peak_mb": 2.353,
             "tracemalloc_current_mb": 0.015,
-            "rss_before_mb": 708.734,
-            "rss_after_mb": 708.734,
+            "rss_before_mb": 708.348,
+            "rss_after_mb": 708.348,
             "rss_delta_mb": 0.0
           },
           "n_evaluations": 42,
@@ -824,138 +822,146 @@
     "stage_timings_snapshot": [
       {
         "stage": "R1: load dataset",
-        "seconds": 11.54
+        "seconds": 6.68
       },
       {
         "stage": "R1: train/val/test split",
-        "seconds": 0.85
+        "seconds": 0.58
       },
       {
         "stage": "R2: item-based CF fit",
-        "seconds": 87.84,
-        "share_of_completed_stages_pct": 27.11
+        "seconds": 50.14,
+        "share_of_completed_stages_pct": 28.39
       },
       {
         "stage": "R2: item-based CF MAE/RMSE",
-        "seconds": 0.43
+        "seconds": 0.24
       },
       {
         "stage": "R2: item-based CF top-K ranking",
-        "seconds": 1.42
+        "seconds": 0.9
       },
       {
         "stage": "R2: MF training",
-        "seconds": 83.69,
-        "share_of_completed_stages_pct": 25.83
+        "seconds": 40.7,
+        "share_of_completed_stages_pct": 23.04
       },
       {
         "stage": "R2: MF MAE/RMSE",
-        "seconds": 0.22
+        "seconds": 0.1
       },
       {
         "stage": "R2: MF top-K ranking",
-        "seconds": 3.95
+        "seconds": 2.48
       },
       {
         "stage": "R2: behaviour/popularity group analysis",
-        "seconds": 2.44
+        "seconds": 1.0
       },
       {
         "stage": "R3: baseline evaluation",
-        "seconds": 5.16
+        "seconds": 2.81
       },
       {
         "stage": "R3: validation lambda selection",
-        "seconds": 6.38
+        "seconds": 2.68
       },
       {
         "stage": "R3: social lambda=0.0",
-        "seconds": 8.44
+        "seconds": 4.38
       },
       {
         "stage": "R3: social lambda=0.3",
-        "seconds": 9.09
+        "seconds": 4.75
       },
       {
         "stage": "R3: social lambda=0.5",
-        "seconds": 8.7
+        "seconds": 4.03
       },
       {
         "stage": "R3: sparse-user analysis",
-        "seconds": 1.64
+        "seconds": 0.63
       },
       {
         "stage": "R3: trust vs similar-user comparison",
-        "seconds": 5.09
+        "seconds": 2.06
       },
       {
         "stage": "R4: ICM canonical",
-        "seconds": 0.77
+        "seconds": 0.26
+      },
+      {
+        "stage": "R4: network-structure comparison",
+        "seconds": 3.39
       },
       {
         "stage": "R4: ICM preference-aware",
-        "seconds": 0.21
+        "seconds": 0.11
       },
       {
         "stage": "R4: SIR",
-        "seconds": 20.23,
-        "share_of_completed_stages_pct": 6.24
+        "seconds": 8.56,
+        "share_of_completed_stages_pct": 4.85
+      },
+      {
+        "stage": "R4: moderate-popularity target",
+        "seconds": 0.25
       },
       {
         "stage": "R5: Influence Maximization",
-        "seconds": 42.12,
-        "share_of_completed_stages_pct": 13.0
+        "seconds": 27.73,
+        "share_of_completed_stages_pct": 15.7
       },
       {
         "stage": "R6: Group Recommendation",
-        "seconds": 4.46
+        "seconds": 2.05
       },
       {
         "stage": "R7: Comprehensive Evaluation",
-        "seconds": 19.38,
-        "share_of_completed_stages_pct": 5.98
+        "seconds": 10.12,
+        "share_of_completed_stages_pct": 5.73
       }
     ],
-    "completed_stage_total_seconds": 324.05,
+    "completed_stage_total_seconds": 176.63,
     "largest_stages": [
       {
         "stage": "R2: item-based CF fit",
-        "seconds": 87.84,
-        "share_of_completed_stages_pct": 27.11
+        "seconds": 50.14,
+        "share_of_completed_stages_pct": 28.39
       },
       {
         "stage": "R2: MF training",
-        "seconds": 83.69,
-        "share_of_completed_stages_pct": 25.83
+        "seconds": 40.7,
+        "share_of_completed_stages_pct": 23.04
       },
       {
         "stage": "R5: Influence Maximization",
-        "seconds": 42.12,
-        "share_of_completed_stages_pct": 13.0
-      },
-      {
-        "stage": "R4: SIR",
-        "seconds": 20.23,
-        "share_of_completed_stages_pct": 6.24
+        "seconds": 27.73,
+        "share_of_completed_stages_pct": 15.7
       },
       {
         "stage": "R7: Comprehensive Evaluation",
-        "seconds": 19.38,
-        "share_of_completed_stages_pct": 5.98
+        "seconds": 10.12,
+        "share_of_completed_stages_pct": 5.73
+      },
+      {
+        "stage": "R4: SIR",
+        "seconds": 8.56,
+        "share_of_completed_stages_pct": 4.85
       }
     ],
     "r8_sub_experiment_seconds": {
-      "intervention": 1.8285,
-      "celf": 151.6195,
-      "network_scaling": 33.9098,
-      "item_scaling": 0.2171,
-      "budget_scaling": 21.1883
+      "intervention": 0.7595,
+      "celf": 59.7508,
+      "network_scaling": 12.183,
+      "item_scaling": 0.1334,
+      "budget_scaling": 9.437
     },
     "interpretation": "The largest completed pipeline stages are reported above. Within influence maximization, Monte Carlo spread estimates dominate because each candidate evaluation runs repeated ICM simulations. The CELF comparison measures whether lazy evaluation reduces that cost."
   },
   "summary": {
     "intervention_finding": "See intervention.findings; spread and adopter-rating changes are reported together, not asserted in advance.",
-    "celf_finding": "CELF used 25 evaluations versus 33 for standard greedy and ran 1.22x faster in this measured setting. The selected seed sets differed under noisy estimates.",
+    "celf_finding": "CELF used 25 evaluations versus 33 for standard greedy and ran 1.62x faster in this measured setting. The selected seed sets differed under noisy estimates.",
     "cost_finding": "Measured runtime and memory are reported for network size, item-catalogue size, and promotion budget; the tables, not a pre-written speedup claim, are the evidence."
   }
 }

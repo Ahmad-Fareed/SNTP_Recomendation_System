@@ -831,28 +831,53 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     recovery_probs = [float(g) for g in diff_config.get("recovery_probs", [0.0, 0.1, 0.3, 0.5])]
     default_affinity = float(diff_config.get("default_affinity", 0.3))
     base_adopt_prob = float(diff_config.get("base_adopt_prob", 0.5))
-    target_min = int(diff_config.get("target_min_train_ratings", 6))
-    target_max = int(diff_config.get("target_max_train_ratings", 20))
+    target_items_cfg = diff_config.get("target_items", {})
+    rare_cfg = target_items_cfg.get("rare", {})
+    moderate_cfg = target_items_cfg.get("moderate", {})
+    rare_min = int(rare_cfg.get("min_train_ratings", 1))
+    rare_max = int(rare_cfg.get("max_train_ratings", 1))
+    moderate_min = int(moderate_cfg.get("min_train_ratings", 6))
+    moderate_max = int(moderate_cfg.get("max_train_ratings", 20))
 
     if n_simulations <= 0:
         raise ValueError("diffusion.n_simulations must be positive")
 
     active_graph, active_users, graph_info = _resolve_diffusion_graph(dataset, config)
+
+    # Retain the original rare-item experiment as the primary Part 4 target.
     target = select_target_item(
         train, dataset.item_to_idx,
-        min_train_ratings=target_min, max_train_ratings=target_max,
+        min_train_ratings=rare_min, max_train_ratings=rare_max,
     )
     target_orig = int(target["original_id"])
     target_idx = int(target["idx"])
+
+    # Add a documented moderate-popularity target for a controlled comparison
+    # while preserving every existing rare-target result.
+    moderate_target = select_target_item(
+        train, dataset.item_to_idx,
+        min_train_ratings=moderate_min, max_train_ratings=moderate_max,
+    )
+    moderate_target_orig = int(moderate_target["original_id"])
+    moderate_target_idx = int(moderate_target["idx"])
 
     eligible, train_raters = _target_eligible_users(
         dataset, train, target_orig, active_users
     )
     if not eligible:
         raise ValueError("No eligible seed users for the diffusion target item")
+    moderate_eligible, moderate_train_raters = _target_eligible_users(
+        dataset, train, moderate_target_orig, active_users
+    )
+    if not moderate_eligible:
+        raise ValueError("No eligible seed users for the moderate target item")
 
     seed_sets = generate_seed_sets(
         eligible, seed_size=seed_size,
+        n_simulations=n_simulations, seed=base_seed,
+    )
+    moderate_seed_sets = generate_seed_sets(
+        moderate_eligible, seed_size=seed_size,
         n_simulations=n_simulations, seed=base_seed,
     )
     sim_seeds = make_simulation_seeds(base_seed, n_simulations, offset=0)
@@ -861,13 +886,25 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
         recommender, target_idx, dataset.user_to_idx,
         default_affinity=default_affinity, n_users=dataset.n_users,
     )
+    moderate_aff_fn = _affinity_fn_factory(
+        recommender, moderate_target_idx, dataset.user_to_idx,
+        default_affinity=default_affinity, n_users=dataset.n_users,
+    )
 
     results = {
         "design": {
             "target_item": target,
+            "target_item_moderate": moderate_target,
+            "target_popularity_design": (
+                "The rare target is the retained original Part 4 experiment. "
+                "The moderate target is an additional training-only comparison "
+                "under the same graph, models, seed schedule, and seed size."
+            ),
             "target_selection_uses": "training split only",
             "n_train_raters_of_target": len(train_raters),
             "n_eligible_users": len(eligible),
+            "n_train_raters_of_moderate_target": len(moderate_train_raters),
+            "n_eligible_users_moderate_target": len(moderate_eligible),
             "seed_size": seed_size,
             "n_simulations": n_simulations,
             "seed_sets": seed_sets,
@@ -887,6 +924,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
         "icm_preference_aware": {},
         "sir": {},
         "comparison": {},
+        "target_popularity_comparison": {},
         "network_structure_comparison": {},
     }
 
@@ -1156,6 +1194,151 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
                 round_dist["mean"] or 0.0,
             )
     _stage_end("R4: SIR", ts)
+
+    # --- Moderate-popularity target experiment (rare target retained above) ---
+    logger.info("--- Moderate-popularity target experiment ---")
+    ts = _stage_start("R4: moderate-popularity target")
+    t_moderate = time.perf_counter()
+    moderate_canonical = {}
+    moderate_preference = {}
+    for p_prob in propagation_probs:
+        key = f"p={p_prob}"
+
+        canonical_runs = []
+        t0 = time.perf_counter()
+        for sim_i, sim_seed in enumerate(sim_seeds):
+            icm = ICMSimulator(
+                active_graph, propagation_prob=p_prob,
+                max_rounds=max_rounds, seed=sim_seed,
+            )
+            result = icm.run_canonical(set(moderate_seed_sets[sim_i]))
+            canonical_runs.append({
+                "simulation_index": sim_i,
+                "sim_seed": int(sim_seed),
+                "n_adopters": int(result["n_adopters"]),
+                "n_rounds": int(result["n_rounds"]),
+            })
+        canonical_dist = _distribution(r["n_adopters"] for r in canonical_runs)
+        canonical_rounds = _distribution(r["n_rounds"] for r in canonical_runs)
+        moderate_canonical[key] = {
+            "propagation_prob": p_prob,
+            "runs": canonical_runs,
+            "summary": {
+                "adopters": canonical_dist,
+                "rounds": canonical_rounds,
+                "mean_adopters": canonical_dist["mean"],
+                "std_adopters": canonical_dist["std"],
+                "mean_rounds": canonical_rounds["mean"],
+            },
+            "runtime_seconds": round(time.perf_counter() - t0, 4),
+        }
+
+        preference_runs = []
+        t0 = time.perf_counter()
+        for sim_i, sim_seed in enumerate(sim_seeds):
+            icm = ICMSimulator(
+                active_graph, propagation_prob=p_prob,
+                max_rounds=max_rounds, seed=sim_seed,
+            )
+            result = icm.run_preference_aware(
+                set(moderate_seed_sets[sim_i]), affinity_fn=moderate_aff_fn,
+                base_adopt_prob=base_adopt_prob,
+            )
+            preference_runs.append({
+                "simulation_index": sim_i,
+                "sim_seed": int(sim_seed),
+                "n_adopters": int(result["n_adopters"]),
+                "n_exposed": int(result["n_exposed"]),
+                "n_rounds": int(result["n_rounds"]),
+            })
+        pref_dist = _distribution(r["n_adopters"] for r in preference_runs)
+        pref_exposed = _distribution(r["n_exposed"] for r in preference_runs)
+        pref_rounds = _distribution(r["n_rounds"] for r in preference_runs)
+        moderate_preference[key] = {
+            "propagation_prob": p_prob,
+            "runs": preference_runs,
+            "summary": {
+                "adopters": pref_dist,
+                "exposed": pref_exposed,
+                "rounds": pref_rounds,
+                "mean_adopters": pref_dist["mean"],
+                "std_adopters": pref_dist["std"],
+                "mean_exposed": pref_exposed["mean"],
+                "std_exposed": pref_exposed["std"],
+                "mean_rounds": pref_rounds["mean"],
+            },
+            "runtime_seconds": round(time.perf_counter() - t0, 4),
+        }
+        logger.info(
+            "Moderate target (p=%.2f): canonical mean=%.1f, preference mean=%.1f",
+            p_prob, canonical_dist["mean"], pref_dist["mean"],
+        )
+
+    target_comparison = {}
+    for p_prob in propagation_probs:
+        key = f"p={p_prob}"
+        rare_can = results["icm_canonical"][key]["summary"]["mean_adopters"]
+        rare_pref = results["icm_preference_aware"][key]["summary"]["mean_adopters"]
+        mod_can = moderate_canonical[key]["summary"]["mean_adopters"]
+        mod_pref = moderate_preference[key]["summary"]["mean_adopters"]
+        def _delta(new, old):
+            if new is None or old is None:
+                return None
+            return new - old
+        def _pct(new, old):
+            if new is None or old in (None, 0):
+                return None
+            return 100.0 * (new - old) / old
+        target_comparison[key] = {
+            "rare_canonical_mean_adopters": rare_can,
+            "moderate_canonical_mean_adopters": mod_can,
+            "moderate_minus_rare_canonical": _delta(mod_can, rare_can),
+            "moderate_relative_canonical_pct": _pct(mod_can, rare_can),
+            "rare_preference_mean_adopters": rare_pref,
+            "moderate_preference_mean_adopters": mod_pref,
+            "moderate_minus_rare_preference": _delta(mod_pref, rare_pref),
+            "moderate_relative_preference_pct": _pct(mod_pref, rare_pref),
+        }
+
+    results["target_popularity_comparison"] = {
+        "design": {
+            "question": (
+                "How do the same diffusion models behave on the retained "
+                "rare-item target versus a documented 6-20 training-rating "
+                "target?"
+            ),
+            "rare_target_item": target,
+            "moderate_target_item": moderate_target,
+            "same_graph": graph_info,
+            "same_models": ["canonical ICM", "preference-aware ICM"],
+            "same_propagation_probs": propagation_probs,
+            "same_simulation_seeds": sim_seeds,
+            "target_specific_seed_sets": True,
+            "rare_seed_sets": seed_sets,
+            "moderate_seed_sets": moderate_seed_sets,
+            "n_rare_eligible_users": len(eligible),
+            "n_moderate_eligible_users": len(moderate_eligible),
+            "outcome_scope": (
+                "simulated adoptions with target-specific seed users; the "
+                "rare experiment is retained, not replaced"
+            ),
+        },
+        "rare": {
+            "target_item": target,
+            "seed_sets": seed_sets,
+            "icm_canonical": results["icm_canonical"],
+            "icm_preference_aware": results["icm_preference_aware"],
+        },
+        "moderate": {
+            "target_item": moderate_target,
+            "seed_sets": moderate_seed_sets,
+            "icm_canonical": moderate_canonical,
+            "icm_preference_aware": moderate_preference,
+        },
+        "comparison": target_comparison,
+        "runtime_seconds": round(time.perf_counter() - t_moderate, 4),
+    }
+    _stage_end("R4: moderate-popularity target", ts)
 
     # --- Data-driven comparison of the two ICM variants ---
     for p_prob in propagation_probs:
