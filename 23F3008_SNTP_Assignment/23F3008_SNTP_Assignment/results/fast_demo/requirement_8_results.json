@@ -1,0 +1,1261 @@
+{
+  "design": {
+    "target_item": {
+      "original_id": 3,
+      "idx": 2,
+      "train_rating_count": 1,
+      "band_min_train_ratings": 1,
+      "band_max_train_ratings": 1,
+      "band_median_train_rating_count": 1.0,
+      "band_size_items": 66605,
+      "n_items_with_train_ratings": 113971,
+      "selection_rule": "Choose the item whose TRAINING rating count is closest to the median count among items with 1\u20131 training ratings (inclusive); ties by ascending original item ID.",
+      "used_count_band_fallback": false
+    },
+    "target_selection_uses": "training split only",
+    "graph_info": {
+      "type": "ego_subgraph",
+      "center_user": 0,
+      "hops": 2,
+      "n_users": 9883,
+      "n_edges": 301710,
+      "definition": "users reachable from the documented centre within the given number of trust/propagation hops; induced propagation edges only"
+    },
+    "n_eligible_users": 9882,
+    "seed_size": 5,
+    "seed_sets": [
+      [
+        734,
+        3024,
+        4170,
+        7316,
+        13374
+      ],
+      [
+        883,
+        1357,
+        2386,
+        2860,
+        13374
+      ],
+      [
+        1413,
+        6945,
+        7018,
+        7985,
+        10792
+      ],
+      [
+        385,
+        5669,
+        6814,
+        7381,
+        41789
+      ],
+      [
+        1571,
+        1872,
+        2958,
+        10783,
+        25296
+      ],
+      [
+        1924,
+        6681,
+        7153,
+        8856,
+        24242
+      ],
+      [
+        634,
+        5395,
+        5595,
+        11806,
+        17399
+      ],
+      [
+        1593,
+        3108,
+        4970,
+        8366,
+        16488
+      ],
+      [
+        196,
+        2140,
+        10494,
+        10645,
+        11562
+      ],
+      [
+        664,
+        4190,
+        6424,
+        8673,
+        18907
+      ]
+    ],
+    "simulation_seeds": [
+      900049,
+      901049,
+      902049,
+      903049,
+      904049,
+      905049,
+      906049,
+      907049,
+      908049,
+      909049
+    ],
+    "same_seed_sets_and_seeds_across_thresholds": true,
+    "common_random_numbers": "Each trial has one per-edge exposure threshold and one per-user adoption threshold; every intervention threshold reuses them.",
+    "outcome_scope": "simulated exposures/adoptions and simulator-side rating proxy"
+  },
+  "intervention": {
+    "rule": "Exposed users whose predicted affinity for the target item is below the threshold neither adopt nor propagate the item.",
+    "baseline_threshold": 0.0,
+    "thresholds": [
+      0.0,
+      0.3,
+      0.6,
+      0.8,
+      0.9
+    ],
+    "baseline_exposed_affinity": {
+      "n_exposed": 6003,
+      "mean_affinity": 0.8135,
+      "min_affinity": 0.411,
+      "max_affinity": 1.0,
+      "share_below_threshold": {
+        "0.30": 0.0,
+        "0.60": 0.0108,
+        "0.80": 0.4265,
+        "0.90": 0.8601
+      },
+      "note": "Affinity distribution of the users exposed in the no-threshold baseline; a threshold above the maximum cannot change that baseline cascade."
+    },
+    "results": {
+      "threshold_0": {
+        "threshold": 0.0,
+        "adopters": {
+          "n": 10,
+          "mean": 668.7,
+          "std": 435.2889,
+          "min": 8.0,
+          "max": 1022.0,
+          "coefficient_of_variation": 0.6509
+        },
+        "exposed": {
+          "n": 10,
+          "mean": 1616.2,
+          "std": 1048.5028,
+          "min": 16.0,
+          "max": 2430.0,
+          "coefficient_of_variation": 0.6487
+        },
+        "rounds": {
+          "n": 10,
+          "mean": 12.8,
+          "std": 7.494,
+          "min": 1.0,
+          "max": 20.0,
+          "coefficient_of_variation": 0.5855
+        },
+        "mean_adopters": 668.7,
+        "mean_exposed": 1616.2,
+        "conversion_efficiency": 0.4137,
+        "mean_adopter_rating_proxy": 4.3084,
+        "mean_nonseed_adopter_rating_proxy": 4.3089,
+        "adopter_rating_proxy_distribution": {
+          "n": 6687,
+          "mean": 4.3084,
+          "std": 0.3234,
+          "min": 2.8346,
+          "max": 5.0,
+          "coefficient_of_variation": 0.0751
+        },
+        "share_adopters_rating_ge_4": 0.8377,
+        "runs": [
+          {
+            "simulation_index": 0,
+            "sim_seed": 900049,
+            "n_adopters": 897,
+            "n_exposed": 2196,
+            "n_nonseed_adopters": 892,
+            "n_rounds": 14,
+            "mean_adopter_rating": 4.3241,
+            "mean_nonseed_adopter_rating": 4.3258
+          },
+          {
+            "simulation_index": 1,
+            "sim_seed": 901049,
+            "n_adopters": 1022,
+            "n_exposed": 2430,
+            "n_nonseed_adopters": 1017,
+            "n_rounds": 20,
+            "mean_adopter_rating": 4.2971,
+            "mean_nonseed_adopter_rating": 4.2968
+          },
+          {
+            "simulation_index": 2,
+            "sim_seed": 902049,
+            "n_adopters": 9,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 4,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.2843,
+            "mean_nonseed_adopter_rating": 4.3815
+          },
+          {
+            "simulation_index": 3,
+            "sim_seed": 903049,
+            "n_adopters": 975,
+            "n_exposed": 2314,
+            "n_nonseed_adopters": 970,
+            "n_rounds": 15,
+            "mean_adopter_rating": 4.3088,
+            "mean_nonseed_adopter_rating": 4.3108
+          },
+          {
+            "simulation_index": 4,
+            "sim_seed": 904049,
+            "n_adopters": 831,
+            "n_exposed": 2118,
+            "n_nonseed_adopters": 826,
+            "n_rounds": 18,
+            "mean_adopter_rating": 4.3169,
+            "mean_nonseed_adopter_rating": 4.3161
+          },
+          {
+            "simulation_index": 5,
+            "sim_seed": 905049,
+            "n_adopters": 925,
+            "n_exposed": 2289,
+            "n_nonseed_adopters": 920,
+            "n_rounds": 18,
+            "mean_adopter_rating": 4.2954,
+            "mean_nonseed_adopter_rating": 4.2946
+          },
+          {
+            "simulation_index": 6,
+            "sim_seed": 906049,
+            "n_adopters": 8,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 3,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.3017,
+            "mean_nonseed_adopter_rating": 4.6271
+          },
+          {
+            "simulation_index": 7,
+            "sim_seed": 907049,
+            "n_adopters": 10,
+            "n_exposed": 16,
+            "n_nonseed_adopters": 5,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.3855,
+            "mean_nonseed_adopter_rating": 4.4541
+          },
+          {
+            "simulation_index": 8,
+            "sim_seed": 908049,
+            "n_adopters": 1014,
+            "n_exposed": 2355,
+            "n_nonseed_adopters": 1009,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3085,
+            "mean_nonseed_adopter_rating": 4.3087
+          },
+          {
+            "simulation_index": 9,
+            "sim_seed": 909049,
+            "n_adopters": 996,
+            "n_exposed": 2400,
+            "n_nonseed_adopters": 991,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3097,
+            "mean_nonseed_adopter_rating": 4.3094
+          }
+        ],
+        "runtime_seconds": 0.2381
+      },
+      "threshold_0.3": {
+        "threshold": 0.3,
+        "adopters": {
+          "n": 10,
+          "mean": 668.7,
+          "std": 435.2889,
+          "min": 8.0,
+          "max": 1022.0,
+          "coefficient_of_variation": 0.6509
+        },
+        "exposed": {
+          "n": 10,
+          "mean": 1616.2,
+          "std": 1048.5028,
+          "min": 16.0,
+          "max": 2430.0,
+          "coefficient_of_variation": 0.6487
+        },
+        "rounds": {
+          "n": 10,
+          "mean": 12.8,
+          "std": 7.494,
+          "min": 1.0,
+          "max": 20.0,
+          "coefficient_of_variation": 0.5855
+        },
+        "mean_adopters": 668.7,
+        "mean_exposed": 1616.2,
+        "conversion_efficiency": 0.4137,
+        "mean_adopter_rating_proxy": 4.3084,
+        "mean_nonseed_adopter_rating_proxy": 4.3089,
+        "adopter_rating_proxy_distribution": {
+          "n": 6687,
+          "mean": 4.3084,
+          "std": 0.3234,
+          "min": 2.8346,
+          "max": 5.0,
+          "coefficient_of_variation": 0.0751
+        },
+        "share_adopters_rating_ge_4": 0.8377,
+        "runs": [
+          {
+            "simulation_index": 0,
+            "sim_seed": 900049,
+            "n_adopters": 897,
+            "n_exposed": 2196,
+            "n_nonseed_adopters": 892,
+            "n_rounds": 14,
+            "mean_adopter_rating": 4.3241,
+            "mean_nonseed_adopter_rating": 4.3258
+          },
+          {
+            "simulation_index": 1,
+            "sim_seed": 901049,
+            "n_adopters": 1022,
+            "n_exposed": 2430,
+            "n_nonseed_adopters": 1017,
+            "n_rounds": 20,
+            "mean_adopter_rating": 4.2971,
+            "mean_nonseed_adopter_rating": 4.2968
+          },
+          {
+            "simulation_index": 2,
+            "sim_seed": 902049,
+            "n_adopters": 9,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 4,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.2843,
+            "mean_nonseed_adopter_rating": 4.3815
+          },
+          {
+            "simulation_index": 3,
+            "sim_seed": 903049,
+            "n_adopters": 975,
+            "n_exposed": 2314,
+            "n_nonseed_adopters": 970,
+            "n_rounds": 15,
+            "mean_adopter_rating": 4.3088,
+            "mean_nonseed_adopter_rating": 4.3108
+          },
+          {
+            "simulation_index": 4,
+            "sim_seed": 904049,
+            "n_adopters": 831,
+            "n_exposed": 2118,
+            "n_nonseed_adopters": 826,
+            "n_rounds": 18,
+            "mean_adopter_rating": 4.3169,
+            "mean_nonseed_adopter_rating": 4.3161
+          },
+          {
+            "simulation_index": 5,
+            "sim_seed": 905049,
+            "n_adopters": 925,
+            "n_exposed": 2289,
+            "n_nonseed_adopters": 920,
+            "n_rounds": 18,
+            "mean_adopter_rating": 4.2954,
+            "mean_nonseed_adopter_rating": 4.2946
+          },
+          {
+            "simulation_index": 6,
+            "sim_seed": 906049,
+            "n_adopters": 8,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 3,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.3017,
+            "mean_nonseed_adopter_rating": 4.6271
+          },
+          {
+            "simulation_index": 7,
+            "sim_seed": 907049,
+            "n_adopters": 10,
+            "n_exposed": 16,
+            "n_nonseed_adopters": 5,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.3855,
+            "mean_nonseed_adopter_rating": 4.4541
+          },
+          {
+            "simulation_index": 8,
+            "sim_seed": 908049,
+            "n_adopters": 1014,
+            "n_exposed": 2355,
+            "n_nonseed_adopters": 1009,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3085,
+            "mean_nonseed_adopter_rating": 4.3087
+          },
+          {
+            "simulation_index": 9,
+            "sim_seed": 909049,
+            "n_adopters": 996,
+            "n_exposed": 2400,
+            "n_nonseed_adopters": 991,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3097,
+            "mean_nonseed_adopter_rating": 4.3094
+          }
+        ],
+        "runtime_seconds": 0.2372,
+        "relative_to_baseline": {
+          "spread_change": 0.0,
+          "spread_change_pct": 0.0,
+          "adopter_satisfaction_change": 0.0,
+          "exposed_change": 0.0
+        }
+      },
+      "threshold_0.6": {
+        "threshold": 0.6,
+        "adopters": {
+          "n": 10,
+          "mean": 655.5,
+          "std": 425.8244,
+          "min": 8.0,
+          "max": 992.0,
+          "coefficient_of_variation": 0.6496
+        },
+        "exposed": {
+          "n": 10,
+          "mean": 1596.2,
+          "std": 1034.2798,
+          "min": 16.0,
+          "max": 2383.0,
+          "coefficient_of_variation": 0.648
+        },
+        "rounds": {
+          "n": 10,
+          "mean": 13.0,
+          "std": 7.6551,
+          "min": 1.0,
+          "max": 20.0,
+          "coefficient_of_variation": 0.5889
+        },
+        "mean_adopters": 655.5,
+        "mean_exposed": 1596.2,
+        "conversion_efficiency": 0.4107,
+        "mean_adopter_rating_proxy": 4.3173,
+        "mean_nonseed_adopter_rating_proxy": 4.3179,
+        "adopter_rating_proxy_distribution": {
+          "n": 6555,
+          "mean": 4.3173,
+          "std": 0.3117,
+          "min": 3.4006,
+          "max": 5.0,
+          "coefficient_of_variation": 0.0722
+        },
+        "share_adopters_rating_ge_4": 0.8441,
+        "runs": [
+          {
+            "simulation_index": 0,
+            "sim_seed": 900049,
+            "n_adopters": 893,
+            "n_exposed": 2196,
+            "n_nonseed_adopters": 888,
+            "n_rounds": 14,
+            "mean_adopter_rating": 4.3289,
+            "mean_nonseed_adopter_rating": 4.3307
+          },
+          {
+            "simulation_index": 1,
+            "sim_seed": 901049,
+            "n_adopters": 992,
+            "n_exposed": 2383,
+            "n_nonseed_adopters": 987,
+            "n_rounds": 20,
+            "mean_adopter_rating": 4.3076,
+            "mean_nonseed_adopter_rating": 4.3074
+          },
+          {
+            "simulation_index": 2,
+            "sim_seed": 902049,
+            "n_adopters": 9,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 4,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.2843,
+            "mean_nonseed_adopter_rating": 4.3815
+          },
+          {
+            "simulation_index": 3,
+            "sim_seed": 903049,
+            "n_adopters": 947,
+            "n_exposed": 2278,
+            "n_nonseed_adopters": 942,
+            "n_rounds": 15,
+            "mean_adopter_rating": 4.323,
+            "mean_nonseed_adopter_rating": 4.3252
+          },
+          {
+            "simulation_index": 4,
+            "sim_seed": 904049,
+            "n_adopters": 827,
+            "n_exposed": 2117,
+            "n_nonseed_adopters": 822,
+            "n_rounds": 18,
+            "mean_adopter_rating": 4.3209,
+            "mean_nonseed_adopter_rating": 4.3201
+          },
+          {
+            "simulation_index": 5,
+            "sim_seed": 905049,
+            "n_adopters": 907,
+            "n_exposed": 2267,
+            "n_nonseed_adopters": 902,
+            "n_rounds": 20,
+            "mean_adopter_rating": 4.3024,
+            "mean_nonseed_adopter_rating": 4.3016
+          },
+          {
+            "simulation_index": 6,
+            "sim_seed": 906049,
+            "n_adopters": 8,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 3,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.3017,
+            "mean_nonseed_adopter_rating": 4.6271
+          },
+          {
+            "simulation_index": 7,
+            "sim_seed": 907049,
+            "n_adopters": 10,
+            "n_exposed": 16,
+            "n_nonseed_adopters": 5,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.3855,
+            "mean_nonseed_adopter_rating": 4.4541
+          },
+          {
+            "simulation_index": 8,
+            "sim_seed": 908049,
+            "n_adopters": 991,
+            "n_exposed": 2310,
+            "n_nonseed_adopters": 986,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3206,
+            "mean_nonseed_adopter_rating": 4.3209
+          },
+          {
+            "simulation_index": 9,
+            "sim_seed": 909049,
+            "n_adopters": 971,
+            "n_exposed": 2351,
+            "n_nonseed_adopters": 966,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.3183,
+            "mean_nonseed_adopter_rating": 4.318
+          }
+        ],
+        "runtime_seconds": 0.228,
+        "relative_to_baseline": {
+          "spread_change": -13.2,
+          "spread_change_pct": -1.97,
+          "adopter_satisfaction_change": 0.0089,
+          "exposed_change": -20.0
+        }
+      },
+      "threshold_0.8": {
+        "threshold": 0.8,
+        "adopters": {
+          "n": 10,
+          "mean": 106.9,
+          "std": 145.6444,
+          "min": 5.0,
+          "max": 374.0,
+          "coefficient_of_variation": 1.3624
+        },
+        "exposed": {
+          "n": 10,
+          "mean": 370.9,
+          "std": 518.3206,
+          "min": 10.0,
+          "max": 1291.0,
+          "coefficient_of_variation": 1.3975
+        },
+        "rounds": {
+          "n": 10,
+          "mean": 7.0,
+          "std": 6.6483,
+          "min": 0.0,
+          "max": 19.0,
+          "coefficient_of_variation": 0.9498
+        },
+        "mean_adopters": 106.9,
+        "mean_exposed": 370.9,
+        "conversion_efficiency": 0.2882,
+        "mean_adopter_rating_proxy": 4.4936,
+        "mean_nonseed_adopter_rating_proxy": 4.5058,
+        "adopter_rating_proxy_distribution": {
+          "n": 1069,
+          "mean": 4.4936,
+          "std": 0.2225,
+          "min": 3.5048,
+          "max": 5.0,
+          "coefficient_of_variation": 0.0495
+        },
+        "share_adopters_rating_ge_4": 0.9888,
+        "runs": [
+          {
+            "simulation_index": 0,
+            "sim_seed": 900049,
+            "n_adopters": 276,
+            "n_exposed": 968,
+            "n_nonseed_adopters": 271,
+            "n_rounds": 14,
+            "mean_adopter_rating": 4.5068,
+            "mean_nonseed_adopter_rating": 4.5158
+          },
+          {
+            "simulation_index": 1,
+            "sim_seed": 901049,
+            "n_adopters": 13,
+            "n_exposed": 32,
+            "n_nonseed_adopters": 8,
+            "n_rounds": 4,
+            "mean_adopter_rating": 4.4093,
+            "mean_nonseed_adopter_rating": 4.4524
+          },
+          {
+            "simulation_index": 2,
+            "sim_seed": 902049,
+            "n_adopters": 8,
+            "n_exposed": 21,
+            "n_nonseed_adopters": 3,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.3164,
+            "mean_nonseed_adopter_rating": 4.4995
+          },
+          {
+            "simulation_index": 3,
+            "sim_seed": 903049,
+            "n_adopters": 374,
+            "n_exposed": 1291,
+            "n_nonseed_adopters": 369,
+            "n_rounds": 17,
+            "mean_adopter_rating": 4.497,
+            "mean_nonseed_adopter_rating": 4.5048
+          },
+          {
+            "simulation_index": 4,
+            "sim_seed": 904049,
+            "n_adopters": 20,
+            "n_exposed": 56,
+            "n_nonseed_adopters": 15,
+            "n_rounds": 5,
+            "mean_adopter_rating": 4.5419,
+            "mean_nonseed_adopter_rating": 4.573
+          },
+          {
+            "simulation_index": 5,
+            "sim_seed": 905049,
+            "n_adopters": 330,
+            "n_exposed": 1202,
+            "n_nonseed_adopters": 325,
+            "n_rounds": 19,
+            "mean_adopter_rating": 4.4978,
+            "mean_nonseed_adopter_rating": 4.4987
+          },
+          {
+            "simulation_index": 6,
+            "sim_seed": 906049,
+            "n_adopters": 8,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 3,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.3017,
+            "mean_nonseed_adopter_rating": 4.6271
+          },
+          {
+            "simulation_index": 7,
+            "sim_seed": 907049,
+            "n_adopters": 10,
+            "n_exposed": 16,
+            "n_nonseed_adopters": 5,
+            "n_rounds": 2,
+            "mean_adopter_rating": 4.3855,
+            "mean_nonseed_adopter_rating": 4.4541
+          },
+          {
+            "simulation_index": 8,
+            "sim_seed": 908049,
+            "n_adopters": 5,
+            "n_exposed": 10,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.2736,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 9,
+            "sim_seed": 909049,
+            "n_adopters": 25,
+            "n_exposed": 91,
+            "n_nonseed_adopters": 20,
+            "n_rounds": 6,
+            "mean_adopter_rating": 4.451,
+            "mean_nonseed_adopter_rating": 4.4716
+          }
+        ],
+        "runtime_seconds": 0.0445,
+        "relative_to_baseline": {
+          "spread_change": -561.8,
+          "spread_change_pct": -84.01,
+          "adopter_satisfaction_change": 0.1852,
+          "exposed_change": -1245.3
+        }
+      },
+      "threshold_0.9": {
+        "threshold": 0.9,
+        "adopters": {
+          "n": 10,
+          "mean": 7.1,
+          "std": 3.0806,
+          "min": 5.0,
+          "max": 14.0,
+          "coefficient_of_variation": 0.4339
+        },
+        "exposed": {
+          "n": 10,
+          "mean": 24.4,
+          "std": 20.7036,
+          "min": 9.0,
+          "max": 78.0,
+          "coefficient_of_variation": 0.8485
+        },
+        "rounds": {
+          "n": 10,
+          "mean": 1.3,
+          "std": 1.9,
+          "min": 0.0,
+          "max": 5.0,
+          "coefficient_of_variation": 1.4615
+        },
+        "mean_adopters": 7.1,
+        "mean_exposed": 24.4,
+        "conversion_efficiency": 0.291,
+        "mean_adopter_rating_proxy": 4.3915,
+        "mean_nonseed_adopter_rating_proxy": 4.7442,
+        "adopter_rating_proxy_distribution": {
+          "n": 71,
+          "mean": 4.3915,
+          "std": 0.3911,
+          "min": 3.5048,
+          "max": 5.0,
+          "coefficient_of_variation": 0.0891
+        },
+        "share_adopters_rating_ge_4": 0.831,
+        "runs": [
+          {
+            "simulation_index": 0,
+            "sim_seed": 900049,
+            "n_adopters": 12,
+            "n_exposed": 78,
+            "n_nonseed_adopters": 7,
+            "n_rounds": 5,
+            "mean_adopter_rating": 4.4603,
+            "mean_nonseed_adopter_rating": 4.7775
+          },
+          {
+            "simulation_index": 1,
+            "sim_seed": 901049,
+            "n_adopters": 5,
+            "n_exposed": 15,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.3403,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 2,
+            "sim_seed": 902049,
+            "n_adopters": 5,
+            "n_exposed": 14,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.2066,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 3,
+            "sim_seed": 903049,
+            "n_adopters": 7,
+            "n_exposed": 19,
+            "n_nonseed_adopters": 2,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.1457,
+            "mean_nonseed_adopter_rating": 4.7178
+          },
+          {
+            "simulation_index": 4,
+            "sim_seed": 904049,
+            "n_adopters": 14,
+            "n_exposed": 47,
+            "n_nonseed_adopters": 9,
+            "n_rounds": 5,
+            "mean_adopter_rating": 4.6357,
+            "mean_nonseed_adopter_rating": 4.7395
+          },
+          {
+            "simulation_index": 5,
+            "sim_seed": 905049,
+            "n_adopters": 5,
+            "n_exposed": 9,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.4395,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 6,
+            "sim_seed": 906049,
+            "n_adopters": 7,
+            "n_exposed": 22,
+            "n_nonseed_adopters": 2,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.2799,
+            "mean_nonseed_adopter_rating": 4.7136
+          },
+          {
+            "simulation_index": 7,
+            "sim_seed": 907049,
+            "n_adopters": 5,
+            "n_exposed": 10,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.3169,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 8,
+            "sim_seed": 908049,
+            "n_adopters": 5,
+            "n_exposed": 10,
+            "n_nonseed_adopters": 0,
+            "n_rounds": 0,
+            "mean_adopter_rating": 4.2736,
+            "mean_nonseed_adopter_rating": null
+          },
+          {
+            "simulation_index": 9,
+            "sim_seed": 909049,
+            "n_adopters": 6,
+            "n_exposed": 20,
+            "n_nonseed_adopters": 1,
+            "n_rounds": 1,
+            "mean_adopter_rating": 4.4181,
+            "mean_nonseed_adopter_rating": 4.6664
+          }
+        ],
+        "runtime_seconds": 0.0022,
+        "relative_to_baseline": {
+          "spread_change": -661.6,
+          "spread_change_pct": -98.94,
+          "adopter_satisfaction_change": 0.0831,
+          "exposed_change": -1591.8
+        }
+      }
+    },
+    "findings": [
+      "Threshold 0.30: spread changed by 0.0% and mean adopter rating proxy changed by 0.0 relative to the no-threshold baseline.",
+      "Threshold 0.60: spread changed by -1.97% and mean adopter rating proxy changed by 0.0089 relative to the no-threshold baseline.",
+      "Threshold 0.80: spread changed by -84.01% and mean adopter rating proxy changed by 0.1852 relative to the no-threshold baseline.",
+      "Threshold 0.90: spread changed by -98.94% and mean adopter rating proxy changed by 0.0831 relative to the no-threshold baseline.",
+      "The largest measured spread reduction among thresholds with a non-negative proxy change was at threshold 0.90: -98.94% versus baseline, with an adopter-rating-proxy change of 0.0831. This is the measured spread/satisfaction trade-off; the proxy is simulator-side, not an observed satisfaction rating.",
+      "A threshold can reduce low-affinity adoption, but the measured table, not an assumed monotone effect, is the evidence. The rating proxy is simulator-side and is not observed satisfaction."
+    ],
+    "limitations": [
+      "The adopter rating proxy (1 + 4 * affinity) is predicted by the recommender, not observed after the intervention.",
+      "The intervention is applied inside the simulator; no online randomized experiment was run.",
+      "Shared per-edge exposure and per-user adoption thresholds mean threshold changes are compared on the same random outcomes; filtering still changes which paths form, so downstream divergence is a real cascade effect, not fresh noise."
+    ]
+  },
+  "celf_optimization": {
+    "comparison": {
+      "test_budget": 3,
+      "candidate_pool_size": 12,
+      "n_simulations": 5,
+      "selection_seeds": [
+        800049,
+        801049,
+        802049,
+        803049,
+        804049
+      ],
+      "standard_greedy": {
+        "n_evaluations": 33,
+        "runtime_seconds": 61.2975,
+        "memory": {
+          "tracemalloc_peak_mb": 22.399,
+          "tracemalloc_current_mb": 0.015,
+          "rss_before_mb": 749.973,
+          "rss_after_mb": 760.727,
+          "rss_delta_mb": 10.754
+        },
+        "seeds": [
+          494,
+          321,
+          22
+        ],
+        "marginal_gains": [
+          4750.4,
+          3.800000000000182,
+          0.0
+        ]
+      },
+      "celf_greedy": {
+        "n_evaluations": 24,
+        "runtime_seconds": 56.6916,
+        "memory": {
+          "tracemalloc_peak_mb": 22.373,
+          "tracemalloc_current_mb": 0.016,
+          "rss_before_mb": 760.73,
+          "rss_after_mb": 750.895,
+          "rss_delta_mb": -9.836
+        },
+        "seeds": [
+          494,
+          321,
+          22
+        ],
+        "marginal_gains": [
+          4750.4,
+          3.800000000000182,
+          0.0
+        ]
+      },
+      "speedup_factor": 1.081,
+      "evaluation_reduction_pct": 27.27,
+      "identical_seeds": true,
+      "seed_jaccard": 1.0,
+      "note": "With fixed common random outcomes the finite-trial ICM objective is deterministic, monotone, and submodular, so the CELF lazy bound is valid for this measured objective: CELF should select the same seed set with no more evaluations than standard greedy. The measurement checks that claim rather than assuming it.",
+      "memory_method": "tracemalloc Python allocations plus RSS delta when psutil is available; NumPy native allocations may be under-represented"
+    },
+    "controlled_check": {
+      "graph_nodes": 120,
+      "candidate_pool_size": 20,
+      "budget": 2,
+      "propagation_prob": 1.0,
+      "n_simulations": 1,
+      "standard_n_evaluations": 39,
+      "celf_n_evaluations": 39,
+      "identical_seeds": true,
+      "standard_seeds": [
+        494,
+        158
+      ],
+      "celf_seeds": [
+        494,
+        158
+      ],
+      "note": "Deterministic ICM (p=1.0, one Monte Carlo trial) gives a monotone submodular objective, so CELF should match standard greedy with no more evaluations."
+    },
+    "finding": "CELF used 24 evaluations versus 33 for standard greedy and ran 1.08x faster in this measured setting."
+  },
+  "scaling": {
+    "network": {
+      "measurement": "BFS-induced connected-ish subgraph grown from the highest-out-degree active user; induced propagation edges; greedy selection timed from scratch at each size",
+      "rows": [
+        {
+          "target_fraction": 0.25,
+          "requested_nodes": 2471,
+          "n_nodes": 2471,
+          "n_edges": 78115,
+          "n_candidates": 15,
+          "budget": 2,
+          "runtime_seconds": 3.0134,
+          "memory": {
+            "tracemalloc_peak_mb": 3.072,
+            "tracemalloc_current_mb": 0.015,
+            "rss_before_mb": 755.156,
+            "rss_after_mb": 756.266,
+            "rss_delta_mb": 1.109
+          },
+          "n_evaluations": 29,
+          "seeds": [
+            494,
+            570
+          ]
+        },
+        {
+          "target_fraction": 0.5,
+          "requested_nodes": 4942,
+          "n_nodes": 4942,
+          "n_edges": 227570,
+          "n_candidates": 15,
+          "budget": 2,
+          "runtime_seconds": 9.8954,
+          "memory": {
+            "tracemalloc_peak_mb": 6.92,
+            "tracemalloc_current_mb": 0.015,
+            "rss_before_mb": 756.918,
+            "rss_after_mb": 756.789,
+            "rss_delta_mb": -0.129
+          },
+          "n_evaluations": 29,
+          "seeds": [
+            22,
+            180
+          ]
+        }
+      ]
+    },
+    "item_catalogue": {
+      "measurement": "Isolates MF scoring/ranking over item prefixes; it does not include model training, which scales with observed ratings rather than the whole catalogue.",
+      "rows": [
+        {
+          "fraction": 0.25,
+          "n_items": 34934,
+          "n_users_measured": 15,
+          "runtime_seconds": 0.0158,
+          "ms_per_user": 1.0566,
+          "memory": {
+            "tracemalloc_peak_mb": 1.067,
+            "tracemalloc_current_mb": 0.0,
+            "rss_before_mb": 757.062,
+            "rss_after_mb": 757.863,
+            "rss_delta_mb": 0.801
+          },
+          "item_factor_bytes": 5589440
+        },
+        {
+          "fraction": 0.5,
+          "n_items": 69869,
+          "n_users_measured": 15,
+          "runtime_seconds": 0.0303,
+          "ms_per_user": 2.017,
+          "memory": {
+            "tracemalloc_peak_mb": 2.133,
+            "tracemalloc_current_mb": 0.0,
+            "rss_before_mb": 757.863,
+            "rss_after_mb": 759.258,
+            "rss_delta_mb": 1.395
+          },
+          "item_factor_bytes": 11179040
+        },
+        {
+          "fraction": 1.0,
+          "n_items": 139738,
+          "n_users_measured": 15,
+          "runtime_seconds": 0.0978,
+          "ms_per_user": 6.5229,
+          "memory": {
+            "tracemalloc_peak_mb": 4.265,
+            "tracemalloc_current_mb": 0.0,
+            "rss_before_mb": 759.258,
+            "rss_after_mb": 759.391,
+            "rss_delta_mb": 0.133
+          },
+          "item_factor_bytes": 22358080
+        }
+      ]
+    },
+    "promotion_budget": {
+      "measurement": "greedy selection from scratch on a BFS-induced subgraph with 2471 nodes and 15 candidates",
+      "rows": [
+        {
+          "budget": 1,
+          "runtime_seconds": 1.5548,
+          "memory": {
+            "tracemalloc_peak_mb": 3.027,
+            "tracemalloc_current_mb": 0.015,
+            "rss_before_mb": 759.391,
+            "rss_after_mb": 759.645,
+            "rss_delta_mb": 0.254
+          },
+          "n_evaluations": 15,
+          "n_seeds": 1
+        },
+        {
+          "budget": 3,
+          "runtime_seconds": 4.0326,
+          "memory": {
+            "tracemalloc_peak_mb": 3.071,
+            "tracemalloc_current_mb": 0.015,
+            "rss_before_mb": 759.645,
+            "rss_after_mb": 759.645,
+            "rss_delta_mb": 0.0
+          },
+          "n_evaluations": 42,
+          "n_seeds": 3
+        }
+      ]
+    },
+    "memory_method": "tracemalloc Python-level allocations plus RSS delta where psutil is available; NumPy native buffers may be undercounted",
+    "limitations": [
+      "The absolute times depend on the machine and on Python/NumPy versions; compare relative slopes within this run.",
+      "BFS-induced subgraphs are deterministic but not uniform random samples of the full graph.",
+      "The item-catalogue measurement isolates scoring/ranking, not recommender training."
+    ]
+  },
+  "bottleneck_analysis": {
+    "stage_timings_snapshot": [
+      {
+        "stage": "R1: load dataset",
+        "seconds": 6.43
+      },
+      {
+        "stage": "R1: train/val/test split",
+        "seconds": 0.49
+      },
+      {
+        "stage": "R2: item-based CF fit",
+        "seconds": 48.8,
+        "share_of_completed_stages_pct": 14.84
+      },
+      {
+        "stage": "R2: item-based CF MAE/RMSE",
+        "seconds": 0.22
+      },
+      {
+        "stage": "R2: item-based CF top-K ranking",
+        "seconds": 0.89
+      },
+      {
+        "stage": "R2: MF training",
+        "seconds": 120.15,
+        "share_of_completed_stages_pct": 36.54
+      },
+      {
+        "stage": "R2: MF MAE/RMSE",
+        "seconds": 0.1
+      },
+      {
+        "stage": "R2: MF top-K ranking",
+        "seconds": 3.04
+      },
+      {
+        "stage": "R2: behaviour/popularity group analysis",
+        "seconds": 1.0
+      },
+      {
+        "stage": "R3: baseline evaluation",
+        "seconds": 3.59
+      },
+      {
+        "stage": "R3: validation lambda selection",
+        "seconds": 2.58
+      },
+      {
+        "stage": "R3: social lambda=0.0",
+        "seconds": 6.71
+      },
+      {
+        "stage": "R3: social lambda=0.3",
+        "seconds": 6.85
+      },
+      {
+        "stage": "R3: social lambda=0.5",
+        "seconds": 6.52
+      },
+      {
+        "stage": "R3: sparse-user analysis",
+        "seconds": 0.63
+      },
+      {
+        "stage": "R3: trust vs similar-user comparison",
+        "seconds": 1.99
+      },
+      {
+        "stage": "R4: ICM canonical",
+        "seconds": 0.74
+      },
+      {
+        "stage": "R4: network-structure comparison",
+        "seconds": 5.92
+      },
+      {
+        "stage": "R4: ICM preference-aware",
+        "seconds": 0.34
+      },
+      {
+        "stage": "R4: SIR",
+        "seconds": 24.08,
+        "share_of_completed_stages_pct": 7.32
+      },
+      {
+        "stage": "R4: moderate-popularity target",
+        "seconds": 0.89
+      },
+      {
+        "stage": "R5: Influence Maximization",
+        "seconds": 69.72,
+        "share_of_completed_stages_pct": 21.2
+      },
+      {
+        "stage": "R6: Group Recommendation",
+        "seconds": 3.54
+      },
+      {
+        "stage": "R7: Comprehensive Evaluation",
+        "seconds": 13.58,
+        "share_of_completed_stages_pct": 4.13
+      }
+    ],
+    "completed_stage_total_seconds": 328.8,
+    "largest_stages": [
+      {
+        "stage": "R2: MF training",
+        "seconds": 120.15,
+        "share_of_completed_stages_pct": 36.54
+      },
+      {
+        "stage": "R5: Influence Maximization",
+        "seconds": 69.72,
+        "share_of_completed_stages_pct": 21.2
+      },
+      {
+        "stage": "R2: item-based CF fit",
+        "seconds": 48.8,
+        "share_of_completed_stages_pct": 14.84
+      },
+      {
+        "stage": "R4: SIR",
+        "seconds": 24.08,
+        "share_of_completed_stages_pct": 7.32
+      },
+      {
+        "stage": "R7: Comprehensive Evaluation",
+        "seconds": 13.58,
+        "share_of_completed_stages_pct": 4.13
+      }
+    ],
+    "r8_sub_experiment_seconds": {
+      "intervention": 0.75,
+      "celf": 117.989,
+      "network_scaling": 12.9088,
+      "item_scaling": 0.1439,
+      "budget_scaling": 5.5874
+    },
+    "interpretation": "The largest completed pipeline stages are reported above. Within influence maximization, Monte Carlo spread estimates dominate because each candidate evaluation runs repeated ICM simulations. The CELF comparison measures whether lazy evaluation reduces that cost."
+  },
+  "summary": {
+    "intervention_finding": "See intervention.findings; spread and adopter-rating changes are reported together, not asserted in advance.",
+    "celf_finding": "CELF used 24 evaluations versus 33 for standard greedy and ran 1.08x faster in this measured setting.",
+    "cost_finding": "Measured runtime and memory are reported for network size, item-catalogue size, and promotion budget; the tables, not a pre-written speedup claim, are the evidence."
+  }
+}

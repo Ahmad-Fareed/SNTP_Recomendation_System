@@ -1,0 +1,105 @@
+{
+  "stages": [
+    {
+      "stage": "R1: load dataset",
+      "seconds": 6.43
+    },
+    {
+      "stage": "R1: train/val/test split",
+      "seconds": 0.49
+    },
+    {
+      "stage": "R2: item-based CF fit",
+      "seconds": 48.8
+    },
+    {
+      "stage": "R2: item-based CF MAE/RMSE",
+      "seconds": 0.22
+    },
+    {
+      "stage": "R2: item-based CF top-K ranking",
+      "seconds": 0.89
+    },
+    {
+      "stage": "R2: MF training",
+      "seconds": 120.15
+    },
+    {
+      "stage": "R2: MF MAE/RMSE",
+      "seconds": 0.1
+    },
+    {
+      "stage": "R2: MF top-K ranking",
+      "seconds": 3.04
+    },
+    {
+      "stage": "R2: behaviour/popularity group analysis",
+      "seconds": 1.0
+    },
+    {
+      "stage": "R3: baseline evaluation",
+      "seconds": 3.59
+    },
+    {
+      "stage": "R3: validation lambda selection",
+      "seconds": 2.58
+    },
+    {
+      "stage": "R3: social lambda=0.0",
+      "seconds": 6.71
+    },
+    {
+      "stage": "R3: social lambda=0.3",
+      "seconds": 6.85
+    },
+    {
+      "stage": "R3: social lambda=0.5",
+      "seconds": 6.52
+    },
+    {
+      "stage": "R3: sparse-user analysis",
+      "seconds": 0.63
+    },
+    {
+      "stage": "R3: trust vs similar-user comparison",
+      "seconds": 1.99
+    },
+    {
+      "stage": "R4: ICM canonical",
+      "seconds": 0.74
+    },
+    {
+      "stage": "R4: network-structure comparison",
+      "seconds": 5.92
+    },
+    {
+      "stage": "R4: ICM preference-aware",
+      "seconds": 0.34
+    },
+    {
+      "stage": "R4: SIR",
+      "seconds": 24.08
+    },
+    {
+      "stage": "R4: moderate-popularity target",
+      "seconds": 0.89
+    },
+    {
+      "stage": "R5: Influence Maximization",
+      "seconds": 69.72
+    },
+    {
+      "stage": "R6: Group Recommendation",
+      "seconds": 3.54
+    },
+    {
+      "stage": "R7: Comprehensive Evaluation",
+      "seconds": 13.58
+    },
+    {
+      "stage": "R8: Intervention & Cost Analysis",
+      "seconds": 139.96
+    }
+  ],
+  "total_seconds": 473.58
+}

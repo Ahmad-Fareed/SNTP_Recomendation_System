@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sntp"
+version = "0.1.0"
+description = "SNTP Assignment 2: Recommendation & Information Diffusion"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyyaml",
+    "psutil",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+report = ["reportlab", "matplotlib"]
+
+[project.scripts]
+sntp = "sntp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

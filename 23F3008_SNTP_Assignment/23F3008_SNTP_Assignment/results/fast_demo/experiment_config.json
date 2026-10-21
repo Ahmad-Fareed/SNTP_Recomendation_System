@@ -1,0 +1,147 @@
+{
+  "data_dir": "Assignment",
+  "results_dir": "results/fast_demo",
+  "split_seed": 42,
+  "train_frac": 0.7,
+  "val_frac": 0.15,
+  "top_k": 10,
+  "relevance_threshold": 4,
+  "ranking_sample_users": 500,
+  "ranking_sample_seed": 42,
+  "diversity_sample_users": 500,
+  "item_based_cf": {
+    "max_neighbors": 20,
+    "min_corated": 2
+  },
+  "matrix_factorization": {
+    "n_factors": 20,
+    "lr": 0.01,
+    "reg": 0.005,
+    "n_epochs": 20,
+    "seed": 42,
+    "ranking_item_bias_weight": 0.05
+  },
+  "social": {
+    "lambda_values": [
+      0.0,
+      0.3,
+      0.5
+    ],
+    "k_similar": 10,
+    "comparison_sample": 50
+  },
+  "diffusion": {
+    "subgraph": {
+      "enabled": true,
+      "method": "ego_network",
+      "center_user": 0,
+      "hops": 2
+    },
+    "n_simulations": 10,
+    "seed_size": 5,
+    "seed": 42,
+    "max_rounds": 25,
+    "propagation_probs": [
+      0.01,
+      0.05
+    ],
+    "recovery_probs": [
+      0.0,
+      0.2
+    ],
+    "base_adopt_prob": 0.5,
+    "default_affinity": 0.3,
+    "target_items": {
+      "rare": {
+        "min_train_ratings": 1,
+        "max_train_ratings": 1
+      },
+      "moderate": {
+        "min_train_ratings": 6,
+        "max_train_ratings": 20
+      }
+    },
+    "network_structure_comparison": {
+      "enabled": true,
+      "swap_multiplier": 2,
+      "seed": 4242
+    }
+  },
+  "influence": {
+    "budgets": [
+      1,
+      3,
+      5
+    ],
+    "propagation_prob": 0.05,
+    "n_simulations": 5,
+    "candidate_pool_size": 25,
+    "random_trials": 20,
+    "seed": 42
+  },
+  "group_recommendation": {
+    "n_groups": 3,
+    "group_size": 4,
+    "conflicting": true,
+    "top_n": 5,
+    "diffusion_simulations": 5,
+    "propagation_prob": 0.05,
+    "base_adopt_prob": 0.5,
+    "seed": 42
+  },
+  "evaluation": {
+    "run_diffusion_interaction": true,
+    "interaction_simulations": 5,
+    "interaction_seed_size": 5,
+    "interaction_propagation_prob": 0.05,
+    "interaction_base_adopt_prob": 0.5,
+    "interaction_max_rounds": 25,
+    "interaction_default_affinity": 0.3,
+    "target_min_train_ratings": 1,
+    "target_max_train_ratings": 1
+  },
+  "intervention": {
+    "thresholds": [
+      0.0,
+      0.3,
+      0.6,
+      0.8,
+      0.9
+    ],
+    "base_adopt_prob": 0.5,
+    "propagation_prob": 0.05,
+    "n_simulations": 10,
+    "seed_size": 5,
+    "max_rounds": 25,
+    "default_affinity": 0.3,
+    "target_min_train_ratings": 1,
+    "target_max_train_ratings": 1,
+    "seed": 42,
+    "celf": {
+      "budget": 3,
+      "candidate_pool_size": 12,
+      "n_simulations": 5,
+      "controlled_check": true
+    }
+  },
+  "scaling": {
+    "network_size_fractions": [
+      0.25,
+      0.5
+    ],
+    "item_size_fractions": [
+      0.25,
+      0.5,
+      1.0
+    ],
+    "budgets": [
+      1,
+      3
+    ],
+    "n_simulations": 1,
+    "candidate_pool_size": 15,
+    "network_budget": 2,
+    "budget_network_fraction": 0.25,
+    "item_user_sample": 15
+  }
+}

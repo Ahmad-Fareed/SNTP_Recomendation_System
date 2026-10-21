@@ -1,0 +1,210 @@
+{
+  "baseline": {
+    "validation": {
+      "mae": 0.8033680195127346,
+      "rmse": 1.0492926061679961,
+      "n_evaluated": 100603,
+      "n_skipped": 0
+    },
+    "prediction": {
+      "mae": 0.8025488126900152,
+      "rmse": 1.0509920108484267,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0014000000000000002,
+      "recall_at_k": 0.005525,
+      "f1_at_k": 0.0020222444222444225,
+      "hit_rate_at_k": 0.014,
+      "ndcg_at_k": 0.0031406926286559338,
+      "coverage": 0.001967968627001961,
+      "n_unique_items": 275,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
+      "catalog_size": 139738,
+      "k": 10,
+      "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 3.04
+    }
+  },
+  "selection": {
+    "criterion": "minimum validation RMSE; ties by validation MAE, then smaller lambda",
+    "candidates": [
+      {
+        "lambda": 0.0,
+        "mae": 0.8033680195127346,
+        "rmse": 1.0492926061679961,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      {
+        "lambda": 0.3,
+        "mae": 0.8013905234931115,
+        "rmse": 1.04605346472278,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      {
+        "lambda": 0.5,
+        "mae": 0.804234035158407,
+        "rmse": 1.0522933955771723,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      }
+    ],
+    "best_lambda": 0.3,
+    "test_used_for_selection": false
+  },
+  "best_lambda": 0.3,
+  "social_lambda_0.0": {
+    "prediction": {
+      "mae": 0.8025488126900152,
+      "rmse": 1.0509920108484267,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0014000000000000002,
+      "recall_at_k": 0.005525,
+      "f1_at_k": 0.0020222444222444225,
+      "hit_rate_at_k": 0.014,
+      "ndcg_at_k": 0.0031406926286559338,
+      "coverage": 0.001967968627001961,
+      "n_unique_items": 275,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
+      "catalog_size": 139738,
+      "k": 10,
+      "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 5.9
+    }
+  },
+  "social_lambda_0.3": {
+    "prediction": {
+      "mae": 0.800803906713875,
+      "rmse": 1.047872490044389,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0024,
+      "recall_at_k": 0.008734523809523808,
+      "f1_at_k": 0.00342993672993673,
+      "hit_rate_at_k": 0.024,
+      "ndcg_at_k": 0.005179869604336257,
+      "coverage": 0.010455280596544964,
+      "n_unique_items": 1461,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
+      "catalog_size": 139738,
+      "k": 10,
+      "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 5.68
+    }
+  },
+  "social_lambda_0.5": {
+    "prediction": {
+      "mae": 0.8036870304645407,
+      "rmse": 1.0541707279288117,
+      "n_evaluated": 100558,
+      "n_skipped": 0
+    },
+    "ranking": {
+      "precision_at_k": 0.0018,
+      "recall_at_k": 0.0061095238095238095,
+      "f1_at_k": 0.002561804861804862,
+      "hit_rate_at_k": 0.018,
+      "ndcg_at_k": 0.004225118670049407,
+      "coverage": 0.011557343027666062,
+      "n_unique_items": 1615,
+      "diversity": null,
+      "diversity_method": null,
+      "diversity_n_lists": 0,
+      "diversity_is_sampled": false,
+      "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
+      "catalog_size": 139738,
+      "k": 10,
+      "relevance_threshold": 4,
+      "relevance_definition": "held-out test rating >= 4; unobserved items are not treated as negatives",
+      "candidate_definition": "all catalogue items except the user's training items; no negative item sampling",
+      "n_users_evaluated": 500,
+      "total_eligible_users": 25045,
+      "is_sampled": true,
+      "sample_seed": 42,
+      "eval_time_seconds": 5.65
+    }
+  },
+  "sparse_users_analysis": {
+    "n_sparse_users": 21911,
+    "n_test_ratings": 10235,
+    "lambda_used": 0.3,
+    "baseline": {
+      "mae": 0.8505474729023712,
+      "rmse": 1.0979129719958762,
+      "n_evaluated": 10235,
+      "n_skipped": 0
+    },
+    "social": {
+      "mae": 0.849089329138551,
+      "rmse": 1.0962069666440875,
+      "n_evaluated": 10235,
+      "n_skipped": 0
+    }
+  },
+  "trust_vs_similarity_comparison": {
+    "lambda_used": 0.3,
+    "k_similar": 10,
+    "n_sampled_users": 50,
+    "n_test_ratings": 165,
+    "baseline": {
+      "mae": 0.8373426020730043,
+      "rmse": 1.0664086501403192,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    },
+    "trust_neighbors": {
+      "mae": 0.8353424440051809,
+      "rmse": 1.0700736961218476,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    },
+    "similar_unconnected": {
+      "mae": 0.829430846647186,
+      "rmse": 1.0651824563551824,
+      "n_evaluated": 165,
+      "n_skipped": 0
+    }
+  }
+}

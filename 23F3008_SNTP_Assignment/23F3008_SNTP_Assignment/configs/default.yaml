@@ -1,0 +1,118 @@
+# Full experiment configuration
+# For complete runs; may take 30-60+ minutes depending on hardware
+
+data_dir: "Assignment"
+results_dir: "results/full"
+
+split_seed: 42
+train_frac: 0.70
+val_frac: 0.15
+
+top_k: 10
+relevance_threshold: 4
+
+# Full-scale evaluation (no sampling for ranking)
+ranking_sample_users: null
+ranking_sample_seed: 42
+
+# Bounded deterministic sample of recommendation lists for diversity
+diversity_sample_users: 1000
+
+item_based_cf:
+  max_neighbors: 50
+  min_corated: 2
+
+matrix_factorization:
+  n_factors: 20
+  lr: 0.005
+  reg: 0.02
+  n_epochs: 20
+  seed: 42
+  # Full-scale ordering uses the same bias-corrected score family as the fast
+  # demo; prediction error still uses the full model.  This config is not run.
+  ranking_item_bias_weight: 0.05
+
+social:
+  lambda_values: [0.0, 0.1, 0.3, 0.5, 0.7]
+  k_similar: 20
+  comparison_sample: 200
+
+diffusion:
+  subgraph:
+    enabled: false
+  n_simulations: 20
+  seed_size: 10
+  seed: 42
+  max_rounds: 50
+  propagation_probs: [0.01, 0.05, 0.1]
+  recovery_probs: [0.0, 0.1, 0.3, 0.5]
+  base_adopt_prob: 0.5
+  default_affinity: 0.3
+  target_items:
+    rare:
+      min_train_ratings: 1
+      max_train_ratings: 1
+    moderate:
+      min_train_ratings: 6
+      max_train_ratings: 20
+  network_structure_comparison:
+    enabled: true
+    swap_multiplier: 2
+    seed: 4242
+
+influence:
+  budgets: [1, 2, 5, 10]
+  propagation_prob: 0.05
+  n_simulations: 10
+  candidate_pool_size: 100
+  random_trials: 10
+  seed: 42
+
+group_recommendation:
+  n_groups: 5
+  group_size: 4
+  conflicting: true
+  top_n: 5
+  diffusion_simulations: 5
+  propagation_prob: 0.05
+  base_adopt_prob: 0.5
+  seed: 42
+
+evaluation:
+  run_diffusion_interaction: true
+  interaction_simulations: 5
+  interaction_seed_size: 10
+  interaction_propagation_prob: 0.05
+  interaction_base_adopt_prob: 0.5
+  interaction_max_rounds: 50
+  interaction_default_affinity: 0.3
+  target_min_train_ratings: 1
+  target_max_train_ratings: 1
+
+intervention:
+  thresholds: [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]
+  base_adopt_prob: 0.5
+  propagation_prob: 0.05
+  n_simulations: 20
+  seed_size: 10
+  max_rounds: 50
+  default_affinity: 0.3
+  target_min_train_ratings: 1
+  target_max_train_ratings: 1
+  seed: 42
+  celf:
+    budget: 5
+    candidate_pool_size: 50
+    n_simulations: 5
+    controlled_check: true
+
+scaling:
+  network_size_fractions: [0.10, 0.25, 0.50]
+  item_size_fractions: [0.10, 0.25, 0.50, 1.0]
+  budgets: [1, 5, 10]
+  n_simulations: 3
+  candidate_pool_size: 50
+  network_budget: 3
+  budget_network_fraction: 0.20
+  item_user_sample: 50
+

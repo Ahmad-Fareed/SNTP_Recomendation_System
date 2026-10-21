@@ -1,0 +1,446 @@
+"""
+Equivalence tests for the vectorized full-catalogue ranking paths.
+
+Each optimized ``score_all`` / ``recommend`` is checked against a brute-force
+reference that calls ``predict`` for every item and stable-sorts the result
+(the behaviour of the original per-item Python loops).
+"""
+
+import sys
+import unittest
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
+from scipy import sparse
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from sntp.recommenders._ranking import top_n_from_scores
+from sntp.recommenders.item_based import ItemBasedCF
+from sntp.recommenders.matrix_factorization import BiasedMF
+from sntp.recommenders.social import SocialRecommender, SimilarUserRecommender
+
+
+def _raw_scores(rec, user_idx, n_items):
+    """Raw ordering scores, using the model's documented raw path when present."""
+    if hasattr(rec, "score_all"):
+        try:
+            return np.asarray(rec.score_all(user_idx, raw_scores=True), dtype=float)
+        except TypeError:
+            pass
+    return np.array([rec.predict(user_idx, i)
+                     for i in range(n_items)], dtype=float)
+
+
+def _brute_force_recommend(rec, user_idx, n, exclude, n_items):
+    """Reference: stable-sort raw scores, then clip only reported ratings."""
+    scores = _raw_scores(rec, user_idx, n_items)
+    candidates = []
+    for iidx in range(n_items):
+        if iidx in exclude or not np.isfinite(scores[iidx]):
+            continue
+        candidates.append((iidx, float(scores[iidx])))
+    candidates.sort(key=lambda x: -x[1])
+    return [(iidx, float(np.clip(score, 1.0, 5.0)))
+            for iidx, score in candidates[:n]]
+
+
+def _random_ratings(n_users=60, n_items=80, density=0.12, seed=0):
+    rng = np.random.RandomState(seed)
+    triples = []
+    for u in range(n_users):
+        for i in range(n_items):
+            if rng.rand() < density:
+                triples.append((u, i, int(rng.randint(1, 6))))
+    return triples
+
+
+def _assert_same_ranking(tc, got, ref, places=9):
+    tc.assertEqual([i for i, _ in got], [i for i, _ in ref])
+    for (_, s1), (_, s2) in zip(got, ref):
+        tc.assertAlmostEqual(s1, s2, places=places)
+
+
+class TestTopN(unittest.TestCase):
+
+    def test_ties_broken_by_lowest_index(self):
+        scores = np.array([3.0, 5.0, 5.0, 4.0, 5.0, 1.0])
+        got = top_n_from_scores(scores.copy(), 2)
+        self.assertEqual([i for i, _ in got], [1, 2])
+
+    def test_matches_stable_sort(self):
+        rng = np.random.RandomState(1)
+        for _ in range(50):
+            scores = rng.randint(1, 6, size=40).astype(float)  # many ties
+            exclude = set(rng.choice(40, size=8, replace=False).tolist())
+            ref = sorted([(i, s) for i, s in enumerate(scores) if i not in exclude],
+                         key=lambda x: -x[1])[:7]
+            got = top_n_from_scores(scores.copy(), 7, exclude)
+            self.assertEqual(got, [(i, float(s)) for i, s in ref])
+
+    def test_fewer_candidates_than_n(self):
+        scores = np.array([2.0, 4.0, 3.0])
+        got = top_n_from_scores(scores, 10, exclude={0})
+        self.assertEqual([i for i, _ in got], [1, 2])
+
+    def test_all_excluded(self):
+        self.assertEqual(top_n_from_scores(np.array([1.0, 2.0]), 5, {0, 1}), [])
+
+
+class TestItemBasedVectorized(unittest.TestCase):
+
+    def setUp(self):
+        self.n_users, self.n_items = 60, 80
+        triples = _random_ratings(self.n_users, self.n_items)
+        ur, ir = defaultdict(list), defaultdict(list)
+        for u, i, r in triples:
+            ur[u].append((i, r))
+            ir[i].append((u, r))
+        rows, cols, vals = zip(*triples)
+        m = sparse.csr_matrix((vals, (rows, cols)), shape=(self.n_users, self.n_items),
+                              dtype=np.float32)
+        self.icf = ItemBasedCF(max_neighbors=5, min_corated=2)
+        self.icf.fit(m, dict(ur), dict(ir))
+
+    def test_score_all_matches_predict(self):
+        for u in range(self.n_users):
+            scores = self.icf.score_all(u)
+            ref = np.array([self.icf.predict(u, i) for i in range(self.n_items)])
+            np.testing.assert_allclose(scores, ref, rtol=0, atol=1e-12)
+
+    def test_score_all_unknown_user_uses_global_mean(self):
+        scores = self.icf.score_all(10_000)
+        ref = self.icf.predict(10_000, 0)
+        np.testing.assert_allclose(scores, ref)
+
+    def test_recommend_matches_brute_force(self):
+        for u in range(self.n_users):
+            exclude = {u % self.n_items}
+            got = self.icf.recommend(u, 10, exclude=exclude)
+            full_ex = exclude | set(self.icf.train_user_ratings.get(u, {}).keys())
+            ref = _brute_force_recommend(self.icf, u, 10, full_ex, self.n_items)
+            _assert_same_ranking(self, got, ref)
+
+
+class TestMFVectorized(unittest.TestCase):
+
+    def setUp(self):
+        self.n_users, self.n_items = 40, 50
+        triples = _random_ratings(self.n_users, self.n_items, seed=3)
+        ident_u = {u: u for u in range(self.n_users)}
+        ident_i = {i: i for i in range(self.n_items)}
+        self.mf = BiasedMF(n_factors=4, lr=0.01, reg=0.02, n_epochs=5, seed=7)
+        self.mf.fit(triples, self.n_users, self.n_items, ident_u, ident_i,
+                    val_triples=triples[:20])
+
+    def test_score_all_matches_predict(self):
+        for u in range(self.n_users):
+            ref = np.array([self.mf.predict(u, i) for i in range(self.n_items)])
+            np.testing.assert_allclose(self.mf.score_all(u), ref, rtol=0, atol=1e-12)
+
+    def test_recommend_matches_brute_force(self):
+        for u in range(self.n_users):
+            got = self.mf.recommend(u, 10)
+            ex = self.mf._train_user_items.get(u, set())
+            ref = _brute_force_recommend(self.mf, u, 10, ex, self.n_items)
+            _assert_same_ranking(self, got, ref)
+
+    def test_val_rmse_matches_loop(self):
+        """Vectorized validation RMSE equals the per-rating _raw_predict loop."""
+        val = [(u, i, float(r)) for u, i, r in _random_ratings(self.n_users, self.n_items,
+                                                                seed=3)[:20]]
+        loss = sum((r - self.mf._raw_predict(u, i)) ** 2 for u, i, r in val)
+        self.assertAlmostEqual(self.mf.epoch_history[-1]["val_rmse"],
+                               round(np.sqrt(loss / len(val)), 5), places=5)
+
+    def test_training_deterministic(self):
+        triples = _random_ratings(self.n_users, self.n_items, seed=3)
+        ident_u = {u: u for u in range(self.n_users)}
+        ident_i = {i: i for i in range(self.n_items)}
+        mf2 = BiasedMF(n_factors=4, lr=0.01, reg=0.02, n_epochs=5, seed=7)
+        mf2.fit(triples, self.n_users, self.n_items, ident_u, ident_i,
+                val_triples=triples[:20])
+        np.testing.assert_array_equal(self.mf.user_factors, mf2.user_factors)
+        np.testing.assert_array_equal(self.mf.item_bias, mf2.item_bias)
+
+
+class TestSocialVectorized(unittest.TestCase):
+
+    def setUp(self):
+        self.n_users, self.n_items = 40, 50
+        triples = _random_ratings(self.n_users, self.n_items, seed=5)
+        ident_u = {u: u for u in range(self.n_users)}
+        ident_i = {i: i for i in range(self.n_items)}
+        self.mf = BiasedMF(n_factors=4, n_epochs=3, seed=1)
+        self.mf.fit(triples, self.n_users, self.n_items, ident_u, ident_i)
+        self.train = defaultdict(dict)
+        for u, i, r in triples:
+            self.train[u][i] = float(r)
+        self.train = dict(self.train)
+        rng = np.random.RandomState(9)
+        # Include a trusted user index outside the rating matrix (trust-only user).
+        self.trust = {u: rng.choice(self.n_users, size=5, replace=False).tolist() + [999]
+                      for u in range(self.n_users)}
+
+    def test_social_score_all_matches_predict(self):
+        for lam in (0.0, 0.3, 1.0):
+            sr = SocialRecommender(self.mf, self.trust, social_weight=lam,
+                                   global_mean=self.mf.global_mean)
+            sr.set_training_data(self.train)
+            for u in range(self.n_users):
+                ref = np.array([sr.predict(u, i) for i in range(self.n_items)])
+                np.testing.assert_allclose(sr.score_all(u), ref, rtol=0, atol=1e-12)
+
+    def test_social_recommend_matches_brute_force(self):
+        sr = SocialRecommender(self.mf, self.trust, social_weight=0.5,
+                               global_mean=self.mf.global_mean)
+        sr.set_training_data(self.train)
+        for u in range(self.n_users):
+            got = sr.recommend(u, 10)
+            ex = set(self.train.get(u, {}).keys())
+            ref = _brute_force_recommend(sr, u, 10, ex, self.n_items)
+            _assert_same_ranking(self, got, ref)
+
+    def test_social_with_icf_baseline(self):
+        ur, ir = defaultdict(list), defaultdict(list)
+        rows, cols, vals = [], [], []
+        for u, items in self.train.items():
+            for i, r in items.items():
+                ur[u].append((i, r)); ir[i].append((u, r))
+                rows.append(u); cols.append(i); vals.append(r)
+        m = sparse.csr_matrix((vals, (rows, cols)), shape=(self.n_users, self.n_items))
+        icf = ItemBasedCF(max_neighbors=5, min_corated=2)
+        icf.fit(m, dict(ur), dict(ir))
+        sr = SocialRecommender(icf, self.trust, social_weight=0.3, global_mean=icf.global_mean)
+        sr.set_training_data(self.train)
+        for u in range(self.n_users):
+            ref = np.array([sr.predict(u, i) for i in range(self.n_items)])
+            np.testing.assert_allclose(sr.score_all(u), ref, rtol=0, atol=1e-12)
+
+    def test_similar_user_score_all_matches_predict(self):
+        sim = SimilarUserRecommender(self.mf, self.trust, social_weight=0.4, k_similar=5,
+                                     global_mean=self.mf.global_mean)
+        sim.set_training_data(self.train)
+        sim.compute_similar_users(list(range(10)))
+        for u in range(10):
+            ref = np.array([sim.predict(u, i) for i in range(self.n_items)])
+            np.testing.assert_allclose(sim.score_all(u), ref, rtol=0, atol=1e-12)
+
+    def test_baseline_without_score_all_falls_back(self):
+        class Dummy:
+            global_mean = 3.0
+            n_items = 4
+
+            def predict(self, u, i):
+                return None if i == 3 else 3.5
+
+        sr = SocialRecommender(Dummy(), {0: [1]}, social_weight=0.5)
+        sr.set_training_data({1: {0: 5.0, 3: 2.0}})
+        ref = [sr.predict(0, i) for i in range(4)]
+        np.testing.assert_allclose(sr.score_all(0), ref)
+
+
+class TestRawScoreOrdering(unittest.TestCase):
+    """Regression tests for ranking on raw scores with clipped reporting."""
+
+    def _mf_stub(self):
+        mf = BiasedMF(n_factors=1)
+        mf.n_users, mf.n_items = 1, 3
+        mf.global_mean = 4.0
+        mf.user_bias = np.zeros(1, dtype=np.float64)
+        mf.item_bias = np.array([1.5, 2.0, 0.5], dtype=np.float64)
+        mf.user_factors = np.zeros((1, 1), dtype=np.float64)
+        mf.item_factors = np.zeros((3, 1), dtype=np.float64)
+        mf._train_user_items = {0: set()}
+        return mf
+
+    def test_mf_orders_by_raw_score_and_clips_reported_rating(self):
+        mf = self._mf_stub()
+        raw = mf.score_all(0, raw_scores=True)
+        clipped = mf.score_all(0)
+        self.assertGreater(raw[1], raw[0])
+        self.assertGreater(raw[0], 5.0)
+        self.assertEqual(clipped[0], 5.0)
+        self.assertEqual(clipped[1], 5.0)
+
+        # Clipped-order tie-breaking would return item 0 first.  Raw ordering
+        # keeps the higher-confidence item 1 first; only the reported rating is
+        # clipped to 5.0.
+        recs = mf.recommend(0, n=2)
+        self.assertEqual([item for item, _ in recs], [1, 0])
+        self.assertEqual([score for _, score in recs], [5.0, 5.0])
+        batch = mf.recommend_batch([0], n=2)
+        self.assertEqual(batch[0], recs)
+
+    def test_social_raw_path_preserves_baseline_order_and_clips_report(self):
+        from sntp.recommenders.social import SocialRecommender
+
+        mf = self._mf_stub()
+        social = SocialRecommender(mf, trust_graph={0: []}, social_weight=0.5,
+                                   global_mean=mf.global_mean)
+        social.set_training_data({})
+        raw = social.score_all(0, raw_scores=True)
+        recs = social.recommend(0, n=2)
+        self.assertGreater(raw[1], raw[0])
+        self.assertEqual([item for item, _ in recs], [1, 0])
+        self.assertEqual([score for _, score in recs], [5.0, 5.0])
+        self.assertEqual(social.recommend_batch([0], n=2)[0], recs)
+
+    def test_mf_ranking_bias_weight_changes_order_but_not_reported_prediction(self):
+        mf = BiasedMF(n_factors=1, ranking_item_bias_weight=0.0)
+        mf.n_users, mf.n_items = 1, 3
+        mf.global_mean = 1.0
+        mf.user_bias = np.zeros(1, dtype=np.float64)
+        mf.item_bias = np.array([0.0, 4.0, 0.0], dtype=np.float64)
+        mf.user_factors = np.ones((1, 1), dtype=np.float64)
+        mf.item_factors = np.array([[2.0], [0.0], [0.0]], dtype=np.float64)
+        mf._train_user_items = {0: set()}
+
+        # Full prediction ranks item 1 first (1 + 4 = 5), but with the item
+        # bias removed item 0 ranks first (1 + 2 = 3).  The reported value is
+        # still the full prediction, not the ordering score.
+        recs = mf.recommend(0, n=1)
+        self.assertEqual(recs, [(0, 3.0)])
+        self.assertEqual(mf.recommend_batch([0], n=1)[0], recs)
+
+        mf.ranking_item_bias_weight = 1.0
+        full = mf.recommend(0, n=1)
+        self.assertEqual(full, [(1, 5.0)])
+
+
+class TestBatchedAndSampling(unittest.TestCase):
+    """Tests for predict_batch, recommend_batch, and ranking user sampling."""
+
+    def setUp(self):
+        self.n_users, self.n_items = 30, 40
+        self.triples = _random_ratings(self.n_users, self.n_items, density=0.2, seed=42)
+        self.u2i = {u: u for u in range(self.n_users)}
+        self.i2i = {i: i for i in range(self.n_items)}
+
+        # Item-Based CF
+        ur, ir = defaultdict(list), defaultdict(list)
+        rows, cols, vals = [], [], []
+        for u, i, r in self.triples:
+            ur[u].append((i, r))
+            ir[i].append((u, r))
+            rows.append(u); cols.append(i); vals.append(r)
+        m = sparse.csr_matrix((vals, (rows, cols)), shape=(self.n_users, self.n_items), dtype=np.float32)
+        self.icf = ItemBasedCF(max_neighbors=5, min_corated=2)
+        self.icf.fit(m, dict(ur), dict(ir))
+
+        # MF
+        self.mf = BiasedMF(n_factors=6, lr=0.01, reg=0.02, n_epochs=5, seed=42)
+        self.mf.fit(self.triples, self.n_users, self.n_items, self.u2i, self.i2i)
+
+        # Social
+        train_dict = {u: {i: float(r) for i, r in items} for u, items in ur.items()}
+        trust = {u: [(u + 1) % self.n_users, (u + 2) % self.n_users] for u in range(self.n_users)}
+        self.social = SocialRecommender(self.mf, trust, social_weight=0.3, global_mean=self.mf.global_mean)
+        self.social.set_training_data(train_dict)
+
+    def test_predict_batch_matches_predict(self):
+        pairs_u = np.array([u for u in range(self.n_users) for _ in range(3)])
+        pairs_i = np.array([i % self.n_items for u in range(self.n_users) for i in range(u, u + 3)])
+
+        for model in (self.icf, self.mf, self.social):
+            batch_preds = model.predict_batch(pairs_u, pairs_i)
+            single_preds = np.array([model.predict(u, i) for u, i in zip(pairs_u, pairs_i)])
+            np.testing.assert_allclose(batch_preds, single_preds, rtol=1e-7, atol=1e-7)
+
+    def test_recommend_batch_matches_recommend(self):
+        users = list(range(self.n_users))
+        for model in (self.icf, self.mf, self.social):
+            batch_recs = model.recommend_batch(users, n=5)
+            for u in users:
+                single_rec = model.recommend(u, n=5)
+                self.assertEqual(batch_recs[u], single_rec)
+
+    def test_evaluate_predictions_equivalence(self):
+        from sntp.metrics import evaluate_predictions
+        test_ratings = [(u, i, 4) for u in range(10) for i in range(5)]
+        res_batch = evaluate_predictions(self.mf, test_ratings, self.u2i, self.i2i)
+
+        # Wrap in an object without predict_batch to verify fallback loop equivalence
+        class NoBatchWrapper:
+            def __init__(self, model):
+                self.model = model
+            def predict(self, u, i):
+                return self.model.predict(u, i)
+
+        res_loop = evaluate_predictions(NoBatchWrapper(self.mf), test_ratings, self.u2i, self.i2i)
+
+        self.assertAlmostEqual(res_batch["mae"], res_loop["mae"], places=7)
+        self.assertAlmostEqual(res_batch["rmse"], res_loop["rmse"], places=7)
+        self.assertEqual(res_batch["n_evaluated"], res_loop["n_evaluated"])
+
+    def test_evaluate_ranking_sampling(self):
+        from sntp.metrics import evaluate_ranking
+        test_ratings = [(u, (u + 1) % self.n_items, 5) for u in range(self.n_users)]
+        train_items = {u: set() for u in range(self.n_users)}
+
+        # Full evaluation
+        res_full = evaluate_ranking(self.mf, test_ratings, train_items,
+                                    self.u2i, self.i2i, k=5, sample_users=None)
+        self.assertFalse(res_full["is_sampled"])
+        self.assertEqual(res_full["n_users_evaluated"], self.n_users)
+        self.assertEqual(res_full["total_eligible_users"], self.n_users)
+
+        # Sampled evaluation
+        res_sample = evaluate_ranking(self.mf, test_ratings, train_items,
+                                      self.u2i, self.i2i, k=5, sample_users=10, sample_seed=99)
+        self.assertTrue(res_sample["is_sampled"])
+        self.assertEqual(res_sample["n_users_evaluated"], 10)
+        self.assertEqual(res_sample["total_eligible_users"], self.n_users)
+        self.assertEqual(res_sample["sample_seed"], 99)
+
+        # Sampling is reproducible
+        res_sample2 = evaluate_ranking(self.mf, test_ratings, train_items,
+                                       self.u2i, self.i2i, k=5, sample_users=10, sample_seed=99)
+        self.assertEqual(res_sample["precision_at_k"], res_sample2["precision_at_k"])
+        self.assertEqual(res_sample["hit_rate_at_k"], res_sample2["hit_rate_at_k"])
+
+    def test_diversity_metadata_propagates_ranking_and_diversity_sampling(self):
+        from sntp.metrics import evaluate_ranking
+        test_ratings = [(u, (u + 1) % self.n_items, 5) for u in range(self.n_users)]
+        train_items = {u: set() for u in range(self.n_users)}
+        item_features = sparse.eye(self.n_items, format="csr")
+
+        both = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=10, sample_seed=99,
+            item_features=item_features, max_diversity_users=5,
+            diversity_seed=123,
+        )
+        self.assertEqual(both["diversity_n_lists"], 5)
+        self.assertTrue(both["diversity_is_sampled"])
+        self.assertEqual(both["diversity_sample_seed"], 123)
+        self.assertEqual(both["diversity_sampling_scope"],
+                         "diversity_subsample_of_ranking_user_sample")
+
+        ranking_only = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=10, sample_seed=99,
+            item_features=item_features, max_diversity_users=500,
+            diversity_seed=123,
+        )
+        self.assertEqual(ranking_only["diversity_n_lists"], 10)
+        self.assertTrue(ranking_only["diversity_is_sampled"])
+        self.assertEqual(ranking_only["diversity_sample_seed"], 99)
+        self.assertEqual(ranking_only["diversity_sampling_scope"],
+                         "ranking_user_sample")
+
+        full = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=None, item_features=item_features,
+            max_diversity_users=None,
+        )
+        self.assertEqual(full["diversity_n_lists"], self.n_users)
+        self.assertFalse(full["diversity_is_sampled"])
+        self.assertIsNone(full["diversity_sample_seed"])
+        self.assertEqual(full["diversity_sampling_scope"], "all_eligible_users")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
