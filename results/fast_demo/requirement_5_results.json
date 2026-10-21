@@ -248,13 +248,13 @@
     "random_vs_greedy": 0.111
   },
   "runtimes_seconds": {
-    "random_selection_all_trials": 1.7103,
+    "random_selection_all_trials": 1.5754,
     "degree_selection": 0.0,
-    "greedy_selection": 23.9809,
-    "degree_evaluation": 0.5578,
-    "greedy_evaluation": 0.8173,
+    "greedy_selection": 14.2544,
+    "degree_evaluation": 0.5365,
+    "greedy_evaluation": 0.5164,
     "greedy_n_evaluations": 65,
-    "greedy_internal_runtime": 23.981,
+    "greedy_internal_runtime": 14.254,
     "greedy_spread_progression": [
       4722.0,
       4715.0,

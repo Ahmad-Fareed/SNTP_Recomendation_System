@@ -26,7 +26,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 
-# 92 tests (the suite runs in a few seconds)
+# 94 tests (the suite runs in a few seconds)
 python -m pytest -q
 
 # Inspect the dataset without fitting models
@@ -36,7 +36,7 @@ python -m sntp.cli inspect --data-dir Assignment
 python -m sntp.cli run --config configs/fast_demo.yaml
 ```
 
-The demo above took **264.53 s (4.4 min)** on the development machine. Earlier
+The demo above took **416.84 s (6.9 min)** on the development machine. Earlier
 runs of the same configuration varied substantially with machine load, so treat
 wall-clock times as machine-dependent. Most of the cost is item-based CF
 fitting, MF training, and the R8 CELF/scaling measurements, not the diffusion
@@ -104,7 +104,7 @@ diffusion outcome.
 | Requirement | Implementation | Main saved evidence |
 |---|---|---|
 | 1. Data preparation | `src/sntp/data.py`, `src/sntp/splits.py`, `cli.py inspect` | `results/fast_demo/data_summary.json`, `split_info.json` |
-| 2. Rating prediction + top-K | `src/sntp/recommenders/item_based.py`, `matrix_factorization.py`, `_ranking.py` | `requirement_2_results.json` |
+| 2. Rating prediction + top-K | `src/sntp/recommenders/item_based.py`, `matrix_factorization.py`, `_ranking.py` | `requirement_2_results.json`, `model_selection.json` |
 | 3. Trust-aware recommendation | `src/sntp/recommenders/social.py`, `experiments.run_requirement_3` | `requirement_3_results.json` |
 | 4. ICM, SIR, preference-aware diffusion | `src/sntp/diffusion/icm.py`, `sir.py`, `selection.py` | `requirement_4_results.json` |
 | 5. Influence maximization | `src/sntp/influence.py`, `experiments.run_requirement_5` | `requirement_5_results.json` |
@@ -127,13 +127,18 @@ Two recommenders are trained on the training split:
 
 * **Item-based CF:** cosine item similarity, `max_neighbors=20`,
   `min_corated=2`.
-* **Matrix factorization:** 10 latent factors, learning rate 0.005,
-  regularization 0.02, 6 epochs, seed 42.
+* **Matrix factorization:** 20 latent factors, learning rate 0.01,
+  regularization 0.005, 20 epochs, seed 42. Top-N ordering uses the full
+  prediction with the global item-bias term weighted by 0.05; MAE/RMSE and
+  returned ratings always use the full model. The weight was selected on
+  validation only.
 
-Top-K recommendation excludes every item in the user’s **training** history.
-Items are ordered by the **unclipped** prediction score; only the predicted
-rating returned with an item is clipped to [1, 5]. This prevents ties at 5.0
-from replacing confidence ordering with item-ID ordering. Item-based CF treats
+Top-K recommendation excludes every item in the user's **training** history.
+Item-based CF orders items by the **unclipped** prediction score. MF orders by
+the configured ranking score (full prediction with the item-bias term weighted
+by 0.05). In both cases only the predicted rating returned with an item is
+clipped to [1, 5]. This prevents ties at 5.0 from replacing confidence ordering
+with item-ID ordering. Item-based CF treats
 an item with no stored neighbours as unsupported by the item-item model and
 uses a documented training-only fallback: the user’s training mean, then the
 global training mean. MF tracks which users/items have training observations;
@@ -144,15 +149,27 @@ ranking is:
 
 | Model | Test MAE | Test RMSE | P@10 | R@10 | F1@10 | HR@10 | nDCG@10 | Coverage | Train (s) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Item-based CF | 1.0740 | 1.4519 | 0.0008 | 0.00281 | 0.00105 | 0.0080 | 0.00163 | 0.01715 | 50.14 |
-| Matrix factorization | **0.8324** | **1.0677** | 0.0020 | 0.00515 | 0.00238 | 0.0200 | 0.00343 | 0.00011 | 40.70 |
+| Item-based CF | 1.0740 | 1.4519 | 0.0008 | 0.00281 | 0.00105 | 0.0080 | 0.00163 | **0.01715** | 62.05 |
+| Matrix factorization | **0.8025** | **1.0510** | 0.0014 | 0.00553 | 0.00202 | 0.0140 | 0.00314 | 0.00197 | 168.19 |
 
 MF is much better than item-based CF on rating error here. The ranking numbers
 are low because the catalogue is large, test items are sparse, and a single
 held-out item per user is often buried below rank 10. Behaviour/popularity
 breakdowns are saved in `requirement_2_results.json`; MF is consistently better
 across short/medium/long user histories and rare/moderate/popular item groups.
-The largest gap is on moderate-popularity items (ICF MAE 1.2514 vs MF 0.8433).
+The largest item-popularity gap is on moderate-popularity items (ICF MAE 1.2514
+vs MF 0.7751).
+
+The old full-score MF ranking was dominated by global item bias: on validation,
+99.91% of within-user score variance was item bias and 97.86% of top-10
+positions matched a bias-only ranking. It returned 15 unique items across 500
+users. The corrected ranking score is
+`mu + b_u + 0.05*b_i + p_u.q_i`; prediction error and returned ratings still use
+the full model. On test, MF now returns 275 unique items (coverage 0.00197,
+about 17x the old reach). Test nDCG@10 is 0.00314 versus 0.00343 before, a small
+decrease; the selection used validation only, where nDCG@10 rose from 0.00266
+to 0.00711. This trade-off is reported rather than hidden. The social model
+below also uses the corrected baseline ordering and reaches 1,461 unique items.
 
 ### Requirement 3 — trust-aware recommendation
 
@@ -167,15 +184,15 @@ selection.
 
 | λ | Validation RMSE | Test MAE | Test RMSE | P@10 | HR@10 | nDCG@10 |
 |---:|---:|---:|---:|---:|---:|---:|
-| 0.0 (baseline) | 1.06899 | 0.83245 | 1.06771 | 0.0020 | 0.020 | 0.00343 |
-| **0.3 (selected)** | **1.06397** | **0.82837** | **1.06318** | 0.0024 | 0.022 | 0.00419 |
-| 0.5 | 1.06934 | 0.82998 | 1.06886 | 0.0028 | 0.026 | 0.00481 |
+| 0.0 (baseline) | 1.04929 | 0.80255 | 1.05099 | 0.0014 | 0.014 | 0.00314 |
+| **0.3 (selected)** | **1.04605** | **0.80080** | **1.04787** | **0.0024** | **0.024** | **0.00518** |
+| 0.5 | 1.05229 | 0.80369 | 1.05417 | 0.0018 | 0.018 | 0.00423 |
 
-The selected λ = 0.3 improves test MAE by 0.00407 and RMSE by 0.00453, and also
-improves ranking. Sparse users (21,911 users with 1–5 ratings) improve from MAE
-0.87454 to 0.87250. In the controlled trust-vs-similarity comparison on 50
-sampled users / 165 test ratings, trusted neighbours gave MAE 0.87692,
-unconnected similar users 0.86635, and the baseline 0.87576 — a small sample,
+The selected λ = 0.3 improves test MAE by 0.00175 and RMSE by 0.00312, and also
+improves ranking. Sparse users (21,911 users with 1-5 ratings) improve from MAE
+0.85055 to 0.84909. In the controlled trust-vs-similarity comparison on 50
+sampled users / 165 test ratings, trusted neighbours gave MAE 0.83534,
+unconnected similar users 0.82943, and the baseline 0.83734 - a small sample,
 so this comparison is descriptive, not a significance test.
 
 ### Requirement 4 — diffusion models
@@ -284,8 +301,8 @@ dense graph, and near-saturation spreads (about 47% of the 9,883 active users)
 make differences small. Degree and greedy adopter sets overlap substantially
 (mean Jaccard 0.551). Greedy selected the full budget in every row; the
 standard-greedy sentinel is `-inf`, so a negative Monte Carlo marginal gain does
-not stop selection. Greedy selection took 23.98 s for 65 evaluations; degree
-selection was effectively instant; random selection for all trials took 1.71 s.
+not stop selection. Greedy selection took 14.25 s for 65 evaluations; degree
+selection was effectively instant; random selection for all trials took 1.58 s.
 
 ### Requirement 6 — group recommendation
 
@@ -303,22 +320,13 @@ and controlled seeds.
 
 | Strategy | Mean satisfaction | Mean min satisfaction | Mean disagreement range | Mean simulated spread | Spread std |
 |---|---:|---:|---:|---:|---:|
-| Average | **4.827** | **4.656** | 0.294 | 198.83 | 194.83 |
-| Least misery | 4.825 | **4.656** | 0.292 | **203.50** | 199.50 |
-| Most pleasure | 4.815 | 4.633 | 0.317 | 198.83 | 194.83 |
+| Average | 4.915 | 4.717 | 0.283 | 226.33 | 222.33 |
+| Least Misery | 4.915 | 4.717 | 0.283 | 226.33 | 222.33 |
+| Most Pleasure | 4.658 | 4.238 | 0.762 | 210.33 | 206.33 |
 
-The differences are tiny. The spread standard deviations are enormous because
-one group’s cascade was either 4 or ~1,171/1,199 adopters depending on the
-simulation seed; that single path dominates the average. Do not interpret the
-203.5 vs 198.8 difference as a stable strategy effect.
+Average and least misery tie on mean and minimum predicted satisfaction; average also has the highest mean simulated spread, while most pleasure is lower on satisfaction and spread. The between-strategy mean difference is only 0.257, while the spread standard deviation is up to 222.3. One rare cascade dominates the average, so the small spread ordering is not a stable strategy effect. Satisfaction is a model prediction, not an observed group rating.
 
-For each group, the candidate items are the union of the three strategies’ top
-items (not the full catalogue). The item with the highest predicted mean
-satisfaction was also one of the highest-spread items in **2 of 3 groups**
-(non-empty tie-aware overlap); in one group the satisfaction winner and spread
-winner differed, and in one group all strategies chose the same item. Exact
-ties are treated as tied bests. Per-group members, top-5 lists, member ratings,
-spreads, and candidate comparisons are saved in `requirement_6_results.json`.
+Across 3 groups, the item with the highest mean predicted satisfaction was also the item with the highest simulated spread in 3 groups (100.0%). This agreement counts a non-empty overlap between exact tied best sets; it does not require the two best sets to be equal. Per-group members, top-5 lists, member ratings, spreads, and candidate comparisons are saved in `requirement_6_results.json`.
 
 ### Requirement 7 — comprehensive evaluation
 
@@ -346,17 +354,22 @@ for MAE/RMSE):
 | Model | MAE | RMSE | P@10 | R@10 | F1@10 | HR@10 | nDCG@10 | Coverage | Diversity |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Item-based CF | 1.0740 | 1.4519 | 0.0008 | 0.00281 | 0.00105 | 0.0080 | 0.00163 | **0.01715** | 0.8741 |
-| Matrix factorization | 0.8324 | 1.0677 | 0.0020 | 0.00515 | 0.00238 | 0.0200 | 0.00343 | 0.00011 | **0.9858** |
-| Social (λ=0.3) | **0.8284** | **1.0632** | **0.0024** | **0.00587** | **0.00287** | **0.0220** | **0.00419** | 0.00060 | 0.9850 |
+| Matrix factorization | 0.8025 | 1.0510 | 0.0014 | 0.00553 | 0.00202 | 0.0140 | 0.00314 | 0.00197 | **0.9696** |
+| Social (λ=0.3) | **0.8008** | **1.0479** | **0.0024** | **0.00873** | **0.00343** | **0.0240** | **0.00518** | 0.01046 | 0.9646 |
 
 The social model is best on error and all ranking metrics in this run;
-item-based CF has the broadest catalogue coverage but much worse accuracy.
-The separate simulated preference-aware interaction uses one training-selected
-target item and common seeds; its mean adopters are ICF 753.0, MF 789.0, social
-850.0, and the highest simulated spread agrees with the highest observed nDCG
+item-based CF has the broadest catalogue coverage but much worse accuracy. The
+separate simulated preference-aware interaction uses one training-selected
+target item and common seeds; its mean adopters are ICF 753.0, MF 914.5, social
+940.0, and the highest simulated spread agrees with the highest observed nDCG
 model in this run. These are **separate** observed and simulated outcomes; the
 simulation is not a forecast of platform adoption. The observed/simulated
 separation is explicit in `requirement_7_results.json`.
+
+Diversity metadata now reports 500 evaluated lists, `diversity_is_sampled=true`,
+seed 42, and scope `ranking_user_sample`. The flag is true because the lists
+come from the seeded ranking-user sample even though all 500 sampled lists were
+used; the old false/null values described only the internal list cap.
 
 ### Requirement 8 — intervention, CELF, and scaling
 
@@ -368,59 +381,66 @@ same seed sets/seeds as the intervention rows.
 
 | Threshold | Mean adopters | Mean exposed | Conversion | Adopter rating proxy | Spread change | Proxy change |
 |---:|---:|---:|---:|---:|---:|---:|
-| 0.0 (baseline) | 771.0 | 1,984.0 | 0.3886 | 4.0774 | — | — |
-| 0.3 | 771.0 | 1,984.0 | 0.3886 | 4.0774 | 0.00% | 0.0000 |
-| 0.6 | 772.2 | 2,030.8 | 0.3802 | 4.0920 | +0.16% | +0.0146 |
-| **0.8** | **7.0** | **31.0** | 0.2258 | **4.1039** | **−99.09%** | **+0.0265** |
-| 0.9 | 5.2 | 17.2 | 0.3023 | 4.0490 | −99.33% | −0.0284 |
+| 0.0 (baseline) | 705.8 | 1,745.6 | 0.4043 | 4.3078 | - | - |
+| 0.3 | 705.8 | 1,745.6 | 0.4043 | 4.3078 | +0.00% | +0.0000 |
+| 0.6 | 725.8 | 1,791.4 | 0.4052 | 4.3204 | +2.83% | +0.0126 |
+| 0.8 | 146.8 | 506.6 | 0.2898 | 4.5052 | -79.20% | +0.1974 |
+| 0.9 | 6.6 | 22.0 | 0.3000 | 4.3272 | -99.06% | +0.0194 |
 
 The threshold effect is a cliff, not a smooth trade-off. In the baseline
-exposure population (4,850 users), affinity ranged 0.4434–0.9838; 0% were below
-0.3, 0.72% below 0.6, **80.93% below 0.8**, and 99.38% below 0.9. Threshold 0.3
-therefore cannot change the baseline cascade, and threshold 0.6 changes only a
-few paths. Threshold 0.8 removes most propagation and also slightly raises the
-simulator-side adopter rating proxy; threshold 0.9 removes slightly more spread
-but lowers the proxy because the remaining adopters are mostly seeds. Shared
-seeds reduce but do not remove path divergence when filtering changes which
-users are exposed. The proxy is `1 + 4 × predicted affinity`; it is **not** an
-observed post-intervention satisfaction rating.
+exposure population (4,672 users), affinity ranged
+0.4110-1.0000; 0.00% were
+below 0.3, 1.05% below 0.6, 41.78% below 0.8,
+and 85.10% below 0.9. Threshold 0.3 therefore cannot change the
+baseline cascade. Threshold 0.6 changes only a few paths and slightly increases
+spread and the proxy. Threshold 0.8 removes 79.20% of spread while raising the
+simulator-side adopter rating proxy by 0.1974; threshold 0.9 removes 99.06% of
+spread with a smaller but still positive proxy change (+0.0194). Shared seeds
+reduce but do not remove path divergence when filtering changes which users are
+exposed. The proxy is `1 + 4 * predicted affinity`; it is **not** an observed
+post-intervention satisfaction rating.
 
 **CELF vs standard greedy.** Same graph, candidate pool, budget, simulations,
 and selection seeds:
 
 | Method | Evaluations | Runtime (s) | Seeds | Marginal gains |
 |---|---:|---:|---|---|
-| Standard greedy | 33 | 36.92 | 22, 321, 570 | 4760.5, 0.5, 9.5 |
-| CELF | 25 | 22.83 | 22, 321, 206 | 4760.5, 0.5, −13.5 |
+| Standard greedy | 33 | 34.62 | 22, 321, 570 | 4760.5, 0.5, 9.5 |
+| CELF | 25 | 27.53 | 22, 321, 206 | 4760.5, 0.5, -13.5 |
 
-CELF used 24.24% fewer evaluations and was **1.62× faster in this measured
-setting**, but it selected a different third seed under noisy Monte Carlo
-estimates. CELF’s lazy bound is exact for a deterministic monotone submodular
-objective, not for a finite-sample noisy estimate. A controlled deterministic
-check (`p=1.0`, one simulation, 120 nodes, 20 candidates, budget 2) gave 39
-evaluations for both methods and identical seeds `[494, 158]`, confirming the
+CELF used 24.24% fewer evaluations and was
+**1.257x faster in this measured setting**, but it
+selected a different third seed under noisy Monte Carlo estimates. CELF's lazy
+bound is exact for a deterministic monotone submodular objective, not for a
+finite-sample noisy estimate. A controlled deterministic check (`p=1.0`, one
+simulation, 120 nodes, 20 candidates,
+budget 2) gave 39 evaluations for
+both methods and identical seeds `[494, 158]`, confirming the
 implementation rather than asserting an unconditional speedup. Memory:
-tracemalloc peak 8.452 MB (standard) vs 8.453 MB (CELF); RSS deltas were 1.23 MB
-and −0.016 MB. NumPy native allocations may be under-represented.
+tracemalloc peak 8.452 MB (standard) vs
+8.454 MB (CELF); RSS deltas were
+2.199 MB and -0.004 MB.
+NumPy native allocations may be under-represented.
 
 **Measured scaling.**
 
 | Dimension | Setting | Runtime | Evaluations | Memory (tracemalloc peak) |
 |---|---|---:|---:|---:|
-| Network | 2,471 nodes / 78,115 edges | 3.62 s | 29 | 2.35 MB |
-| Network | 4,942 nodes / 227,570 edges | 8.56 s | 29 | 5.36 MB |
-| Budget | budget 1 | 2.00 s | 15 | 2.27 MB |
-| Budget | budget 3 | 7.44 s | 42 | 2.35 MB |
-| Item catalogue 25% | 34,934 items | 0.99 ms/user | — | 1.07 MB |
-| Item catalogue 50% | 69,869 items | 2.17 ms/user | — | 2.13 MB |
-| Item catalogue 100% | 139,738 items | 5.73 ms/user | — | 4.27 MB |
+| Network | 2,471 nodes / 78,115 edges | 3.72 s | 29 | 2.35 MB |
+| Network | 4,942 nodes / 227,570 edges | 11.90 s | 29 | 5.36 MB |
+| Budget | budget 1 | 2.63 s | 15 | 2.27 MB |
+| Budget | budget 3 | 5.67 s | 42 | 2.35 MB |
+| Item catalogue 25% | 34,934 items | 1.08 ms/user | - | 1.07 MB |
+| Item catalogue 50% | 69,869 items | 1.83 ms/user | - | 2.13 MB |
+| Item catalogue 100% | 139,738 items | 6.06 ms/user | - | 4.26 MB |
 
 Network and budget costs grow with graph size and number of evaluations; the
 item-catalogue measurement isolates MF scoring/ranking, not training. The
-0.99 → 2.17 → 5.73 ms/user pattern is a measured cache/allocation
-effect, not a claimed linear law. Absolute times are machine-dependent; compare
-relative slopes within this run. RSS deltas were near zero because large arrays
-were already resident; tracemalloc undercounts NumPy native buffers.
+1.08 -> 1.83 -> 6.06
+ms/user pattern is a measured cache/allocation effect, not a claimed linear law.
+Absolute times are machine-dependent; compare relative slopes within this run.
+RSS deltas were near zero because large arrays were already resident;
+tracemalloc undercounts NumPy native buffers.
 
 ---
 
@@ -468,12 +488,12 @@ Regression tests specifically guard the leakage and fairness claims:
   * manual/hand-checkable metric and group cases.
 * `tests/test_all.py`, `tests/test_vectorized_ranking.py`
   * data loading, split guarantees, recommender correctness;
-  * raw-score ordering with post-selection rating clipping;
+  * unclipped ordering scores with post-selection rating clipping;
   * item-based unsupported-item fallback;
   * MF cold-start fallbacks (μ+b_i, μ+b_u, μ);
   * vectorized ranking equivalence.
 
-Latest full test run: **92 passed** in 1.83 s (`python -m pytest -q`); the suite is a few seconds, not a long-running experiment.
+Latest full test run: **94 passed** in about 1.7 s (`python -m pytest -q`); the suite is a few seconds, not a long-running experiment.
 
 ---
 
@@ -516,29 +536,31 @@ run; see below.
 
 ## 6. Results summary and runtime
 
-**Measured fast-demo runtime: 264.53 s (4.4 min)**, including data loading,
+**Measured fast-demo runtime: 416.84 s (6.9 min)**, including data loading,
 model fitting, all eight requirement stages, and result serialization. Major
 stages:
 
 | Stage | Seconds |
 |---|---:|
-| R1 load dataset | 6.68 |
-| R1 split | 0.58 |
-| R2 item-based CF fit | 50.14 |
-| R2 MF training | 40.70 |
-| R3 social evaluations (all λ + comparisons) | 21.34 |
-| R4 ICM + SIR + target/network comparisons | 12.57 |
-| R5 influence maximization | 27.73 |
-| R6 group recommendation | 2.05 |
-| R7 comprehensive evaluation | 10.12 |
-| R8 intervention + CELF + scaling | 83.91 |
-| Total (CLI wall clock) | **264.53** |
+| R1 load dataset | 7.92 |
+| R1 split | 0.59 |
+| R2 item-based CF fit | 62.05 |
+| R2 MF training | 168.19 |
+| R3 social evaluations (all λ + comparisons) | 31.21 |
+| R4 ICM + SIR + target/network comparisons | 12.05 |
+| R5 influence maximization | 17.34 |
+| R6 group recommendation | 1.94 |
+| R7 comprehensive evaluation | 13.42 |
+| R8 intervention + CELF + scaling | 88.34 |
+| Total (CLI wall clock) | **416.84** |
 
-The R8 CELF/scaling block is the largest single stage because it runs repeated
-Monte Carlo greedy evaluations from scratch. The R5 stage is also
-Monte-Carlo-dominated. Run-to-run wall clock has varied substantially with
-machine load; the saved `stage_timings.json` is the authoritative record for
-the submitted run.
+The stage-timing sum is 415.43 s; the CLI wall clock also includes startup and
+result-directory setup. MF training is the largest single stage. R8 is the
+largest non-model block because it runs repeated Monte Carlo greedy evaluations
+from scratch. Run-to-run wall clock has varied substantially with machine load;
+the saved `stage_timings.json` is the authoritative record for the submitted
+run. The offline validation selection sweep in `model_selection.json` is not
+included in this runtime.
 
 ---
 
@@ -602,7 +624,7 @@ scanned image). The same command writes seven standalone charts to
 │   ├── fast_demo.yaml          # submitted, measured configuration
 │   └── default.yaml            # full-scale config, not run
 ├── src/sntp/                   # package
-├── tests/                      # 92 tests
+├── tests/                      # 94 tests
 ├── scripts/generate_report.py  # regenerates the PDF and PNGs from JSON
 ├── report/SNTP_Assignment_02_Report.pdf
 ├── results/fast_demo/          # submitted measured results
@@ -625,7 +647,8 @@ Submission archive:
 ```
 
 The archive uses forward-slash paths, contains one inner folder, and excludes
-`__pycache__`, `.pytest_cache`, `.git`, logs, and prior ZIPs.
+generated `*.egg-info/`, `__pycache__`, `.pytest_cache`, `.git`, logs, and prior
+ZIPs.
 
 ---
 
@@ -638,9 +661,10 @@ The archive uses forward-slash paths, contains one inner folder, and excludes
 2. **Fast-demo scope.** Diffusion, influence, group, and intervention results
    use the 2-hop ego subgraph (9,883 users, 301,710 edges), not the full 49,289
    users / 487,002 trust edges. R5 further restricts candidates to the top 15
-   out-degree users across all methods. The fast demo also uses smaller model
-   budgets than the full config (ICF 20 neighbours vs 50; MF 6 epochs vs 20) to
-   keep the end-to-end run bounded; the full config was not run.
+   out-degree users across all methods. The fast demo uses a smaller ICF
+   neighbourhood than the full config (20 vs 50); MF uses 20 factors/20 epochs
+   with the learning-rate, regularization, and bias-corrected ranking setting
+   selected on validation. The full config was not run.
 3. **Monte Carlo noise.** R4 has only 3 simulations; R5 uses 2 evaluation
    simulations and 3 random trials; R6 uses 2 simulations per item; R8 CELF uses
    2. Spread distributions are heavy-tailed. Means and standard deviations are
@@ -649,8 +673,8 @@ The archive uses forward-slash paths, contains one inner folder, and excludes
    degree centrality is best at budgets 3 and 5; greedy is best only at budget
    1. The dense graph is near saturation (~47% of active users), compressing
    differences. The paired greedy−degree difference at budget 5 is negative.
-5. **R6 strategy differences are small.** Satisfaction differences are within
-   ~0.012; spread is dominated by one rare large cascade (4 vs ~1,200 adopters).
+5. **R6 strategy differences are small.** The mean-satisfaction spread between
+   strategies is about 0.257; spread is dominated by rare large cascades.
    Candidate items are only the union of strategy top items, not all catalogue
    items.
 6. **R7 is a sample-based evaluation.** Ranking uses 500 seeded users, not all
@@ -660,13 +684,14 @@ The archive uses forward-slash paths, contains one inner folder, and excludes
    separately adds a moderate-popularity target in Part 4; neither is a
    platform-wide adoption forecast.
 7. **R8 threshold is a simulator intervention.** No online randomized
-   experiment was run. The 0.8 threshold produces a cliff because 80.9% of
-   baseline-exposed users have affinity below 0.8; 0.3 is inactive because no
-   baseline-exposed user is below 0.3. The rating proxy is predicted, not
-   observed. CELF’s 1.62× speedup is a single noisy-Monte-Carlo measurement;
-   CELF selected different seeds and is not guaranteed to be faster or
-   identical under finite samples. The deterministic controlled check is the
-   correctness evidence.
+   experiment was run. The 0.8 threshold cuts simulated spread by 79.2% while
+   raising the rating proxy; 0.9 cuts 99.1% with a smaller positive proxy
+   change. In the baseline exposure population, 41.78% have affinity below 0.8
+   and 85.10% below 0.9; 0.3 is inactive because no exposed user is below it.
+   The rating proxy is predicted, not observed. CELF's 1.257x speedup is a
+   single noisy-Monte-Carlo measurement; CELF selected different seeds and is
+   not guaranteed to be faster or identical under finite samples. The
+   deterministic controlled check is the correctness evidence.
 8. **Memory measurement.** `tracemalloc` measures Python allocations, and RSS
    deltas are near zero because large arrays are already resident. NumPy native
    buffers are under-represented; do not read the MB columns as total process
@@ -704,6 +729,18 @@ problems that were fixed before the submitted results:
   It now orders by unclipped model scores and clips only the reported predicted
   rating; batch and single-user paths have regression coverage. Item-based CF
   unsupported items now use a documented training-only fallback.
+* Full-score MF ranking was dominated by the global item-bias component
+  (99.91% of within-user score variance; 97.86% top-10 overlap with a bias-only
+  ranking). The ranking score now has a configurable item-bias weight; the
+  submitted weight 0.05 was selected on validation. Prediction error and
+  returned ratings still use the full model, and no random ranking noise was
+  added.
+* Diversity metadata now records whether the evaluated lists came from the
+  seeded ranking-user sample, the correct sample seed, and the sampling scope.
+  The earlier `is_sampled=false`/`null` values described only the internal
+  list cap and were wrong for the 500-user sample.
+* The submission archive excludes generated `src/sntp.egg-info/` metadata as
+  well as caches, `.git`, and prior ZIPs.
 * MF cold-start users/items could expose random initial factors. Training
   observations are tracked, untrained rows are zeroed, and the documented
   fallbacks are μ+b_i, μ+b_u, or μ.
@@ -725,7 +762,7 @@ problems that were fixed before the submitted results:
   report actual attempted rounds and direct ever-infected counts.
 * Tests were added for leakage, seed reproducibility, tie-aware group
   bookkeeping, feature diversity, negative-gain greedy behavior, candidate-pool
-  respect, paired marginal gains, raw-score ranking, cold starts, explicit
+  respect, paired marginal gains, unclipped/bias-weighted ranking, cold starts, explicit
   target bands, and degree-preserving randomization.
 * The report generator now reads target/network keys dynamically, exports
   seven PNG charts under `results/fast_demo/plots/`, and no longer forces a

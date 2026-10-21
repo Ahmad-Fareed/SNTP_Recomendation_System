@@ -287,6 +287,27 @@ class TestRawScoreOrdering(unittest.TestCase):
         self.assertEqual([score for _, score in recs], [5.0, 5.0])
         self.assertEqual(social.recommend_batch([0], n=2)[0], recs)
 
+    def test_mf_ranking_bias_weight_changes_order_but_not_reported_prediction(self):
+        mf = BiasedMF(n_factors=1, ranking_item_bias_weight=0.0)
+        mf.n_users, mf.n_items = 1, 3
+        mf.global_mean = 1.0
+        mf.user_bias = np.zeros(1, dtype=np.float64)
+        mf.item_bias = np.array([0.0, 4.0, 0.0], dtype=np.float64)
+        mf.user_factors = np.ones((1, 1), dtype=np.float64)
+        mf.item_factors = np.array([[2.0], [0.0], [0.0]], dtype=np.float64)
+        mf._train_user_items = {0: set()}
+
+        # Full prediction ranks item 1 first (1 + 4 = 5), but with the item
+        # bias removed item 0 ranks first (1 + 2 = 3).  The reported value is
+        # still the full prediction, not the ordering score.
+        recs = mf.recommend(0, n=1)
+        self.assertEqual(recs, [(0, 3.0)])
+        self.assertEqual(mf.recommend_batch([0], n=1)[0], recs)
+
+        mf.ranking_item_bias_weight = 1.0
+        full = mf.recommend(0, n=1)
+        self.assertEqual(full, [(1, 5.0)])
+
 
 class TestBatchedAndSampling(unittest.TestCase):
     """Tests for predict_batch, recommend_batch, and ranking user sampling."""
@@ -378,6 +399,46 @@ class TestBatchedAndSampling(unittest.TestCase):
                                        self.u2i, self.i2i, k=5, sample_users=10, sample_seed=99)
         self.assertEqual(res_sample["precision_at_k"], res_sample2["precision_at_k"])
         self.assertEqual(res_sample["hit_rate_at_k"], res_sample2["hit_rate_at_k"])
+
+    def test_diversity_metadata_propagates_ranking_and_diversity_sampling(self):
+        from sntp.metrics import evaluate_ranking
+        test_ratings = [(u, (u + 1) % self.n_items, 5) for u in range(self.n_users)]
+        train_items = {u: set() for u in range(self.n_users)}
+        item_features = sparse.eye(self.n_items, format="csr")
+
+        both = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=10, sample_seed=99,
+            item_features=item_features, max_diversity_users=5,
+            diversity_seed=123,
+        )
+        self.assertEqual(both["diversity_n_lists"], 5)
+        self.assertTrue(both["diversity_is_sampled"])
+        self.assertEqual(both["diversity_sample_seed"], 123)
+        self.assertEqual(both["diversity_sampling_scope"],
+                         "diversity_subsample_of_ranking_user_sample")
+
+        ranking_only = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=10, sample_seed=99,
+            item_features=item_features, max_diversity_users=500,
+            diversity_seed=123,
+        )
+        self.assertEqual(ranking_only["diversity_n_lists"], 10)
+        self.assertTrue(ranking_only["diversity_is_sampled"])
+        self.assertEqual(ranking_only["diversity_sample_seed"], 99)
+        self.assertEqual(ranking_only["diversity_sampling_scope"],
+                         "ranking_user_sample")
+
+        full = evaluate_ranking(
+            self.mf, test_ratings, train_items, self.u2i, self.i2i,
+            k=5, sample_users=None, item_features=item_features,
+            max_diversity_users=None,
+        )
+        self.assertEqual(full["diversity_n_lists"], self.n_users)
+        self.assertFalse(full["diversity_is_sampled"])
+        self.assertIsNone(full["diversity_sample_seed"])
+        self.assertEqual(full["diversity_sampling_scope"], "all_eligible_users")
 
 
 if __name__ == "__main__":

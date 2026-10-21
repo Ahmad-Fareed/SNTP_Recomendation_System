@@ -54,7 +54,8 @@ class BiasedMF:
     """Biased latent-factor matrix factorization trained with SGD."""
 
     def __init__(self, n_factors: int = 20, lr: float = 0.005,
-                 reg: float = 0.02, n_epochs: int = 20, seed: int = 42):
+                 reg: float = 0.02, n_epochs: int = 20, seed: int = 42,
+                 ranking_item_bias_weight: float = 1.0):
         """
         Parameters
         ----------
@@ -68,12 +69,20 @@ class BiasedMF:
             Number of SGD training epochs.
         seed : int
             Random seed for reproducible initialization.
+        ranking_item_bias_weight : float
+            Weight on the global item-bias component when ordering top-N
+            lists.  Prediction (MAE/RMSE) always uses the full model; this
+            parameter affects only which items are selected.  Values below
+            1.0 reduce the catalogue-wide popularity bias of the ranking.
         """
+        if not np.isfinite(ranking_item_bias_weight) or ranking_item_bias_weight < 0:
+            raise ValueError("ranking_item_bias_weight must be finite and >= 0")
         self.n_factors = n_factors
         self.lr = lr
         self.reg = reg
         self.n_epochs = n_epochs
         self.seed = seed
+        self.ranking_item_bias_weight = float(ranking_item_bias_weight)
 
         self.global_mean = 0.0
         self.user_bias = None
@@ -303,23 +312,48 @@ class BiasedMF:
             return np.asarray(preds, dtype=np.float64)
         return np.clip(preds, rating_min, rating_max)
 
+    def ranking_score_all(self, user_idx: int) -> np.ndarray:
+        """Ordering score for every item (unclipped).
+
+        The full prediction is ``μ + b_u + b_i + p_u·q_i``.  For top-N
+        selection the item-bias component can be down-weighted by
+        ``ranking_item_bias_weight`` to avoid returning the same global
+        popularity list to every user.  Prediction error remains based on the
+        full model; this method changes ordering only.
+        """
+        scores = self.score_all(user_idx, raw_scores=True).copy()
+        weight = self.ranking_item_bias_weight
+        if weight != 1.0 and self.item_bias is not None:
+            scores -= (1.0 - weight) * self.item_bias
+        return scores
+
+    def ranking_score_batch(self, user_indices) -> np.ndarray:
+        """Dense :meth:`ranking_score_all` for many users."""
+        scores = self.score_batch(user_indices, raw_scores=True)
+        weight = self.ranking_item_bias_weight
+        if weight != 1.0 and self.item_bias is not None:
+            scores -= (1.0 - weight) * self.item_bias[None, :]
+        return scores
+
     def recommend(self, user_idx: int, n: int = 10,
                   exclude: set | None = None) -> list[tuple[int, float]]:
         """Recommend top-n unseen items.
 
         Every catalogue item is scored (full-catalogue ranking).  Items are
-        ordered by the **unclipped** model score; the returned predicted rating
-        is then clipped to [1, 5].  Ties in the raw score are broken by
-        ascending item index.
+        ordered by the configured ranking score (default: the unclipped model
+        prediction; optionally with item bias down-weighted).  The reported
+        rating is always the full unclipped prediction, clipped to [1, 5].
+        Ties in the ordering score are broken by ascending item index.
         """
         if exclude is None:
             exclude = set()
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        raw_scores = self.score_all(user_idx, raw_scores=True)
-        ranked = top_n_from_scores(raw_scores, n, exclude)
-        return clip_ranked(ranked)
+        ranking_scores = self.ranking_score_all(user_idx)
+        ranked = top_n_from_scores(ranking_scores, n, exclude)
+        full_scores = self.score_all(user_idx, raw_scores=True)
+        return clip_ranked([(item, full_scores[item]) for item, _ in ranked])
 
     # ------------------------------------------------------------------
     # Batched / vectorized paths
@@ -370,13 +404,20 @@ class BiasedMF:
                         candidate_mask: np.ndarray | None = None):
         """Top-n unseen items for many users (vectorized).
 
-        Ordering uses raw model scores; returned ratings are clipped.  The
-        rules and tie-breaking are identical to :meth:`recommend`, restricted
-        to ``candidate_mask`` if given.
+        Ordering uses the configured ranking score; returned ratings are the
+        full model predictions, clipped.  The rules and tie-breaking are
+        identical to :meth:`recommend`, restricted to ``candidate_mask`` if
+        given.
         """
+        users = np.asarray(user_indices, dtype=np.int64)
         ranked = recommend_batch_dense(
-            lambda users: self.score_batch(users, raw_scores=True),
-            user_indices, n, self.n_items,
+            self.ranking_score_batch,
+            users, n, self.n_items,
             excludes, self._train_user_items, candidate_mask,
         )
-        return [clip_ranked(rows) for rows in ranked]
+        full_scores = self.score_batch(users, raw_scores=True)
+        return [
+            clip_ranked([(item, full_scores[row_idx, item])
+                         for item, _ in rows])
+            for row_idx, rows in enumerate(ranked)
+        ]

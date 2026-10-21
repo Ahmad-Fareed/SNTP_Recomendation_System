@@ -1,0 +1,315 @@
+{
+  "selection_split": "validation",
+  "test_used_for_selection": false,
+  "ranking_sample_users": 500,
+  "ranking_sample_seed": 42,
+  "k": 10,
+  "ranking_score": "mu + b_u + w * b_i + p_u . q_i",
+  "selection_rule": "Maximise validation nDCG@10; use validation MAE/RMSE and unique-item coverage as secondary diagnostics. Test metrics were not consulted.",
+  "pre_correction_baseline": {
+    "config": {
+      "name": "submitted_d10_e6",
+      "n_factors": 10,
+      "lr": 0.005,
+      "reg": 0.02,
+      "n_epochs": 6,
+      "ranking_item_bias_weight": 1.0
+    },
+    "validation_prediction": {
+      "mae": 0.835401,
+      "rmse": 1.068991,
+      "n_evaluated": 100603
+    },
+    "validation_ranking": {
+      "ndcg_at_k": 0.0026608,
+      "coverage": 0.0001073,
+      "n_unique_items": 15
+    }
+  },
+  "coverage_diagnosis": {
+    "method": "500 seeded validation users; full and decomposed MF scores",
+    "bias_share_of_within_user_score_variance": 0.99913,
+    "latent_share_of_within_user_score_variance": 0.000851,
+    "global_item_bias_range": [
+      -2.7568,
+      0.8267
+    ],
+    "mean_within_user_latent_range": 0.02748,
+    "mean_pairwise_top10_intersection": 9.5501,
+    "mean_pairwise_top10_jaccard": 0.91869,
+    "top10_overlap_with_bias_only_ranking": 0.9786,
+    "top10_overlap_with_latent_only_ranking": 0.0,
+    "most_common_item": 16353,
+    "most_common_item_user_count": 500,
+    "conclusion": "The full-score MF list was almost entirely the global item-bias ordering; latent personalisation did not reach the top 10. Random tie-breaking noise would not address this, so the ranking score was made configurable and item bias was down-weighted for ordering only."
+  },
+  "candidates": [
+    {
+      "config": {
+        "name": "d20_e20",
+        "n_factors": 20,
+        "lr": 0.005,
+        "reg": 0.02,
+        "n_epochs": 20
+      },
+      "validation_prediction": {
+        "mae": 0.8103527498077384,
+        "rmse": 1.047825580786381,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      "validation_ranking": {
+        "0.0": {
+          "precision_at_k": 0.0018,
+          "recall_at_k": 0.007253246753246753,
+          "f1_at_k": 0.002407211209842789,
+          "hit_rate_at_k": 0.018,
+          "ndcg_at_k": 0.004755180479753287,
+          "coverage": 0.0026835935822754012,
+          "n_unique_items": 375,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 2.16
+        },
+        "0.1": {
+          "precision_at_k": 0.0006000000000000001,
+          "recall_at_k": 0.0036666666666666666,
+          "f1_at_k": 0.0010046620046620046,
+          "hit_rate_at_k": 0.006,
+          "ndcg_at_k": 0.0020173618857665535,
+          "coverage": 0.0004651562209277362,
+          "n_unique_items": 65,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 2.7
+        },
+        "0.25": {
+          "precision_at_k": 0.0006000000000000001,
+          "recall_at_k": 0.0036666666666666666,
+          "f1_at_k": 0.0010046620046620046,
+          "hit_rate_at_k": 0.006,
+          "ndcg_at_k": 0.0019762307778401636,
+          "coverage": 0.00018606248837109448,
+          "n_unique_items": 26,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 2.02
+        },
+        "0.5": {
+          "precision_at_k": 0.0006000000000000001,
+          "recall_at_k": 0.0036666666666666666,
+          "f1_at_k": 0.0010046620046620046,
+          "hit_rate_at_k": 0.006,
+          "ndcg_at_k": 0.0019762307778401636,
+          "coverage": 0.00011449999284375045,
+          "n_unique_items": 16,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.79
+        },
+        "0.75": {
+          "precision_at_k": 0.0006000000000000001,
+          "recall_at_k": 0.0036666666666666666,
+          "f1_at_k": 0.0010046620046620046,
+          "hit_rate_at_k": 0.006,
+          "ndcg_at_k": 0.0019762307778401636,
+          "coverage": 0.00011449999284375045,
+          "n_unique_items": 16,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 2.0
+        },
+        "1.0": {
+          "precision_at_k": 0.0006000000000000001,
+          "recall_at_k": 0.0036666666666666666,
+          "f1_at_k": 0.0010046620046620046,
+          "hit_rate_at_k": 0.006,
+          "ndcg_at_k": 0.0019762307778401636,
+          "coverage": 0.00010734374329101605,
+          "n_unique_items": 15,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 2.08
+        }
+      }
+    },
+    {
+      "config": {
+        "name": "d10_lr01_reg005_e20",
+        "n_factors": 10,
+        "lr": 0.01,
+        "reg": 0.005,
+        "n_epochs": 20
+      },
+      "validation_prediction": {
+        "mae": 0.8042746400538101,
+        "rmse": 1.0510949687746933,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      "validation_ranking": {
+        "0.0": {
+          "precision_at_k": 0.0018,
+          "recall_at_k": 0.008201190476190477,
+          "f1_at_k": 0.002461421911421912,
+          "hit_rate_at_k": 0.018,
+          "ndcg_at_k": 0.005144907345762922,
+          "coverage": 0.0013382186663613333,
+          "n_unique_items": 187,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.73
+        },
+        "0.1": {
+          "precision_at_k": 0.002,
+          "recall_at_k": 0.007201190476190476,
+          "f1_at_k": 0.0026554778554778555,
+          "hit_rate_at_k": 0.018,
+          "ndcg_at_k": 0.00512389207389133,
+          "coverage": 0.001810531136841804,
+          "n_unique_items": 253,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.71
+        },
+        "0.25": {
+          "precision_at_k": 0.0018000000000000002,
+          "recall_at_k": 0.005701190476190477,
+          "f1_at_k": 0.002196270396270396,
+          "hit_rate_at_k": 0.016,
+          "ndcg_at_k": 0.004330861153037409,
+          "coverage": 0.0015529061529433654,
+          "n_unique_items": 217,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.77
+        },
+        "0.5": {
+          "precision_at_k": 0.0018,
+          "recall_at_k": 0.00605515873015873,
+          "f1_at_k": 0.0021406426906426905,
+          "hit_rate_at_k": 0.018,
+          "ndcg_at_k": 0.004273402276376125,
+          "coverage": 0.0009660936896191443,
+          "n_unique_items": 135,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.74
+        },
+        "0.75": {
+          "precision_at_k": 0.0012000000000000001,
+          "recall_at_k": 0.003787301587301587,
+          "f1_at_k": 0.0014564935064935068,
+          "hit_rate_at_k": 0.012,
+          "ndcg_at_k": 0.0017296565474487807,
+          "coverage": 0.0006583749588515651,
+          "n_unique_items": 92,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.7
+        },
+        "1.0": {
+          "precision_at_k": 0.001,
+          "recall_at_k": 0.003587301587301587,
+          "f1_at_k": 0.0012564935064935064,
+          "hit_rate_at_k": 0.01,
+          "ndcg_at_k": 0.0015048662827985568,
+          "coverage": 0.00047946872003320497,
+          "n_unique_items": 67,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.77
+        }
+      }
+    },
+    {
+      "config": {
+        "name": "d20_lr01_reg005_e20",
+        "n_factors": 20,
+        "lr": 0.01,
+        "reg": 0.005,
+        "n_epochs": 20
+      },
+      "validation_prediction": {
+        "mae": 0.8033680195127346,
+        "rmse": 1.0492926061679961,
+        "n_evaluated": 100603,
+        "n_skipped": 0
+      },
+      "validation_ranking": {
+        "0.0": {
+          "precision_at_k": 0.0022,
+          "recall_at_k": 0.00938181818181818,
+          "f1_at_k": 0.0032006660006660007,
+          "hit_rate_at_k": 0.022,
+          "ndcg_at_k": 0.0068915557955233995,
+          "coverage": 0.0014527186592050837,
+          "n_unique_items": 203,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.94
+        },
+        "0.05": {
+          "precision_at_k": 0.0022,
+          "recall_at_k": 0.00938181818181818,
+          "f1_at_k": 0.0032006660006660007,
+          "hit_rate_at_k": 0.022,
+          "ndcg_at_k": 0.007113648540030689,
+          "coverage": 0.001989437375660164,
+          "n_unique_items": 278,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.95
+        },
+        "0.1": {
+          "precision_at_k": 0.002,
+          "recall_at_k": 0.007381818181818181,
+          "f1_at_k": 0.0028370296370296374,
+          "hit_rate_at_k": 0.02,
+          "ndcg_at_k": 0.006409087201863991,
+          "coverage": 0.0019178748801328199,
+          "n_unique_items": 268,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.84
+        },
+        "0.15": {
+          "precision_at_k": 0.0026000000000000007,
+          "recall_at_k": 0.009142929292929291,
+          "f1_at_k": 0.0034990786990786987,
+          "hit_rate_at_k": 0.026,
+          "ndcg_at_k": 0.0062303742392199,
+          "coverage": 0.001774749889078132,
+          "n_unique_items": 248,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.79
+        },
+        "0.2": {
+          "precision_at_k": 0.0022,
+          "recall_at_k": 0.00640959595959596,
+          "f1_at_k": 0.002843134643134643,
+          "hit_rate_at_k": 0.022,
+          "ndcg_at_k": 0.005155706618961936,
+          "coverage": 0.0016387811475761782,
+          "n_unique_items": 229,
+          "n_users_evaluated": 500,
+          "eval_time_seconds": 1.84
+        }
+      }
+    }
+  ],
+  "selected": {
+    "config": {
+      "name": "d20_lr01_reg005_e20",
+      "n_factors": 20,
+      "lr": 0.01,
+      "reg": 0.005,
+      "n_epochs": 20,
+      "ranking_item_bias_weight": 0.05
+    },
+    "validation_prediction": {
+      "mae": 0.8033680195127346,
+      "rmse": 1.0492926061679961,
+      "n_evaluated": 100603,
+      "n_skipped": 0
+    },
+    "validation_ranking_beta_0.05": {
+      "precision_at_k": 0.0022,
+      "recall_at_k": 0.00938181818181818,
+      "f1_at_k": 0.0032006660006660007,
+      "hit_rate_at_k": 0.022,
+      "ndcg_at_k": 0.007113648540030689,
+      "coverage": 0.001989437375660164,
+      "n_unique_items": 278,
+      "n_users_evaluated": 500,
+      "eval_time_seconds": 1.95
+    }
+  },
+  "runtime_seconds_offline_sweep": 427.73,
+  "note": "Offline model-selection evidence. This validation sweep is not part of the measured fast-demo runtime in timings.json."
+}

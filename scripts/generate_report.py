@@ -305,6 +305,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     data_summary = metrics["data_summary"]
     split_info = metrics["split_info"]
     config = metrics["config"]
+    selection = metrics.get("selection")
 
     r2_icf = r2["item_based_cf"]
     r2_mf = r2["matrix_factorization"]
@@ -366,11 +367,13 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "the dataset contains no adoption timestamps."
     )
     p(
-        "The measured fast-demo wall-clock runtime was "
-        f"<b>{num(timings['total_seconds'], 1)} s</b> "
-        f"(~{timings['total_seconds']/60:.1f} min), including data loading, model "
-        "fitting, all experiment stages, and result serialization. The larger "
-        "full-scale configuration was not executed; no full-scale result is claimed."
+        "The measured fast-demo CLI wall-clock runtime was "
+        f"<b>{num(timings.get('wall_clock_seconds', timings['total_seconds']), 2)} s</b> "
+        f"(~{timings.get('wall_clock_seconds', timings['total_seconds'])/60:.1f} min); "
+        f"the stage-timing sum is {num(timings['total_seconds'], 2)} s. This includes "
+        "data loading, model fitting, all experiment stages, and result "
+        "serialization. The larger full-scale configuration was not executed; no "
+        "full-scale result is claimed."
     )
     add(PageBreak())
 
@@ -427,8 +430,9 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "The strongest measured result is that matrix factorization and the "
         "trust-aware social model substantially outperform item-based CF on rating "
         "error. The social model is best on test MAE/RMSE and on all top-K ranking "
-        "metrics in this run. Rankings are ordered by unclipped model scores; only "
-        "the reported predicted ratings are clipped to [1, 5]. Influence "
+        "metrics in this run. Rankings are ordered by unclipped ordering scores "
+        "(MF down-weights the global item-bias term for ordering); only the "
+        "reported predicted ratings are clipped to [1, 5]. Influence "
         "maximization does <b>not</b> show greedy superiority: on the restricted "
         "top-degree candidate pool, degree centrality wins at budgets 3 and 5, and "
         "the paired greedy−degree difference at budget 5 is negative. Group-strategy "
@@ -444,7 +448,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     )
     rows = [
         ["1. Data", "Parse ratings/trust, validate, split, represent", f"{data_summary['n_users']:,} users; {split_info['train_size']:,}/{split_info['val_size']:,}/{split_info['test_size']:,} split"],
-        ["2. Recommenders", "Item-based CF and MF; top-K; raw-score ordering", f"MF test MAE {num(r2_mf['prediction']['mae'], 4)}, RMSE {num(r2_mf['prediction']['rmse'], 4)}"],
+        ["2. Recommenders", "Item-based CF and MF; top-K; bias-weighted ordering", f"MF test MAE {num(r2_mf['prediction']['mae'], 4)}, RMSE {num(r2_mf['prediction']['rmse'], 4)}"],
         ["3. Trust-aware", "Social blend; λ selected on validation", f"λ={r3['best_lambda']:.1f}; test MAE {num(r3_best['prediction']['mae'], 4)}"],
         ["4. Diffusion", "ICM, SIR, preference-aware; rare + moderate targets; controlled network null", f"p=0.05 rare canonical {num(r4_can_05['mean_adopters'], 0)}; moderate {num(r4['target_popularity_comparison']['moderate']['icm_canonical']['p=0.05']['summary']['mean_adopters'], 0)}"],
         ["5. Influence", "Random/degree/greedy; shared pool and seeds", "Degree best at budgets 3 and 5"],
@@ -532,8 +536,8 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     p(
         "Item-based CF uses cosine similarity between item interaction vectors, "
         "at most 20 neighbours, and at least 2 co-rated items. Matrix factorization "
-        "uses 10 latent factors, learning rate 0.005, L2 regularization 0.02, "
-        "6 epochs, and seed 42. Both are fitted on the training split. MF tracks "
+        "uses 20 latent factors, learning rate 0.01, L2 regularization 0.005, "
+        "20 epochs, and seed 42. Both are fitted on the training split. MF tracks "
         "which users and items have at least one training observation; untrained "
         "rows have zero bias and zero latent factors, so the fallback is μ+b_i for "
         "an untrained user with a trained item, μ+b_u for a trained user with an "
@@ -542,7 +546,9 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     )
     p(
         "Top-K excludes the user's training items and ranks the remaining catalogue. "
-        "Items are ordered by the <b>unclipped</b> prediction score; only the "
+        "Item-based CF items are ordered by the <b>unclipped</b> prediction score. "
+        "MF ordering uses the configured ranking score: the full prediction with "
+        "the global item-bias term weighted by 0.05. In both cases only the "
         "predicted rating shown with a returned item is clipped to [1, 5]. This "
         "prevents artificial ties at 5.0 from replacing confidence ordering with "
         "item-ID ordering. For item-based CF an item with no stored neighbours is "
@@ -552,6 +558,31 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         "MAE/RMSE use all test ratings. Unobserved items are not treated as "
         "negative examples."
     )
+    if selection:
+        diag = selection["coverage_diagnosis"]
+        pre = selection["pre_correction_baseline"]
+        chosen = selection["selected"]
+        chosen_rank = chosen["validation_ranking_beta_0.05"]
+        p(
+            "<b>Coverage diagnosis and validation selection.</b> The pre-correction "
+            "full-score MF ranking was dominated by the global item-bias component: "
+            f"{diag['bias_share_of_within_user_score_variance']*100:.2f}% of "
+            "within-user score variance, and "
+            f"{diag['top10_overlap_with_bias_only_ranking']*100:.1f}% of top-10 "
+            "positions were shared with a bias-only ranking. This was not random "
+            "tie-breaking, so ranking noise was not added. Instead, item bias was "
+            "down-weighted only for ordering; prediction error still uses the full "
+            "model. A bounded validation sweep (500 seeded users) compared factor "
+            "counts and learning rates. The selected configuration uses 20 factors, "
+            "learning rate 0.01, regularization 0.005, 20 epochs, and item-bias "
+            "weight 0.05. On validation it achieved MAE "
+            f"{num(chosen['validation_prediction']['mae'], 4)}, RMSE "
+            f"{num(chosen['validation_prediction']['rmse'], 4)}, nDCG@10 "
+            f"{num(chosen_rank['ndcg_at_k'], 5)}, and "
+            f"{chosen_rank['n_unique_items']} unique items, versus "
+            f"{pre['validation_ranking']['n_unique_items']} before the correction. "
+            "The test split was not used for selection."
+        )
     rows = []
     for key, label in (("item_based_cf", "Item-based CF"), ("matrix_factorization", "Matrix factorization")):
         m = r2[key]
@@ -565,7 +596,14 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         ])
     add(table(["Model", "MAE", "RMSE", "P@10", "R@10", "F1@10", "HR@10", "nDCG@10", "Coverage"],
               rows, [30 * mm, 17 * mm, 17 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 17 * mm, 18 * mm], font_size=7.0))
-    caption("Table 3. Test rating and top-10 ranking metrics. MF is much better on error; both have low absolute ranking metrics on this sparse catalogue.")
+    caption(
+        "Table 3. Test rating and top-10 ranking metrics. MF is much better on "
+        "error. The bias-corrected MF list contains "
+        f"{r2_mf['ranking']['n_unique_items']} unique items across the 500-user "
+        f"ranking sample, versus {r2_icf['ranking']['n_unique_items']:,} for "
+        "item-based CF; absolute top-K accuracy remains low on this sparse "
+        "catalogue."
+    )
     def fig_r2(fig_obj):
         ax = fig_obj.add_subplot(111)
         labels = ["Item-based CF", "MF"]
@@ -582,12 +620,19 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     fig(fig_r2, "Figure 1. Test MAE and RMSE for the two baselines. MF reduces both errors substantially.",
         name="fig01_test_error.png")
     h2("4.2 Behaviour and popularity slices")
+    behavior = r2["behavior_analysis"]
+    item_pop = r2["item_popularity_analysis"]
     p(
         "MF is consistently better than item-based CF on short, medium, and long "
         "user histories and on rare, moderate, and popular item groups. The largest "
-        "gap is on moderate-popularity items: item-based CF MAE 1.2514 vs MF 0.8433. "
-        "Item-based CF is not better on the rare-item group; its MAE is 0.9443 vs "
-        "MF 0.8301. The complete slices are in <font face='Courier'>requirement_2_results.json</font>."
+        "gap is on moderate-popularity items: item-based CF MAE "
+        f"{num(item_pop['moderate_6_20']['item_based_cf']['mae'], 4)} vs MF "
+        f"{num(item_pop['moderate_6_20']['matrix_factorization']['mae'], 4)}. "
+        "Item-based CF is not better on the rare-item group; its MAE is "
+        f"{num(item_pop['rare_1_5']['item_based_cf']['mae'], 4)} vs MF "
+        f"{num(item_pop['rare_1_5']['matrix_factorization']['mae'], 4)}. "
+        "The complete slices are in "
+        "<font face='Courier'>requirement_2_results.json</font>."
     )
     p(
         "Interpretation: MF's low-rank structure handles sparse users and items "
@@ -626,7 +671,7 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     p(
         f"Sparse users (1–5 ratings, {r3['sparse_users_analysis']['n_sparse_users']:,} users) "
         f"improve from MAE {num(r3['sparse_users_analysis']['baseline']['mae'], 5)} "
-        f"to {num(r3['sparse_users_analysis']['social']['mae'], 5)} at λ=0.3. "
+        f"to {num(r3['sparse_users_analysis']['social']['mae'], 5)} at λ={r3['best_lambda']:.1f}. "
         f"The trust-vs-similarity comparison sampled "
         f"{r3['trust_vs_similarity_comparison']['n_sampled_users']} users "
         f"({r3['trust_vs_similarity_comparison']['n_test_ratings']} test ratings): "
@@ -971,15 +1016,26 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     add(table(["Strategy", "Mean satisfaction", "Mean min", "Mean range", "Mean spread", "Spread std"], rows,
               [38 * mm, 31 * mm, 27 * mm, 28 * mm, 27 * mm, 28 * mm], font_size=7.2))
     caption("Table 11. Group strategy outcomes across three groups. Satisfaction differences are small; spread variability is large.")
+    r6_summary = r6["summary"]
+    r6_analysis = r6["analysis"]
+    best_mean = r6_analysis["best_strategy_by_mean_satisfaction"]
+    best_min = r6_analysis["best_strategy_by_min_satisfaction"]
+    best_spread = r6_analysis["best_strategy_by_simulated_spread"]
+    means = [s["avg_mean_satisfaction"] for s in r6_summary.values()]
+    mins = [s["avg_min_satisfaction"] for s in r6_summary.values()]
+    max_std = max(s["avg_diffusion_std"] for s in r6_summary.values())
     p(
-        "The average strategy has the highest mean and minimum satisfaction, while "
-        "least misery has the highest mean simulated spread. The differences are "
-        "tiny: mean satisfaction 4.827 vs 4.825 vs 4.815, and minimum satisfaction "
-        "4.656 vs 4.656 vs 4.633. The spread standard deviation (~195–200) is much "
-        "larger than the between-strategy mean difference (~5). One group's "
-        "cascade was 4 adopters in one simulation and ~1,171–1,199 in the other, "
-        "depending on the seed; that single path dominates the average. These data "
-        "do not support a strong “group strategy trade-off” claim."
+        f"The {best_mean.replace('_', ' ')} strategy has the highest mean and "
+        f"minimum satisfaction; {best_spread.replace('_', ' ')} has the highest "
+        "mean simulated spread. The differences are tiny: mean satisfaction "
+        + " vs ".join(num(s["avg_mean_satisfaction"], 3) for s in r6_summary.values())
+        + ", and minimum satisfaction "
+        + " vs ".join(num(s["avg_min_satisfaction"], 3) for s in r6_summary.values())
+        + ". The spread standard deviation (up to "
+        f"{num(max_std, 1)}) is much larger than the between-strategy mean "
+        f"difference ({num(max(means) - min(means), 3)}). At least one group's "
+        "cascade is dominated by a single simulation path. These data do not "
+        "support a strong group-strategy trade-off claim."
     )
     h2("8.1 Item-level comparison and ties")
     p(
@@ -1005,11 +1061,11 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     bullet("<b>Precision@10, Recall@10, HitRate@10, nDCG@10:</b> standard per-user definitions, averaged over users. A user with no relevant held-out item contributes defined zeros for the ranking average.")
     bullet("<b>F1@10:</b> mean of per-user F1 values, not the harmonic mean of aggregate precision and recall.")
     bullet("<b>Coverage:</b> unique recommended items / full 139,738-item catalogue over the evaluated user sample. It is a sample-scope coverage, not a platform-wide estimate.")
-    bullet("<b>Diversity:</b> mean pairwise 1−cosine of training-interaction item feature vectors within each list, on a bounded deterministic list sample. It is feature diversity, not category diversity.")
+    bullet("<b>Diversity:</b> mean pairwise 1−cosine of training-interaction item feature vectors within each list. The evaluated list set may itself be a seeded ranking-user sample; <font face='Courier'>diversity_is_sampled</font>, <font face='Courier'>diversity_sample_seed</font>, and <font face='Courier'>diversity_sampling_scope</font> record the actual scope. It is feature diversity, not category diversity.")
     bullet("No accuracy classification metric is reported: with only held-out positives and no observed negatives, a confusion-matrix accuracy would be misleading.")
     h2("9.2 Observed evaluation")
     rows = []
-    labels = {"item_based_cf": "Item-based CF", "matrix_factorization": "MF", "social_recommender": "Social (λ=0.3)"}
+    labels = {"item_based_cf": "Item-based CF", "matrix_factorization": "MF", "social_recommender": f"Social (lambda={r3['best_lambda']:.1f})"}
     for key in ("item_based_cf", "matrix_factorization", "social_recommender"):
         m = r7["observed"]["models"][key]
         pe, rk = m["prediction_error"], m["ranking"]
@@ -1020,31 +1076,74 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
                      num(rk["diversity"], 4)])
     add(table(["Model", "MAE", "RMSE", "P@10", "R@10", "F1@10", "HR@10", "nDCG@10", "Coverage", "Diversity"],
               rows, [26 * mm, 15 * mm, 15 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 16 * mm, 16 * mm, 16 * mm], font_size=6.8))
-    caption("Table 12. Observed test metrics (500 seeded users for ranking; all test ratings for MAE/RMSE). Social is best on error and ranking; ICF has the broadest coverage.")
     r7_models = r7["observed"]["models"]
+    best_error_key = min(r7_models, key=lambda k: r7_models[k]["prediction_error"]["rmse"])
+    best_ndcg_key = max(r7_models, key=lambda k: r7_models[k]["ranking"]["ndcg_at_k"])
+    best_cov_key = max(r7_models, key=lambda k: r7_models[k]["ranking"]["coverage"])
+    if best_error_key == best_ndcg_key:
+        caption(
+            "Table 12. Observed test metrics (500 seeded users for ranking; all "
+            "test ratings for MAE/RMSE). "
+            f"{labels[best_error_key]} has both the lowest RMSE and the highest "
+            f"nDCG@10; {labels[best_cov_key]} has the broadest coverage."
+        )
+        lead = (
+            f"{labels[best_error_key]} has the lowest observed RMSE ("
+            f"{num(r7_models[best_error_key]['prediction_error']['rmse'], 4)}) and "
+            f"the highest nDCG@10 ("
+            f"{num(r7_models[best_ndcg_key]['ranking']['ndcg_at_k'], 5)}). "
+        )
+    else:
+        caption(
+            "Table 12. Observed test metrics (500 seeded users for ranking; all "
+            "test ratings for MAE/RMSE). "
+            f"{labels[best_error_key]} has the lowest RMSE, "
+            f"{labels[best_ndcg_key]} the highest nDCG@10, and "
+            f"{labels[best_cov_key]} the broadest coverage."
+        )
+        lead = (
+            f"{labels[best_error_key]} has the lowest observed RMSE ("
+            f"{num(r7_models[best_error_key]['prediction_error']['rmse'], 4)}) and "
+            f"{labels[best_ndcg_key]} the highest nDCG@10 ("
+            f"{num(r7_models[best_ndcg_key]['ranking']['ndcg_at_k'], 5)}). "
+        )
     p(
-        "The social model is best on observed MAE, RMSE, precision, recall, F1, hit "
-        "rate, and nDCG in this run. Item-based CF has the broadest coverage "
-        f"({num(r7_models['item_based_cf']['ranking']['coverage'], 4)}) while its "
-        f"ranking accuracy is lower; MF coverage is "
-        f"{num(r7_models['matrix_factorization']['ranking']['coverage'], 4)}. "
-        "The coverage/accuracy trade-off is reported, not hidden. Feature diversity "
+        lead
+        + f"{labels[best_cov_key]} has the broadest coverage ("
+        f"{num(r7_models[best_cov_key]['ranking']['coverage'], 5)}); "
+        "the coverage/accuracy trade-off is reported, not hidden. Feature diversity "
         f"is {num(r7_models['matrix_factorization']['ranking']['diversity'], 4)} for "
         f"MF, {num(r7_models['social_recommender']['ranking']['diversity'], 4)} for "
         f"social, and {num(r7_models['item_based_cf']['ranking']['diversity'], 4)} "
         "for item-based CF; it is not category diversity."
     )
+    mf_rank_meta = r7_models["matrix_factorization"]["evaluation_metadata"]
+    p(
+        "Diversity metadata now describes the lists actually evaluated: "
+        f"{mf_rank_meta['diversity_n_lists']} lists, "
+        f"<font face='Courier'>diversity_is_sampled={str(mf_rank_meta['diversity_is_sampled']).lower()}</font>, "
+        f"seed <font face='Courier'>{mf_rank_meta['diversity_sample_seed']}</font>, "
+        f"scope <font face='Courier'>{mf_rank_meta['diversity_sampling_scope']}</font>. "
+        "The flag is true because the 500 lists come from the seeded ranking-user "
+        "sample even though all 500 were used; the earlier false/null flag "
+        "described only the internal list cap and was incorrect for that scope."
+    )
     h2("9.3 Separate simulated interaction")
+    spread = r7['tradeoff_analysis']['simulated_spread_ranking']
+    best_spread_key = max(spread, key=spread.get)
+    agree = best_spread_key == best_ndcg_key
     p(
         "The simulated interaction retains the original rare training-selected "
         "target item and common seeds; it is not an observed adoption forecast. "
         "Mean adopters are "
-        f"ICF {num(r7['tradeoff_analysis']['simulated_spread_ranking']['item_based_cf'], 1)}, "
-        f"MF {num(r7['tradeoff_analysis']['simulated_spread_ranking']['matrix_factorization'], 1)}, "
-        f"social {num(r7['tradeoff_analysis']['simulated_spread_ranking']['social_recommender'], 1)}. "
-        "The highest simulated spread and the highest observed nDCG agree on the "
-        "social model in this run, but the two quantities answer different "
-        "questions. The report does not merge them into one score."
+        f"ICF {num(spread['item_based_cf'], 1)}, "
+        f"MF {num(spread['matrix_factorization'], 1)}, "
+        f"social {num(spread['social_recommender'], 1)}. "
+        f"The highest simulated spread is {labels[best_spread_key]}; the highest "
+        f"observed nDCG is {labels[best_ndcg_key]}. "
+        + ("The two quantities agree in this run, " if agree else
+           "The two quantities do not agree in this run, ")
+        + "but they answer different questions and are not merged into one score."
     )
 
     # ---------------- R8 ----------------
@@ -1103,15 +1202,33 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax.legend(lines + lines2, labels_ + labels2, frameon=False, loc="lower left")
         ax.grid(alpha=0.25)
-    fig(fig_r8, "Figure 6. Threshold intervention. The 0.8 threshold collapses simulated spread; the proxy change is simulator-side, not observed satisfaction.",
+    intervention_rows = list(r8["intervention"]["results"].values())
+    eligible_cuts = [
+        row for row in intervention_rows
+        if row["threshold"] > 0
+        and (row.get("relative_to_baseline", {}).get("adopter_satisfaction_change", -1) >= 0)
+    ]
+    best_cut = max(
+        eligible_cuts,
+        key=lambda row: -row["relative_to_baseline"]["spread_change_pct"],
+    )
+    fig(fig_r8, f"Figure 6. Threshold intervention. The {best_cut['threshold']:.1f} threshold gives the largest simulated spread reduction among non-negative proxy changes; the proxy is simulator-side, not observed satisfaction.",
         height=72 * mm, name="fig06_intervention.png")
+    best_cut_rel = best_cut["relative_to_baseline"]
+    t08 = next((r for r in intervention_rows if abs(r["threshold"] - 0.8) < 1e-9), None)
     p(
         "The honest reading: this intervention can strongly limit simulated "
         "diffusion at a high threshold, but the effect is not monotone and the "
-        "proxy is not observed post-intervention satisfaction. The 0.8 row is the "
-        "largest measured spread reduction among thresholds with a non-negative "
-        "proxy change; the 0.9 row shows that over-filtering can also reduce the "
-        "proxy. No online randomized experiment was run."
+        "proxy is not observed post-intervention satisfaction. The largest "
+        "measured spread reduction among thresholds with a non-negative proxy "
+        f"change is threshold {best_cut['threshold']:.1f}: "
+        f"{num(best_cut_rel['spread_change_pct'], 2)}% spread change with "
+        f"{num(best_cut_rel['adopter_satisfaction_change'], 4)} proxy change. "
+        + (f"Threshold 0.8 changes spread by "
+           f"{num(t08['relative_to_baseline']['spread_change_pct'], 2)}% and the "
+           f"proxy by {num(t08['relative_to_baseline']['adopter_satisfaction_change'], 4)}. "
+           if t08 else "")
+        + "No online randomized experiment was run."
     )
     h2("10.2 CELF optimization")
     celf = r8["celf_optimization"]["comparison"]
@@ -1196,12 +1313,13 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     h1("11. Verification, tests, and reproducibility")
     h2("11.1 Automated tests")
     p(
-        "The latest full local run was <b>92 passed</b> with "
+        "The latest full local run was <b>94 passed</b> in about 1.7 s with "
         "<font face='Courier'>python -m pytest -q</font> after installing "
         "<font face='Courier'>requirements-dev.txt</font>. The regression coverage "
         "is explicit:"
     )
-    bullet("Ranking preserves raw-score order and clips only reported ratings; batch and single-user paths agree.")
+    bullet("Ranking separates the ordering score from the reported full prediction; batch and single-user paths agree, and the item-bias ranking weight changes order without changing the reported rating.")
+    bullet("Diversity metadata propagates both ranking-user and list-sampling scope, including the correct is-sampled flag and seed.")
     bullet("Item-based unsupported-item fallback uses training-only user mean, then global training mean.")
     bullet("MF cold starts use μ+b_i, μ+b_u, or μ and never random initial factors.")
     bullet("Moderate (6–20) and rare (1) target bands, deterministic seed-set generation, and training-only target selection.")
@@ -1225,7 +1343,11 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     h2("11.3 Runtime and seeds")
     rows = [[s["stage"], num(s["seconds"], 2)] for s in timings["stages"]]
     add(table(["Stage", "Seconds"], rows, [140 * mm, 30 * mm], font_size=7.0))
-    caption(f"Table 18. Stage timings from the submitted run. Total CLI wall clock: {num(timings['total_seconds'], 1)} s.")
+    caption(
+        f"Table 18. Stage timings from the submitted run. Stage sum: "
+        f"{num(timings['total_seconds'], 2)} s; external CLI wall clock: "
+        f"{num(timings.get('wall_clock_seconds', timings['total_seconds']), 2)} s."
+    )
     p(
         "Config: <font face='Courier'>configs/fast_demo.yaml</font> (resolved copy in "
         "<font face='Courier'>results/fast_demo/experiment_config.json</font>). "
@@ -1243,26 +1365,27 @@ def story(metrics: dict[str, Any], args: argparse.Namespace) -> list[Any]:
     h1("12. Limitations and conclusions")
     h2("12.1 Limitations")
     bullet("<b>Full-scale run not executed.</b> The full config uses the full graph, 20 simulations, larger candidate pools, and larger budgets; estimated cost is many hours. No full-scale number is claimed.")
-    bullet("<b>Fast-demo scope.</b> Diffusion/influence/group/intervention use a 2-hop ego subgraph (9,883 users); R5 uses a top-15 out-degree pool. The demo also uses smaller model budgets than the full config (ICF 20 neighbours vs 50; MF 6 epochs vs 20). These are bounded, deterministic scopes, not random full-graph samples.")
+    bullet("<b>Fast-demo scope.</b> Diffusion/influence/group/intervention use a 2-hop ego subgraph (9,883 users); R5 uses a top-15 out-degree pool. The demo also uses a smaller ICF neighbourhood than the full config (20 vs 50); MF uses 20 factors/20 epochs with the learning-rate, regularization, and bias-corrected ranking setting selected on validation. These are bounded, deterministic scopes, not random full-graph samples.")
     bullet("<b>Monte Carlo noise.</b> R4 uses 3 simulations; R5 uses 2 evaluation simulations and 3 random trials; R6 uses 2 per item; R8 CELF uses 2. Heavy tails make small mean differences unstable.")
     bullet("<b>R5 does not show greedy superiority.</b> Degree wins at budgets 3 and 5; the paired greedy−degree difference at budget 5 is negative. The dense graph is near saturation (~47% of active users), compressing differences.")
-    bullet("<b>R6 differences are small.</b> Satisfaction ranges 4.815–4.827; spread is dominated by one rare cascade. Candidate items are only the union of strategy top items.")
-    bullet("<b>R7 is sample-based.</b> Ranking uses 500 users, coverage/diversity are list-sample properties, and unobserved items are not negatives. The simulated interaction uses the retained rare target; Part 4 separately adds a moderate 6–20-rating target.")
+    bullet(f"<b>R6 differences are small.</b> Mean satisfaction ranges {min(means):.3f}–{max(means):.3f}; spread is dominated by one rare cascade. Candidate items are only the union of strategy top items.")
+    bullet("<b>R7 is sample-based.</b> Ranking uses 500 users from a seeded eligible-user sample (seed 42); coverage/diversity are list-sample properties. Because the 500 lists are themselves sampled users, the corrected diversity metadata reports is_sampled=true with that seed even though all 500 lists were used. Unobserved items are not negatives. The simulated interaction uses the retained rare target; Part 4 separately adds a moderate 6–20-rating target.")
     bullet("<b>R8 is a simulator intervention.</b> No online experiment; the rating proxy is predicted, not observed; the threshold cliff is a property of the affinity distribution; CELF's single-run speedup is noisy and seeds differ. The deterministic check is the correctness evidence.")
     bullet("<b>Cold starts are fallback-only.</b> MF deliberately returns μ+b_i, μ+b_u, or μ for untrained rows; it does not learn a representation for users/items absent from training.")
-    bullet("<b>Ranking scores are not rating estimates.</b> Raw scores order the lists; returned ratings are clipped. Raw order is only meaningful within the model and catalogue used here.")
+    bullet("<b>Ranking score is not the reported rating.</b> MF orders by mu + b_u + 0.05*b_i + p_u.q_i; the returned value and MAE/RMSE use mu + b_u + b_i + p_u.q_i, clipped. Down-weighting item bias improves catalogue reach but is a validation-selected heuristic, not a learned objective.")
     bullet("<b>Network null is not fully mixed.</b> The degree-preserving directed randomization is one seeded rearrangement, not an exhaustive null distribution; three simulations per setting limit precision.")
     bullet("<b>Memory measurement.</b> tracemalloc undercounts NumPy native buffers; RSS deltas are near zero because arrays are already resident.")
     bullet("<b>Runtime variability.</b> Prior runs of the same fast config varied with machine load; the saved stage timings are one run and should not be treated as a benchmark.")
+    bullet("<b>Selection sweep is offline.</b> The validation candidates in <font face='Courier'>model_selection.json</font> were measured separately from the reported fast-demo runtime; the sweep is not part of the end-to-end stage timings.")
     h2("12.2 Conclusions by requirement")
     conclusions = [
         ("Data/split", "The parser is clean (zero malformed/duplicate/out-of-range ratings) and the 70/15/15 split is reproducible with per-user coverage."),
-        ("Baselines", "MF clearly beats item-based CF on rating error; both have low absolute top-K metrics on this sparse catalogue. MF is better across user-history and item-popularity slices."),
+        ("Baselines", f"MF clearly beats item-based CF on rating error; its bias-corrected list uses {r2_mf['ranking']['n_unique_items']} unique items across the 500-user sample versus {r2_icf['ranking']['n_unique_items']} for ICF. Absolute top-K accuracy remains low on this sparse catalogue. MF is better across user-history and item-popularity slices."),
         ("Trust-aware", f"Validation-selected λ={r3['best_lambda']:.1f} gives test MAE {num(r3_best['prediction']['mae'], 5)}. The trust-vs-similarity comparison is descriptive and small."),
         ("Diffusion", f"On the retained rare target, canonical ICM at p=0.05 has mean {num(r4_can_05['mean_adopters'], 0)}; preference-aware adoption is {num(r4_pref_05['mean_adopters'], 0)} at the same seeds. The added moderate target is reported separately. Results are simulation-only and heavy-tailed at low p."),
         ("Influence", "On a shared top-degree pool, degree is best at budgets 3 and 5; greedy is best only at budget 1. There is no evidence for greedy superiority, and the pool restriction is material."),
-        ("Groups", "Average has the best predicted mean/min satisfaction; least misery has the largest (but noisy) simulated spread. Differences are small; one rare cascade dominates spread."),
-        ("Evaluation", "Social is best on observed error and ranking; ICF gives the broadest coverage; feature diversity is reported separately. Observed and simulated outcomes are not merged."),
+        ("Groups", f"{best_mean.replace('_', ' ')} has the best predicted mean/min satisfaction; {best_spread.replace('_', ' ')} has the largest mean simulated spread. Differences are small, and one rare cascade dominates spread."),
+        ("Evaluation", f"{labels[best_ndcg_key]} has the highest observed nDCG and {labels[best_cov_key]} the broadest coverage; feature diversity is reported separately. Observed and simulated outcomes are not merged."),
         ("Intervention/optimization", f"Threshold 0.8 changes simulated spread by {num(t08_spread, 2)}% with a {num(t08_proxy, 4)} proxy change. CELF uses {num(celf_cmp['evaluation_reduction_pct'], 2)}% fewer evaluations and is {num(celf_cmp['speedup_factor'], 2)}× faster in the noisy run, with different seeds; a deterministic check matches standard greedy exactly."),
     ]
     rows = [[a, b] for a, b in conclusions]
@@ -1323,6 +1446,10 @@ def main() -> None:
         "r6": load_json(results / "requirement_6_results.json"),
         "r7": load_json(results / "requirement_7_results.json"),
         "r8": load_json(results / "requirement_8_results.json"),
+        "selection": (
+            load_json(results / "model_selection.json")
+            if (results / "model_selection.json").exists() else None
+        ),
     }
 
     output = Path(args.output)

@@ -381,6 +381,11 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
       least once in the evaluated recommendation lists.
     * Diversity is the mean pairwise cosine distance between item feature
       vectors, computed on a bounded deterministic sample of lists.
+    * ``diversity_is_sampled`` / ``diversity_sample_seed`` describe the lists
+      actually evaluated.  If ranking itself used a seeded user sample, the
+      diversity estimate is also sample-scoped even when every evaluated list
+      was used; ``diversity_sampling_scope`` records which sampling stage
+      applied.
     """
     from collections import defaultdict
 
@@ -487,6 +492,7 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
     mean_r = float(np.mean(recalls)) if recalls else float("nan")
     mean_f1 = float(np.mean(f1_scores)) if f1_scores else float("nan")
     n_catalog = len(item_to_idx) if item_to_idx is not None else 0
+    unique_recommended = {item for rec in all_recs for item in rec}
     cov = recommendation_coverage(all_recs, n_catalog)
 
     if item_features is not None:
@@ -494,9 +500,30 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
             all_recs, item_features, max_users=max_diversity_users,
             seed=diversity_seed,
         )
+        # ``mean_intra_list_diversity`` only knows about its own optional
+        # subsample.  The lists it receives may already be a seeded sample of
+        # eligible evaluation users.  Propagate that scope so the reported
+        # flag/seed describe the users whose lists were actually evaluated.
+        diversity_lists_sampled = bool(diversity["is_sampled"])
+        if diversity_lists_sampled and is_sampled:
+            diversity_scope = "diversity_subsample_of_ranking_user_sample"
+            diversity_seed_reported = diversity["sample_seed"]
+        elif diversity_lists_sampled:
+            diversity_scope = "diversity_subsample_of_all_evaluated_lists"
+            diversity_seed_reported = diversity["sample_seed"]
+        elif is_sampled:
+            diversity_scope = "ranking_user_sample"
+            diversity_seed_reported = sample_seed
+        else:
+            diversity_scope = "all_eligible_users"
+            diversity_seed_reported = None
+        diversity_is_sampled = bool(diversity_lists_sampled or is_sampled)
     else:
         diversity = {"mean_diversity": None, "n_lists": 0,
                      "is_sampled": False, "sample_seed": None}
+        diversity_is_sampled = False
+        diversity_seed_reported = None
+        diversity_scope = None
 
     return {
         "precision_at_k": mean_p,
@@ -505,14 +532,16 @@ def evaluate_ranking(recommender, test_ratings, train_user_items,
         "hit_rate_at_k": float(np.mean(hit_rates)) if hit_rates else float("nan"),
         "ndcg_at_k": float(np.mean(ndcgs)) if ndcgs else float("nan"),
         "coverage": cov,
+        "n_unique_items": len(unique_recommended),
         "diversity": diversity["mean_diversity"],
         "diversity_method": (
             "mean pairwise 1-cosine(item feature vectors) over recommendation lists"
             if item_features is not None else None
         ),
         "diversity_n_lists": diversity["n_lists"],
-        "diversity_is_sampled": diversity["is_sampled"],
-        "diversity_sample_seed": diversity["sample_seed"],
+        "diversity_is_sampled": bool(diversity_is_sampled),
+        "diversity_sample_seed": diversity_seed_reported,
+        "diversity_sampling_scope": diversity_scope,
         "catalog_size": int(n_catalog),
         "k": k,
         "relevance_threshold": relevance_threshold,

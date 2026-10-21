@@ -2,104 +2,106 @@
   "stages": [
     {
       "stage": "R1: load dataset",
-      "seconds": 6.68
+      "seconds": 7.92
     },
     {
       "stage": "R1: train/val/test split",
-      "seconds": 0.58
+      "seconds": 0.59
     },
     {
       "stage": "R2: item-based CF fit",
-      "seconds": 50.14
+      "seconds": 62.05
     },
     {
       "stage": "R2: item-based CF MAE/RMSE",
-      "seconds": 0.24
+      "seconds": 0.49
     },
     {
       "stage": "R2: item-based CF top-K ranking",
-      "seconds": 0.9
+      "seconds": 1.49
     },
     {
       "stage": "R2: MF training",
-      "seconds": 40.7
+      "seconds": 168.19
     },
     {
       "stage": "R2: MF MAE/RMSE",
-      "seconds": 0.1
+      "seconds": 0.16
     },
     {
       "stage": "R2: MF top-K ranking",
-      "seconds": 2.48
+      "seconds": 4.1
     },
     {
       "stage": "R2: behaviour/popularity group analysis",
-      "seconds": 1.0
+      "seconds": 1.19
     },
     {
       "stage": "R3: baseline evaluation",
-      "seconds": 2.81
+      "seconds": 3.84
     },
     {
       "stage": "R3: validation lambda selection",
-      "seconds": 2.68
+      "seconds": 2.84
     },
     {
       "stage": "R3: social lambda=0.0",
-      "seconds": 4.38
+      "seconds": 7.09
     },
     {
       "stage": "R3: social lambda=0.3",
-      "seconds": 4.75
+      "seconds": 7.18
     },
     {
       "stage": "R3: social lambda=0.5",
-      "seconds": 4.03
+      "seconds": 6.81
     },
     {
       "stage": "R3: sparse-user analysis",
-      "seconds": 0.63
+      "seconds": 0.78
     },
     {
       "stage": "R3: trust vs similar-user comparison",
-      "seconds": 2.06
+      "seconds": 2.67
     },
     {
       "stage": "R4: ICM canonical",
-      "seconds": 0.26
-    },
-    {
-      "stage": "R4: network-structure comparison",
-      "seconds": 3.39
-    },
-    {
-      "stage": "R4: ICM preference-aware",
-      "seconds": 0.11
-    },
-    {
-      "stage": "R4: SIR",
-      "seconds": 8.56
-    },
-    {
-      "stage": "R4: moderate-popularity target",
       "seconds": 0.25
     },
     {
+      "stage": "R4: network-structure comparison",
+      "seconds": 3.95
+    },
+    {
+      "stage": "R4: ICM preference-aware",
+      "seconds": 0.09
+    },
+    {
+      "stage": "R4: SIR",
+      "seconds": 7.57
+    },
+    {
+      "stage": "R4: moderate-popularity target",
+      "seconds": 0.19
+    },
+    {
       "stage": "R5: Influence Maximization",
-      "seconds": 27.73
+      "seconds": 17.34
     },
     {
       "stage": "R6: Group Recommendation",
-      "seconds": 2.05
+      "seconds": 1.94
     },
     {
       "stage": "R7: Comprehensive Evaluation",
-      "seconds": 10.12
+      "seconds": 13.42
     },
     {
       "stage": "R8: Intervention & Cost Analysis",
-      "seconds": 83.91
+      "seconds": 88.34
     }
   ],
-  "total_seconds": 264.53
+  "total_seconds": 415.43,
+  "wall_clock_seconds": 416.84,
+  "wall_clock_note": "External PowerShell stopwatch around the CLI; stage-timing sum is total_seconds."
 }

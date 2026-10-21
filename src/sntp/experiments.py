@@ -253,6 +253,7 @@ def run_requirement_2(dataset, train, val, test, config: dict, results_dir: Path
         reg=mf_config.get("reg", 0.02),
         n_epochs=mf_config.get("n_epochs", 20),
         seed=mf_config.get("seed", 42),
+        ranking_item_bias_weight=mf_config.get("ranking_item_bias_weight", 1.0),
     )
     t0 = time.time()
     ts = _stage_start("R2: MF training")
@@ -2262,8 +2263,8 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
             ),
             "diversity_definition": (
                 "mean pairwise 1-cosine(item training-interaction feature "
-                "vectors) within each recommendation list, on a bounded "
-                "deterministic list sample"
+                "vectors) within each recommendation list; the list scope and "
+                "sampling stage are reported per model"
             ),
             "accuracy_note": (
                 "No accuracy classification metric is reported: relevance is "
@@ -2315,6 +2316,7 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
                 "hit_rate_at_k": round(rank_res["hit_rate_at_k"], 5),
                 "ndcg_at_k": round(rank_res["ndcg_at_k"], 5),
                 "coverage": round(rank_res["coverage"], 5),
+                "n_unique_items": rank_res["n_unique_items"],
                 "diversity": (
                     round(rank_res["diversity"], 5)
                     if rank_res["diversity"] is not None else None
@@ -2329,6 +2331,7 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
                 "diversity_n_lists": rank_res["diversity_n_lists"],
                 "diversity_is_sampled": rank_res["diversity_is_sampled"],
                 "diversity_sample_seed": rank_res["diversity_sample_seed"],
+                "diversity_sampling_scope": rank_res["diversity_sampling_scope"],
                 "eval_time_seconds": rank_res["eval_time_seconds"],
             },
         }

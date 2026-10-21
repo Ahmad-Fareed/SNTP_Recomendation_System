@@ -28,6 +28,9 @@ matrix_factorization:
   reg: 0.02
   n_epochs: 20
   seed: 42
+  # Full-scale ordering uses the same bias-corrected score family as the fast
+  # demo; prediction error still uses the full model.  This config is not run.
+  ranking_item_bias_weight: 0.05
 
 social:
   lambda_values: [0.0, 0.1, 0.3, 0.5, 0.7]

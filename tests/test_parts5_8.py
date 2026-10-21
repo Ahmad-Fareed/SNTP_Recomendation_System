@@ -134,6 +134,16 @@ class TestNewMetrics(unittest.TestCase):
             (1.0 + (1.0 - 1.0 / np.sqrt(2.0))) / 2.0,
             places=7,
         )
+        self.assertFalse(summary["is_sampled"])
+        self.assertIsNone(summary["sample_seed"])
+
+        sampled = mean_intra_list_diversity(
+            [[0, 1], [0, 2], [0, 1], [0, 2]], features,
+            max_users=2, seed=7,
+        )
+        self.assertEqual(sampled["n_lists"], 2)
+        self.assertTrue(sampled["is_sampled"])
+        self.assertEqual(sampled["sample_seed"], 7)
 
 
 class TestInfluenceMaximization(unittest.TestCase):

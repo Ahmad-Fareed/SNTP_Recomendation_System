@@ -50,6 +50,9 @@ def _baseline_scores(baseline, user_idx: int, n_items: int,
     the baseline's unclipped ranking score; baselines that do not expose that
     option are used through their normal (clipped) public score.
     """
+    if raw_scores and hasattr(baseline, "ranking_score_all"):
+        values = baseline.ranking_score_all(user_idx)
+        return np.asarray(values, dtype=np.float64).copy()
     if hasattr(baseline, "score_all"):
         try:
             values = baseline.score_all(user_idx, raw_scores=raw_scores)
@@ -66,6 +69,9 @@ def _baseline_scores(baseline, user_idx: int, n_items: int,
 def _baseline_scores_batch(baseline, users: np.ndarray, n_items: int,
                            raw_scores: bool = False) -> np.ndarray:
     """Dense baseline scores for many users (NaN where unavailable)."""
+    if raw_scores and hasattr(baseline, "ranking_score_batch"):
+        values = baseline.ranking_score_batch(users)
+        return np.asarray(values, dtype=np.float64)
     if hasattr(baseline, "score_batch"):
         try:
             values = baseline.score_batch(users, raw_scores=raw_scores)
@@ -240,15 +246,24 @@ class _NeighborBlendMixin:
                         candidate_mask: np.ndarray | None = None):
         """Top-n for many users (vectorized; same rules as ``recommend``).
 
-        Items are ordered by raw blended scores and reported ratings are
-        clipped to [1, 5] after selection.
+        Items are ordered by the configured raw blended scores; reported
+        ratings are the full social predictions clipped to [1, 5] after
+        selection.
         """
+        users = np.asarray(user_indices, dtype=np.int64)
         ranked = recommend_batch_dense(
-            lambda users: self.score_batch(users, raw_scores=True),
-            user_indices, n, self.baseline.n_items,
+            lambda us: self.score_batch(us, raw_scores=True),
+            users, n, self.baseline.n_items,
             excludes, self._train_user_items, candidate_mask,
         )
-        return [clip_ranked(rows) for rows in ranked]
+        # Ordering may use a bias-corrected baseline score; the returned value
+        # is the full social prediction, clipped to the rating scale.
+        full_scores = self.score_batch(users, raw_scores=False)
+        return [
+            clip_ranked([(item, full_scores[row_idx, item])
+                         for item, _ in rows])
+            for row_idx, rows in enumerate(ranked)
+        ]
 
 
 class SocialRecommender(_NeighborBlendMixin):
@@ -350,17 +365,19 @@ class SocialRecommender(_NeighborBlendMixin):
                   exclude: set | None = None) -> list[tuple[int, float]]:
         """Recommend top-n items using social-enhanced predictions.
 
-        Every catalogue item is scored; items are ordered by raw blended
-        scores and reported ratings are clipped to [1, 5].  Ties are broken by
-        ascending item index.
+        Every catalogue item is scored; items are ordered by the configured
+        raw blended scores.  The reported value is the full social prediction,
+        clipped to [1, 5].  Ties are broken by ascending item index.
         """
         if exclude is None:
             exclude = set()
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        ranked = top_n_from_scores(self.score_all(user_idx, raw_scores=True), n, exclude)
-        return clip_ranked(ranked)
+        ranked = top_n_from_scores(
+            self.score_all(user_idx, raw_scores=True), n, exclude)
+        full_scores = self.score_all(user_idx, raw_scores=False)
+        return clip_ranked([(item, full_scores[item]) for item, _ in ranked])
 
 
 class SimilarUserRecommender(_NeighborBlendMixin):
@@ -491,5 +508,7 @@ class SimilarUserRecommender(_NeighborBlendMixin):
         train_items = self._train_user_items.get(user_idx, set())
         exclude = exclude | train_items
 
-        ranked = top_n_from_scores(self.score_all(user_idx, raw_scores=True), n, exclude)
-        return clip_ranked(ranked)
+        ranked = top_n_from_scores(
+            self.score_all(user_idx, raw_scores=True), n, exclude)
+        full_scores = self.score_all(user_idx, raw_scores=False)
+        return clip_ranked([(item, full_scores[item]) for item, _ in ranked])

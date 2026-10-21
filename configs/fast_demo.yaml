@@ -1,7 +1,8 @@
 # Fast demonstration configuration
-# Bounded end-to-end validation run; measured ~9 minutes on the development
-# machine, with substantial machine-load variation. It is not a toy test set:
-# it uses the full rating/trust files and a 2-hop ego subgraph for diffusion.
+# Bounded end-to-end validation run; measured 416.84 s (6.9 min) wall clock on
+# the development machine, with substantial machine-load variation. It is not a
+# toy test set: it uses the full rating/trust files and a 2-hop ego subgraph for
+# diffusion.
 
 data_dir: "Assignment"
 results_dir: "results/fast_demo"
@@ -25,11 +26,16 @@ item_based_cf:
   min_corated: 2
 
 matrix_factorization:
-  n_factors: 10
-  lr: 0.005
-  reg: 0.02
-  n_epochs: 6
+  n_factors: 20
+  lr: 0.01
+  reg: 0.005
+  n_epochs: 20
   seed: 42
+  # Weight on the global item-bias term when ordering top-N lists.  The full
+  # model (weight 1.0) remains the source of MAE/RMSE and reported ratings.
+  # 0.05 was selected on validation; it retains a small popularity prior while
+  # allowing latent factors to drive most of the ranking.
+  ranking_item_bias_weight: 0.05
 
 social:
   lambda_values: [0.0, 0.3, 0.5]

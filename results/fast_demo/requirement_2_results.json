@@ -9,7 +9,7 @@
       "rmse": 1.4518533894553975,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 50.14
+      "train_time_seconds": 62.05
     },
     "ranking": {
       "precision_at_k": 0.0008,
@@ -18,11 +18,13 @@
       "hit_rate_at_k": 0.008,
       "ndcg_at_k": 0.0016276962064234034,
       "coverage": 0.01714637392835163,
+      "n_unique_items": 2396,
       "diversity": null,
       "diversity_method": null,
       "diversity_n_lists": 0,
       "diversity_is_sampled": false,
       "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
       "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
@@ -32,36 +34,39 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 0.45
+      "eval_time_seconds": 0.81
     }
   },
   "matrix_factorization": {
     "config": {
-      "n_factors": 10,
-      "lr": 0.005,
-      "reg": 0.02,
-      "n_epochs": 6,
-      "seed": 42
+      "n_factors": 20,
+      "lr": 0.01,
+      "reg": 0.005,
+      "n_epochs": 20,
+      "seed": 42,
+      "ranking_item_bias_weight": 0.05
     },
     "prediction": {
-      "mae": 0.8324465410109816,
-      "rmse": 1.0677133302205797,
+      "mae": 0.8025488126900152,
+      "rmse": 1.0509920108484267,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 40.7
+      "train_time_seconds": 168.19
     },
     "ranking": {
-      "precision_at_k": 0.002,
-      "recall_at_k": 0.0051465811965811965,
-      "f1_at_k": 0.0023785949138580716,
-      "hit_rate_at_k": 0.02,
-      "ndcg_at_k": 0.0034334684623216986,
-      "coverage": 0.00011449999284375045,
+      "precision_at_k": 0.0014000000000000002,
+      "recall_at_k": 0.005525,
+      "f1_at_k": 0.0020222444222444225,
+      "hit_rate_at_k": 0.014,
+      "ndcg_at_k": 0.0031406926286559338,
+      "coverage": 0.001967968627001961,
+      "n_unique_items": 275,
       "diversity": null,
       "diversity_method": null,
       "diversity_n_lists": 0,
       "diversity_is_sampled": false,
       "diversity_sample_seed": null,
+      "diversity_sampling_scope": null,
       "catalog_size": 139738,
       "k": 10,
       "relevance_threshold": 4,
@@ -71,38 +76,108 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 2.4
+      "eval_time_seconds": 3.97
     },
     "epoch_history": [
       {
         "epoch": 1,
-        "train_rmse": 1.15867,
-        "val_rmse": 1.12896
+        "train_rmse": 1.13825,
+        "val_rmse": 1.10358
       },
       {
         "epoch": 2,
-        "train_rmse": 1.10745,
-        "val_rmse": 1.10383
+        "train_rmse": 1.07677,
+        "val_rmse": 1.0803
       },
       {
         "epoch": 3,
-        "train_rmse": 1.08131,
-        "val_rmse": 1.08992
+        "train_rmse": 1.04804,
+        "val_rmse": 1.06889
       },
       {
         "epoch": 4,
-        "train_rmse": 1.06329,
-        "val_rmse": 1.08058
+        "train_rmse": 1.02855,
+        "val_rmse": 1.06226
       },
       {
         "epoch": 5,
-        "train_rmse": 1.04945,
-        "val_rmse": 1.0739
+        "train_rmse": 1.01365,
+        "val_rmse": 1.0576
       },
       {
         "epoch": 6,
-        "train_rmse": 1.03816,
-        "val_rmse": 1.06906
+        "train_rmse": 1.00146,
+        "val_rmse": 1.05436
+      },
+      {
+        "epoch": 7,
+        "train_rmse": 0.99092,
+        "val_rmse": 1.05229
+      },
+      {
+        "epoch": 8,
+        "train_rmse": 0.98158,
+        "val_rmse": 1.05065
+      },
+      {
+        "epoch": 9,
+        "train_rmse": 0.97268,
+        "val_rmse": 1.04922
+      },
+      {
+        "epoch": 10,
+        "train_rmse": 0.964,
+        "val_rmse": 1.04849
+      },
+      {
+        "epoch": 11,
+        "train_rmse": 0.95507,
+        "val_rmse": 1.04808
+      },
+      {
+        "epoch": 12,
+        "train_rmse": 0.94603,
+        "val_rmse": 1.04739
+      },
+      {
+        "epoch": 13,
+        "train_rmse": 0.93691,
+        "val_rmse": 1.04716
+      },
+      {
+        "epoch": 14,
+        "train_rmse": 0.92747,
+        "val_rmse": 1.04699
+      },
+      {
+        "epoch": 15,
+        "train_rmse": 0.91732,
+        "val_rmse": 1.04703
+      },
+      {
+        "epoch": 16,
+        "train_rmse": 0.90632,
+        "val_rmse": 1.04747
+      },
+      {
+        "epoch": 17,
+        "train_rmse": 0.89449,
+        "val_rmse": 1.04791
+      },
+      {
+        "epoch": 18,
+        "train_rmse": 0.8818,
+        "val_rmse": 1.04854
+      },
+      {
+        "epoch": 19,
+        "train_rmse": 0.86836,
+        "val_rmse": 1.04967
+      },
+      {
+        "epoch": 20,
+        "train_rmse": 0.85442,
+        "val_rmse": 1.05111
       }
     ]
   },
@@ -117,8 +192,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8745438004088932,
-        "rmse": 1.109984770821643,
+        "mae": 0.8505474729023712,
+        "rmse": 1.0979129719958762,
         "n_evaluated": 10235,
         "n_skipped": 0
       }
@@ -133,8 +208,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8459340983070829,
-        "rmse": 1.081646623208807,
+        "mae": 0.8145873151650443,
+        "rmse": 1.0704612996262501,
         "n_evaluated": 29354,
         "n_skipped": 0
       }
@@ -149,8 +224,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8188858920449925,
-        "rmse": 1.0536317382979832,
+        "mae": 0.7886951413336625,
+        "rmse": 1.0333306016919714,
         "n_evaluated": 60969,
         "n_skipped": 0
       }
@@ -167,8 +242,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8301293290746722,
-        "rmse": 1.0680784093195719,
+        "mae": 0.7904397643811233,
+        "rmse": 1.022386278795094,
         "n_evaluated": 22809,
         "n_skipped": 0
       }
@@ -183,8 +258,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8433366319516027,
-        "rmse": 1.0731565325567916,
+        "mae": 0.7750681796834196,
+        "rmse": 1.0256657891529748,
         "n_evaluated": 21806,
         "n_skipped": 0
       }
@@ -199,8 +274,8 @@
         "n_skipped": 0
       },
       "matrix_factorization": {
-        "mae": 0.8347942286342004,
-        "rmse": 1.0706055168038306,
+        "mae": 0.8182555069792924,
+        "rmse": 1.0782778660421117,
         "n_evaluated": 41680,
         "n_skipped": 0
       }

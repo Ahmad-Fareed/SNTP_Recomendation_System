@@ -20,10 +20,12 @@ Selection semantics are identical everywhere:
     ``[(item_idx, score) for item_idx in range(n_items)]`` by ``-score``.
 
 The selection helpers do **not** clip or otherwise transform scores.  Callers
-must pass the model's raw ordering score (for rating models, the unclipped
-prediction) and may clip only the returned rating after selection.  Clipping
-before selection creates artificial ties at the rating bounds and destroys the
-within-bound ordering information.
+must pass the model's unclipped ordering score; for rating models this is
+normally the full prediction, but a configured ranking score may down-weight a
+global component while leaving prediction error on the full model.  Callers may
+clip only the reported rating after selection.  Clipping before selection
+creates artificial ties at the rating bounds and destroys the within-bound
+ordering information.
 """
 
 import numpy as np
