@@ -35,7 +35,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.26
+      "eval_time_seconds": 3.04
     }
   },
   "selection": {
@@ -97,7 +97,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 6.27
+      "eval_time_seconds": 5.9
     }
   },
   "social_lambda_0.3": {
@@ -130,7 +130,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 5.95
+      "eval_time_seconds": 5.68
     }
   },
   "social_lambda_0.5": {
@@ -163,7 +163,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 5.99
+      "eval_time_seconds": 5.65
     }
   },
   "sparse_users_analysis": {

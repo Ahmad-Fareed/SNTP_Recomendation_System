@@ -9,7 +9,7 @@
       "rmse": 1.4518533894553975,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 62.05
+      "train_time_seconds": 48.8
     },
     "ranking": {
       "precision_at_k": 0.0008,
@@ -34,7 +34,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 0.81
+      "eval_time_seconds": 0.46
     }
   },
   "matrix_factorization": {
@@ -51,7 +51,7 @@
       "rmse": 1.0509920108484267,
       "n_evaluated": 100558,
       "n_skipped": 0,
-      "train_time_seconds": 168.19
+      "train_time_seconds": 120.15
     },
     "ranking": {
       "precision_at_k": 0.0014000000000000002,
@@ -76,7 +76,7 @@
       "total_eligible_users": 25045,
       "is_sampled": true,
       "sample_seed": 42,
-      "eval_time_seconds": 3.97
+      "eval_time_seconds": 2.97
     },
     "epoch_history": [
       {

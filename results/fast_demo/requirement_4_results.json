@@ -31,7 +31,7 @@
     "n_train_raters_of_moderate_target": 9,
     "n_eligible_users_moderate_target": 9875,
     "seed_size": 5,
-    "n_simulations": 3,
+    "n_simulations": 10,
     "seed_sets": [
       [
         734,
@@ -53,15 +53,78 @@
         7018,
         7985,
         10792
+      ],
+      [
+        385,
+        5669,
+        6814,
+        7381,
+        41789
+      ],
+      [
+        1571,
+        1872,
+        2958,
+        10783,
+        25296
+      ],
+      [
+        1924,
+        6681,
+        7153,
+        8856,
+        24242
+      ],
+      [
+        634,
+        5395,
+        5595,
+        11806,
+        17399
+      ],
+      [
+        1593,
+        3108,
+        4970,
+        8366,
+        16488
+      ],
+      [
+        196,
+        2140,
+        10494,
+        10645,
+        11562
+      ],
+      [
+        664,
+        4190,
+        6424,
+        8673,
+        18907
       ]
     ],
     "simulation_seeds": [
       49,
       1049,
-      2049
+      2049,
+      3049,
+      4049,
+      5049,
+      6049,
+      7049,
+      8049,
+      9049
     ],
     "same_seed_sets_for_all_settings": true,
     "same_simulation_seeds_for_all_settings": true,
+    "common_random_numbers": {
+      "icm": "one per-edge activation threshold per trial, reused across seed sets, propagation probabilities, and both ICM variants",
+      "preference_aware_icm": "shares the per-edge exposure thresholds and adds one per-user adoption threshold per trial",
+      "sir": "one transmission threshold per (edge, round) and one recovery threshold per (user, round), reused across beta, gamma, and seed sets for each trial",
+      "not_claimed": "Thresholds are shared within a trial; separate trials are independent. Thresholds are not shared across different graphs because edge identities differ.",
+      "sir_randomness_generation_seconds": 1.7994
+    },
     "graph_info": {
       "type": "ego_subgraph",
       "center_user": 0,
@@ -82,47 +145,96 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_adopters": 9,
-          "n_rounds": 2,
-          "rounds_attempted": 3
+          "n_adopters": 13,
+          "n_rounds": 5,
+          "rounds_attempted": 6
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_adopters": 362,
-          "n_rounds": 25,
-          "rounds_attempted": 25
+          "n_adopters": 15,
+          "n_rounds": 5,
+          "rounds_attempted": 6
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
+          "n_adopters": 333,
+          "n_rounds": 25,
+          "rounds_attempted": 25
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_adopters": 9,
+          "n_rounds": 3,
+          "rounds_attempted": 4
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
           "n_adopters": 5,
           "n_rounds": 0,
           "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_adopters": 8,
+          "n_rounds": 2,
+          "rounds_attempted": 3
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_adopters": 5,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_adopters": 240,
+          "n_rounds": 15,
+          "rounds_attempted": 16
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_adopters": 5,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_adopters": 66,
+          "n_rounds": 14,
+          "rounds_attempted": 15
         }
       ],
       "summary": {
         "adopters": {
-          "n": 3,
-          "mean": 125.3333,
-          "std": 167.3566,
+          "n": 10,
+          "mean": 69.9,
+          "std": 111.6239,
           "min": 5.0,
-          "max": 362.0,
-          "coefficient_of_variation": 1.3353
+          "max": 333.0,
+          "coefficient_of_variation": 1.5969
         },
         "rounds": {
-          "n": 3,
-          "mean": 9.0,
-          "std": 11.3431,
+          "n": 10,
+          "mean": 6.9,
+          "std": 7.9555,
           "min": 0.0,
           "max": 25.0,
-          "coefficient_of_variation": 1.2603
+          "coefficient_of_variation": 1.153
         },
-        "mean_adopters": 125.3333,
-        "std_adopters": 167.3566,
-        "mean_rounds": 9.0
+        "mean_adopters": 69.9,
+        "std_adopters": 111.6239,
+        "mean_rounds": 6.9
       },
-      "runtime_seconds": 0.0222
+      "runtime_seconds": 0.0307
     },
     "p=0.05": {
       "propagation_prob": 0.05,
@@ -130,47 +242,96 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_adopters": 4712,
+          "n_adopters": 4670,
           "n_rounds": 11,
           "rounds_attempted": 12
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_adopters": 4682,
-          "n_rounds": 9,
-          "rounds_attempted": 10
+          "n_adopters": 4680,
+          "n_rounds": 11,
+          "rounds_attempted": 12
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
-          "n_adopters": 4659,
-          "n_rounds": 13,
-          "rounds_attempted": 14
+          "n_adopters": 4753,
+          "n_rounds": 9,
+          "rounds_attempted": 10
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_adopters": 4698,
+          "n_rounds": 10,
+          "rounds_attempted": 11
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_adopters": 4666,
+          "n_rounds": 10,
+          "rounds_attempted": 11
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_adopters": 4688,
+          "n_rounds": 15,
+          "rounds_attempted": 16
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_adopters": 4663,
+          "n_rounds": 10,
+          "rounds_attempted": 11
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_adopters": 4606,
+          "n_rounds": 12,
+          "rounds_attempted": 13
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_adopters": 4777,
+          "n_rounds": 12,
+          "rounds_attempted": 13
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_adopters": 4754,
+          "n_rounds": 10,
+          "rounds_attempted": 11
         }
       ],
       "summary": {
         "adopters": {
-          "n": 3,
-          "mean": 4684.3333,
-          "std": 21.7,
-          "min": 4659.0,
-          "max": 4712.0,
-          "coefficient_of_variation": 0.0046
+          "n": 10,
+          "mean": 4695.5,
+          "std": 49.2549,
+          "min": 4606.0,
+          "max": 4777.0,
+          "coefficient_of_variation": 0.0105
         },
         "rounds": {
-          "n": 3,
+          "n": 10,
           "mean": 11.0,
-          "std": 1.633,
+          "std": 1.6125,
           "min": 9.0,
-          "max": 13.0,
-          "coefficient_of_variation": 0.1485
+          "max": 15.0,
+          "coefficient_of_variation": 0.1466
         },
-        "mean_adopters": 4684.3333,
-        "std_adopters": 21.7,
+        "mean_adopters": 4695.5,
+        "std_adopters": 49.2549,
         "mean_rounds": 11.0
       },
-      "runtime_seconds": 0.2314
+      "runtime_seconds": 0.7072
     }
   },
   "icm_preference_aware": {
@@ -180,60 +341,116 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
+          "n_adopters": 12,
+          "n_exposed": 13,
+          "n_rounds": 5,
+          "rounds_attempted": 6
+        },
+        {
+          "simulation_index": 1,
+          "sim_seed": 1049,
           "n_adopters": 6,
           "n_exposed": 8,
           "n_rounds": 1,
           "rounds_attempted": 2
         },
         {
-          "simulation_index": 1,
-          "sim_seed": 1049,
-          "n_adopters": 7,
-          "n_exposed": 11,
-          "n_rounds": 2,
-          "rounds_attempted": 3
-        },
-        {
           "simulation_index": 2,
           "sim_seed": 2049,
+          "n_adopters": 11,
+          "n_exposed": 22,
+          "n_rounds": 4,
+          "rounds_attempted": 5
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_adopters": 8,
+          "n_exposed": 9,
+          "n_rounds": 3,
+          "rounds_attempted": 4
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
           "n_adopters": 5,
           "n_exposed": 5,
           "n_rounds": 0,
           "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_adopters": 5,
+          "n_exposed": 7,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_adopters": 5,
+          "n_exposed": 5,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_adopters": 10,
+          "n_exposed": 14,
+          "n_rounds": 5,
+          "rounds_attempted": 6
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_adopters": 5,
+          "n_exposed": 5,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_adopters": 26,
+          "n_exposed": 39,
+          "n_rounds": 8,
+          "rounds_attempted": 9
         }
       ],
       "summary": {
         "adopters": {
-          "n": 3,
-          "mean": 6.0,
-          "std": 0.8165,
+          "n": 10,
+          "mean": 9.3,
+          "std": 6.1327,
           "min": 5.0,
-          "max": 7.0,
-          "coefficient_of_variation": 0.1361
+          "max": 26.0,
+          "coefficient_of_variation": 0.6594
         },
         "exposed": {
-          "n": 3,
-          "mean": 8.0,
-          "std": 2.4495,
+          "n": 10,
+          "mean": 12.7,
+          "std": 10.1297,
           "min": 5.0,
-          "max": 11.0,
-          "coefficient_of_variation": 0.3062
+          "max": 39.0,
+          "coefficient_of_variation": 0.7976
         },
         "rounds": {
-          "n": 3,
-          "mean": 1.0,
-          "std": 0.8165,
+          "n": 10,
+          "mean": 2.6,
+          "std": 2.6907,
           "min": 0.0,
-          "max": 2.0,
-          "coefficient_of_variation": 0.8165
+          "max": 8.0,
+          "coefficient_of_variation": 1.0349
         },
-        "mean_adopters": 6.0,
-        "std_adopters": 0.8165,
-        "mean_exposed": 8.0,
-        "std_exposed": 2.4495,
-        "mean_rounds": 1.0
+        "mean_adopters": 9.3,
+        "std_adopters": 6.1327,
+        "mean_exposed": 12.7,
+        "std_exposed": 10.1297,
+        "mean_rounds": 2.6
       },
-      "runtime_seconds": 0.0019
+      "runtime_seconds": 0.0081
     },
     "p=0.05": {
       "propagation_prob": 0.05,
@@ -241,60 +458,116 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_adopters": 938,
-          "n_exposed": 2251,
-          "n_rounds": 14,
-          "rounds_attempted": 15
+          "n_adopters": 840,
+          "n_exposed": 2087,
+          "n_rounds": 12,
+          "rounds_attempted": 13
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_adopters": 906,
-          "n_exposed": 2232,
-          "n_rounds": 14,
-          "rounds_attempted": 15
+          "n_adopters": 621,
+          "n_exposed": 1603,
+          "n_rounds": 16,
+          "rounds_attempted": 17
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
+          "n_adopters": 890,
+          "n_exposed": 2094,
+          "n_rounds": 15,
+          "rounds_attempted": 16
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_adopters": 908,
+          "n_exposed": 2231,
+          "n_rounds": 16,
+          "rounds_attempted": 17
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_adopters": 785,
+          "n_exposed": 2013,
+          "n_rounds": 13,
+          "rounds_attempted": 14
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
           "n_adopters": 5,
-          "n_exposed": 7,
+          "n_exposed": 8,
           "n_rounds": 0,
           "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_adopters": 924,
+          "n_exposed": 2219,
+          "n_rounds": 13,
+          "rounds_attempted": 14
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_adopters": 942,
+          "n_exposed": 2366,
+          "n_rounds": 17,
+          "rounds_attempted": 18
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_adopters": 5,
+          "n_exposed": 6,
+          "n_rounds": 0,
+          "rounds_attempted": 1
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_adopters": 1023,
+          "n_exposed": 2456,
+          "n_rounds": 12,
+          "rounds_attempted": 13
         }
       ],
       "summary": {
         "adopters": {
-          "n": 3,
-          "mean": 616.3333,
-          "std": 432.4753,
+          "n": 10,
+          "mean": 694.3,
+          "std": 359.3361,
           "min": 5.0,
-          "max": 938.0,
-          "coefficient_of_variation": 0.7017
+          "max": 1023.0,
+          "coefficient_of_variation": 0.5176
         },
         "exposed": {
-          "n": 3,
-          "mean": 1496.6667,
-          "std": 1053.382,
-          "min": 7.0,
-          "max": 2251.0,
-          "coefficient_of_variation": 0.7038
+          "n": 10,
+          "mean": 1708.3,
+          "std": 878.1007,
+          "min": 6.0,
+          "max": 2456.0,
+          "coefficient_of_variation": 0.514
         },
         "rounds": {
-          "n": 3,
-          "mean": 9.3333,
-          "std": 6.5997,
+          "n": 10,
+          "mean": 11.4,
+          "std": 5.9363,
           "min": 0.0,
-          "max": 14.0,
-          "coefficient_of_variation": 0.7071
+          "max": 17.0,
+          "coefficient_of_variation": 0.5207
         },
-        "mean_adopters": 616.3333,
-        "std_adopters": 432.4753,
-        "mean_exposed": 1496.6667,
-        "std_exposed": 1053.382,
-        "mean_rounds": 9.3333
+        "mean_adopters": 694.3,
+        "std_adopters": 359.3361,
+        "mean_exposed": 1708.3,
+        "std_exposed": 878.1007,
+        "mean_rounds": 11.4
       },
-      "runtime_seconds": 0.0845
+      "runtime_seconds": 0.3279
     }
   },
   "sir": {
@@ -305,59 +578,136 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_ever_infected": 2807,
+          "n_ever_infected": 3288,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 7076,
-          "final_I": 2807,
+          "final_S": 6595,
+          "final_I": 3288,
           "final_R": 0
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_ever_infected": 3615,
+          "n_ever_infected": 2970,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 6268,
-          "final_I": 3615,
+          "final_S": 6913,
+          "final_I": 2970,
           "final_R": 0
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
-          "n_ever_infected": 837,
+          "n_ever_infected": 2456,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 9046,
-          "final_I": 837,
+          "final_S": 7427,
+          "final_I": 2456,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_ever_infected": 2623,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 7260,
+          "final_I": 2623,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_ever_infected": 2713,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 7170,
+          "final_I": 2713,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_ever_infected": 302,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 9581,
+          "final_I": 302,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_ever_infected": 2262,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 7621,
+          "final_I": 2262,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_ever_infected": 1630,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 8253,
+          "final_I": 1630,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_ever_infected": 915,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 8968,
+          "final_I": 915,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_ever_infected": 3558,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 6325,
+          "final_I": 3558,
           "final_R": 0
         }
       ],
       "summary": {
         "ever_infected": {
-          "n": 3,
-          "mean": 2419.6667,
-          "std": 1166.7166,
-          "min": 837.0,
-          "max": 3615.0,
-          "coefficient_of_variation": 0.4822
+          "n": 10,
+          "mean": 2271.7,
+          "std": 982.8228,
+          "min": 302.0,
+          "max": 3558.0,
+          "coefficient_of_variation": 0.4326
         },
         "rounds": {
-          "n": 3,
+          "n": 10,
           "mean": 25.0,
           "std": 0.0,
           "min": 25.0,
           "max": 25.0,
           "coefficient_of_variation": 0.0
         },
-        "mean_ever_infected": 2419.6667,
-        "std_ever_infected": 1166.7166,
+        "mean_ever_infected": 2271.7,
+        "std_ever_infected": 982.8228,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 2.7036
+      "runtime_seconds": 6.5796
     },
     "beta=0.01_gamma=0.2": {
       "transmission_prob": 0.01,
@@ -366,59 +716,136 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_ever_infected": 605,
-          "n_final_recovered": 320,
+          "n_ever_infected": 829,
+          "n_final_recovered": 479,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 9278,
-          "final_I": 285,
-          "final_R": 320
+          "final_S": 9054,
+          "final_I": 350,
+          "final_R": 479
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_ever_infected": 1027,
-          "n_final_recovered": 662,
-          "n_rounds": 25,
+          "n_ever_infected": 17,
+          "n_final_recovered": 14,
+          "n_rounds": 22,
           "rounds_attempted": 25,
-          "final_S": 8856,
-          "final_I": 365,
-          "final_R": 662
+          "final_S": 9866,
+          "final_I": 3,
+          "final_R": 14
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
-          "n_ever_infected": 6,
-          "n_final_recovered": 6,
-          "n_rounds": 3,
-          "rounds_attempted": 8,
-          "final_S": 9877,
+          "n_ever_infected": 5,
+          "n_final_recovered": 5,
+          "n_rounds": 0,
+          "rounds_attempted": 13,
+          "final_S": 9878,
           "final_I": 0,
-          "final_R": 6
+          "final_R": 5
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_ever_infected": 275,
+          "n_final_recovered": 170,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 9608,
+          "final_I": 105,
+          "final_R": 170
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_ever_infected": 11,
+          "n_final_recovered": 11,
+          "n_rounds": 10,
+          "rounds_attempted": 13,
+          "final_S": 9872,
+          "final_I": 0,
+          "final_R": 11
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_ever_infected": 9,
+          "n_final_recovered": 9,
+          "n_rounds": 12,
+          "rounds_attempted": 17,
+          "final_S": 9874,
+          "final_I": 0,
+          "final_R": 9
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_ever_infected": 8,
+          "n_final_recovered": 8,
+          "n_rounds": 6,
+          "rounds_attempted": 20,
+          "final_S": 9875,
+          "final_I": 0,
+          "final_R": 8
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_ever_infected": 83,
+          "n_final_recovered": 68,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 9800,
+          "final_I": 15,
+          "final_R": 68
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_ever_infected": 8,
+          "n_final_recovered": 8,
+          "n_rounds": 6,
+          "rounds_attempted": 10,
+          "final_S": 9875,
+          "final_I": 0,
+          "final_R": 8
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_ever_infected": 742,
+          "n_final_recovered": 442,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 9141,
+          "final_I": 300,
+          "final_R": 442
         }
       ],
       "summary": {
         "ever_infected": {
-          "n": 3,
-          "mean": 546.0,
-          "std": 418.9041,
-          "min": 6.0,
-          "max": 1027.0,
-          "coefficient_of_variation": 0.7672
+          "n": 10,
+          "mean": 198.7,
+          "std": 304.3265,
+          "min": 5.0,
+          "max": 829.0,
+          "coefficient_of_variation": 1.5316
         },
         "rounds": {
-          "n": 3,
-          "mean": 17.6667,
-          "std": 10.3709,
-          "min": 3.0,
+          "n": 10,
+          "mean": 15.6,
+          "std": 9.3081,
+          "min": 0.0,
           "max": 25.0,
-          "coefficient_of_variation": 0.587
+          "coefficient_of_variation": 0.5967
         },
-        "mean_ever_infected": 546.0,
-        "std_ever_infected": 418.9041,
-        "mean_rounds": 17.6667
+        "mean_ever_infected": 198.7,
+        "std_ever_infected": 304.3265,
+        "mean_rounds": 15.6
       },
-      "runtime_seconds": 0.444
+      "runtime_seconds": 0.59
     },
     "beta=0.05_gamma=0.0": {
       "transmission_prob": 0.05,
@@ -427,59 +854,136 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_ever_infected": 8261,
+          "n_ever_infected": 8328,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 1622,
-          "final_I": 8261,
+          "final_S": 1555,
+          "final_I": 8328,
           "final_R": 0
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_ever_infected": 8340,
+          "n_ever_infected": 8221,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 1543,
-          "final_I": 8340,
+          "final_S": 1662,
+          "final_I": 8221,
           "final_R": 0
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
-          "n_ever_infected": 8125,
+          "n_ever_infected": 8298,
           "n_final_recovered": 0,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 1758,
-          "final_I": 8125,
+          "final_S": 1585,
+          "final_I": 8298,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_ever_infected": 8347,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1536,
+          "final_I": 8347,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_ever_infected": 8377,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1506,
+          "final_I": 8377,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_ever_infected": 8192,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1691,
+          "final_I": 8192,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_ever_infected": 8345,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1538,
+          "final_I": 8345,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_ever_infected": 8220,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1663,
+          "final_I": 8220,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_ever_infected": 8060,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1823,
+          "final_I": 8060,
+          "final_R": 0
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_ever_infected": 8389,
+          "n_final_recovered": 0,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 1494,
+          "final_I": 8389,
           "final_R": 0
         }
       ],
       "summary": {
         "ever_infected": {
-          "n": 3,
-          "mean": 8242.0,
-          "std": 88.7956,
-          "min": 8125.0,
-          "max": 8340.0,
-          "coefficient_of_variation": 0.0108
+          "n": 10,
+          "mean": 8277.7,
+          "std": 97.8796,
+          "min": 8060.0,
+          "max": 8389.0,
+          "coefficient_of_variation": 0.0118
         },
         "rounds": {
-          "n": 3,
+          "n": 10,
           "mean": 25.0,
           "std": 0.0,
           "min": 25.0,
           "max": 25.0,
           "coefficient_of_variation": 0.0
         },
-        "mean_ever_infected": 8242.0,
-        "std_ever_infected": 88.7956,
+        "mean_ever_infected": 8277.7,
+        "std_ever_infected": 97.8796,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 2.9594
+      "runtime_seconds": 10.1804
     },
     "beta=0.05_gamma=0.2": {
       "transmission_prob": 0.05,
@@ -488,74 +992,151 @@
         {
           "simulation_index": 0,
           "sim_seed": 49,
-          "n_ever_infected": 6084,
-          "n_final_recovered": 5674,
+          "n_ever_infected": 6189,
+          "n_final_recovered": 5842,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 3799,
-          "final_I": 410,
-          "final_R": 5674
+          "final_S": 3694,
+          "final_I": 347,
+          "final_R": 5842
         },
         {
           "simulation_index": 1,
           "sim_seed": 1049,
-          "n_ever_infected": 6109,
-          "n_final_recovered": 5821,
+          "n_ever_infected": 6073,
+          "n_final_recovered": 5704,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 3774,
-          "final_I": 288,
-          "final_R": 5821
+          "final_S": 3810,
+          "final_I": 369,
+          "final_R": 5704
         },
         {
           "simulation_index": 2,
           "sim_seed": 2049,
-          "n_ever_infected": 6128,
-          "n_final_recovered": 5467,
+          "n_ever_infected": 6102,
+          "n_final_recovered": 5626,
           "n_rounds": 25,
           "rounds_attempted": 25,
-          "final_S": 3755,
-          "final_I": 661,
-          "final_R": 5467
+          "final_S": 3781,
+          "final_I": 476,
+          "final_R": 5626
+        },
+        {
+          "simulation_index": 3,
+          "sim_seed": 3049,
+          "n_ever_infected": 6190,
+          "n_final_recovered": 5866,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3693,
+          "final_I": 324,
+          "final_R": 5866
+        },
+        {
+          "simulation_index": 4,
+          "sim_seed": 4049,
+          "n_ever_infected": 6207,
+          "n_final_recovered": 5876,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3676,
+          "final_I": 331,
+          "final_R": 5876
+        },
+        {
+          "simulation_index": 5,
+          "sim_seed": 5049,
+          "n_ever_infected": 6011,
+          "n_final_recovered": 5582,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3872,
+          "final_I": 429,
+          "final_R": 5582
+        },
+        {
+          "simulation_index": 6,
+          "sim_seed": 6049,
+          "n_ever_infected": 6103,
+          "n_final_recovered": 5526,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3780,
+          "final_I": 577,
+          "final_R": 5526
+        },
+        {
+          "simulation_index": 7,
+          "sim_seed": 7049,
+          "n_ever_infected": 6224,
+          "n_final_recovered": 5825,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3659,
+          "final_I": 399,
+          "final_R": 5825
+        },
+        {
+          "simulation_index": 8,
+          "sim_seed": 8049,
+          "n_ever_infected": 6123,
+          "n_final_recovered": 5537,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3760,
+          "final_I": 586,
+          "final_R": 5537
+        },
+        {
+          "simulation_index": 9,
+          "sim_seed": 9049,
+          "n_ever_infected": 6112,
+          "n_final_recovered": 5824,
+          "n_rounds": 25,
+          "rounds_attempted": 25,
+          "final_S": 3771,
+          "final_I": 288,
+          "final_R": 5824
         }
       ],
       "summary": {
         "ever_infected": {
-          "n": 3,
-          "mean": 6107.0,
-          "std": 18.0185,
-          "min": 6084.0,
-          "max": 6128.0,
-          "coefficient_of_variation": 0.003
+          "n": 10,
+          "mean": 6133.4,
+          "std": 64.0519,
+          "min": 6011.0,
+          "max": 6224.0,
+          "coefficient_of_variation": 0.0104
         },
         "rounds": {
-          "n": 3,
+          "n": 10,
           "mean": 25.0,
           "std": 0.0,
           "min": 25.0,
           "max": 25.0,
           "coefficient_of_variation": 0.0
         },
-        "mean_ever_infected": 6107.0,
-        "std_ever_infected": 18.0185,
+        "mean_ever_infected": 6133.4,
+        "std_ever_infected": 64.0519,
         "mean_rounds": 25.0
       },
-      "runtime_seconds": 1.4656
+      "runtime_seconds": 4.9299
     }
   },
   "comparison": {
     "p=0.01": {
-      "canonical_mean_adopters": 125.3333,
-      "preference_aware_mean_adopters": 6.0,
-      "preference_minus_canonical": -119.333,
-      "preference_relative_change_pct": -95.21,
+      "canonical_mean_adopters": 69.9,
+      "preference_aware_mean_adopters": 9.3,
+      "preference_minus_canonical": -60.6,
+      "preference_relative_change_pct": -86.7,
       "note": "Both variants reuse the same seed sets and Monte Carlo seeds; differences are simulation outcomes, not observed adoptions."
     },
     "p=0.05": {
-      "canonical_mean_adopters": 4684.3333,
-      "preference_aware_mean_adopters": 616.3333,
-      "preference_minus_canonical": -4068.0,
-      "preference_relative_change_pct": -86.84,
+      "canonical_mean_adopters": 4695.5,
+      "preference_aware_mean_adopters": 694.3,
+      "preference_minus_canonical": -4001.2,
+      "preference_relative_change_pct": -85.21,
       "note": "Both variants reuse the same seed sets and Monte Carlo seeds; differences are simulation outcomes, not observed adoptions."
     }
   },
@@ -605,7 +1186,14 @@
       "same_simulation_seeds": [
         49,
         1049,
-        2049
+        2049,
+        3049,
+        4049,
+        5049,
+        6049,
+        7049,
+        8049,
+        9049
       ],
       "target_specific_seed_sets": true,
       "rare_seed_sets": [
@@ -629,6 +1217,55 @@
           7018,
           7985,
           10792
+        ],
+        [
+          385,
+          5669,
+          6814,
+          7381,
+          41789
+        ],
+        [
+          1571,
+          1872,
+          2958,
+          10783,
+          25296
+        ],
+        [
+          1924,
+          6681,
+          7153,
+          8856,
+          24242
+        ],
+        [
+          634,
+          5395,
+          5595,
+          11806,
+          17399
+        ],
+        [
+          1593,
+          3108,
+          4970,
+          8366,
+          16488
+        ],
+        [
+          196,
+          2140,
+          10494,
+          10645,
+          11562
+        ],
+        [
+          664,
+          4190,
+          6424,
+          8673,
+          18907
         ]
       ],
       "moderate_seed_sets": [
@@ -652,6 +1289,55 @@
           12716,
           20559,
           45609
+        ],
+        [
+          1426,
+          2142,
+          7247,
+          20245,
+          37485
+        ],
+        [
+          2911,
+          6294,
+          8407,
+          9232,
+          13074
+        ],
+        [
+          1033,
+          2277,
+          6491,
+          6661,
+          8718
+        ],
+        [
+          2364,
+          3137,
+          3546,
+          15410,
+          31036
+        ],
+        [
+          2723,
+          3243,
+          3329,
+          3829,
+          4977
+        ],
+        [
+          1776,
+          3398,
+          4735,
+          6806,
+          23082
+        ],
+        [
+          1261,
+          1503,
+          2252,
+          4481,
+          7101
         ]
       ],
       "n_rare_eligible_users": 9882,
@@ -692,6 +1378,55 @@
           7018,
           7985,
           10792
+        ],
+        [
+          385,
+          5669,
+          6814,
+          7381,
+          41789
+        ],
+        [
+          1571,
+          1872,
+          2958,
+          10783,
+          25296
+        ],
+        [
+          1924,
+          6681,
+          7153,
+          8856,
+          24242
+        ],
+        [
+          634,
+          5395,
+          5595,
+          11806,
+          17399
+        ],
+        [
+          1593,
+          3108,
+          4970,
+          8366,
+          16488
+        ],
+        [
+          196,
+          2140,
+          10494,
+          10645,
+          11562
+        ],
+        [
+          664,
+          4190,
+          6424,
+          8673,
+          18907
         ]
       ],
       "icm_canonical": {
@@ -701,47 +1436,96 @@
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 9,
-              "n_rounds": 2,
-              "rounds_attempted": 3
+              "n_adopters": 13,
+              "n_rounds": 5,
+              "rounds_attempted": 6
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 362,
-              "n_rounds": 25,
-              "rounds_attempted": 25
+              "n_adopters": 15,
+              "n_rounds": 5,
+              "rounds_attempted": 6
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 333,
+              "n_rounds": 25,
+              "rounds_attempted": 25
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 9,
+              "n_rounds": 3,
+              "rounds_attempted": 4
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
               "n_adopters": 5,
               "n_rounds": 0,
               "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 8,
+              "n_rounds": 2,
+              "rounds_attempted": 3
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 240,
+              "n_rounds": 15,
+              "rounds_attempted": 16
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 66,
+              "n_rounds": 14,
+              "rounds_attempted": 15
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 125.3333,
-              "std": 167.3566,
+              "n": 10,
+              "mean": 69.9,
+              "std": 111.6239,
               "min": 5.0,
-              "max": 362.0,
-              "coefficient_of_variation": 1.3353
+              "max": 333.0,
+              "coefficient_of_variation": 1.5969
             },
             "rounds": {
-              "n": 3,
-              "mean": 9.0,
-              "std": 11.3431,
+              "n": 10,
+              "mean": 6.9,
+              "std": 7.9555,
               "min": 0.0,
               "max": 25.0,
-              "coefficient_of_variation": 1.2603
+              "coefficient_of_variation": 1.153
             },
-            "mean_adopters": 125.3333,
-            "std_adopters": 167.3566,
-            "mean_rounds": 9.0
+            "mean_adopters": 69.9,
+            "std_adopters": 111.6239,
+            "mean_rounds": 6.9
           },
-          "runtime_seconds": 0.0222
+          "runtime_seconds": 0.0307
         },
         "p=0.05": {
           "propagation_prob": 0.05,
@@ -749,47 +1533,96 @@
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 4712,
+              "n_adopters": 4670,
               "n_rounds": 11,
               "rounds_attempted": 12
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 4682,
-              "n_rounds": 9,
-              "rounds_attempted": 10
+              "n_adopters": 4680,
+              "n_rounds": 11,
+              "rounds_attempted": 12
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
-              "n_adopters": 4659,
-              "n_rounds": 13,
-              "rounds_attempted": 14
+              "n_adopters": 4753,
+              "n_rounds": 9,
+              "rounds_attempted": 10
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 4698,
+              "n_rounds": 10,
+              "rounds_attempted": 11
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 4666,
+              "n_rounds": 10,
+              "rounds_attempted": 11
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 4688,
+              "n_rounds": 15,
+              "rounds_attempted": 16
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 4663,
+              "n_rounds": 10,
+              "rounds_attempted": 11
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 4606,
+              "n_rounds": 12,
+              "rounds_attempted": 13
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 4777,
+              "n_rounds": 12,
+              "rounds_attempted": 13
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 4754,
+              "n_rounds": 10,
+              "rounds_attempted": 11
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 4684.3333,
-              "std": 21.7,
-              "min": 4659.0,
-              "max": 4712.0,
-              "coefficient_of_variation": 0.0046
+              "n": 10,
+              "mean": 4695.5,
+              "std": 49.2549,
+              "min": 4606.0,
+              "max": 4777.0,
+              "coefficient_of_variation": 0.0105
             },
             "rounds": {
-              "n": 3,
+              "n": 10,
               "mean": 11.0,
-              "std": 1.633,
+              "std": 1.6125,
               "min": 9.0,
-              "max": 13.0,
-              "coefficient_of_variation": 0.1485
+              "max": 15.0,
+              "coefficient_of_variation": 0.1466
             },
-            "mean_adopters": 4684.3333,
-            "std_adopters": 21.7,
+            "mean_adopters": 4695.5,
+            "std_adopters": 49.2549,
             "mean_rounds": 11.0
           },
-          "runtime_seconds": 0.2314
+          "runtime_seconds": 0.7072
         }
       },
       "icm_preference_aware": {
@@ -799,60 +1632,116 @@
             {
               "simulation_index": 0,
               "sim_seed": 49,
+              "n_adopters": 12,
+              "n_exposed": 13,
+              "n_rounds": 5,
+              "rounds_attempted": 6
+            },
+            {
+              "simulation_index": 1,
+              "sim_seed": 1049,
               "n_adopters": 6,
               "n_exposed": 8,
               "n_rounds": 1,
               "rounds_attempted": 2
             },
             {
-              "simulation_index": 1,
-              "sim_seed": 1049,
-              "n_adopters": 7,
-              "n_exposed": 11,
-              "n_rounds": 2,
-              "rounds_attempted": 3
-            },
-            {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 11,
+              "n_exposed": 22,
+              "n_rounds": 4,
+              "rounds_attempted": 5
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 8,
+              "n_exposed": 9,
+              "n_rounds": 3,
+              "rounds_attempted": 4
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
               "n_adopters": 5,
               "n_exposed": 5,
               "n_rounds": 0,
               "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 5,
+              "n_exposed": 7,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 10,
+              "n_exposed": 14,
+              "n_rounds": 5,
+              "rounds_attempted": 6
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 26,
+              "n_exposed": 39,
+              "n_rounds": 8,
+              "rounds_attempted": 9
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 6.0,
-              "std": 0.8165,
+              "n": 10,
+              "mean": 9.3,
+              "std": 6.1327,
               "min": 5.0,
-              "max": 7.0,
-              "coefficient_of_variation": 0.1361
+              "max": 26.0,
+              "coefficient_of_variation": 0.6594
             },
             "exposed": {
-              "n": 3,
-              "mean": 8.0,
-              "std": 2.4495,
+              "n": 10,
+              "mean": 12.7,
+              "std": 10.1297,
               "min": 5.0,
-              "max": 11.0,
-              "coefficient_of_variation": 0.3062
+              "max": 39.0,
+              "coefficient_of_variation": 0.7976
             },
             "rounds": {
-              "n": 3,
-              "mean": 1.0,
-              "std": 0.8165,
+              "n": 10,
+              "mean": 2.6,
+              "std": 2.6907,
               "min": 0.0,
-              "max": 2.0,
-              "coefficient_of_variation": 0.8165
+              "max": 8.0,
+              "coefficient_of_variation": 1.0349
             },
-            "mean_adopters": 6.0,
-            "std_adopters": 0.8165,
-            "mean_exposed": 8.0,
-            "std_exposed": 2.4495,
-            "mean_rounds": 1.0
+            "mean_adopters": 9.3,
+            "std_adopters": 6.1327,
+            "mean_exposed": 12.7,
+            "std_exposed": 10.1297,
+            "mean_rounds": 2.6
           },
-          "runtime_seconds": 0.0019
+          "runtime_seconds": 0.0081
         },
         "p=0.05": {
           "propagation_prob": 0.05,
@@ -860,60 +1749,116 @@
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 938,
-              "n_exposed": 2251,
-              "n_rounds": 14,
-              "rounds_attempted": 15
+              "n_adopters": 840,
+              "n_exposed": 2087,
+              "n_rounds": 12,
+              "rounds_attempted": 13
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 906,
-              "n_exposed": 2232,
-              "n_rounds": 14,
-              "rounds_attempted": 15
+              "n_adopters": 621,
+              "n_exposed": 1603,
+              "n_rounds": 16,
+              "rounds_attempted": 17
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 890,
+              "n_exposed": 2094,
+              "n_rounds": 15,
+              "rounds_attempted": 16
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 908,
+              "n_exposed": 2231,
+              "n_rounds": 16,
+              "rounds_attempted": 17
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 785,
+              "n_exposed": 2013,
+              "n_rounds": 13,
+              "rounds_attempted": 14
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
               "n_adopters": 5,
-              "n_exposed": 7,
+              "n_exposed": 8,
               "n_rounds": 0,
               "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 924,
+              "n_exposed": 2219,
+              "n_rounds": 13,
+              "rounds_attempted": 14
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 942,
+              "n_exposed": 2366,
+              "n_rounds": 17,
+              "rounds_attempted": 18
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 5,
+              "n_exposed": 6,
+              "n_rounds": 0,
+              "rounds_attempted": 1
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 1023,
+              "n_exposed": 2456,
+              "n_rounds": 12,
+              "rounds_attempted": 13
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 616.3333,
-              "std": 432.4753,
+              "n": 10,
+              "mean": 694.3,
+              "std": 359.3361,
               "min": 5.0,
-              "max": 938.0,
-              "coefficient_of_variation": 0.7017
+              "max": 1023.0,
+              "coefficient_of_variation": 0.5176
             },
             "exposed": {
-              "n": 3,
-              "mean": 1496.6667,
-              "std": 1053.382,
-              "min": 7.0,
-              "max": 2251.0,
-              "coefficient_of_variation": 0.7038
+              "n": 10,
+              "mean": 1708.3,
+              "std": 878.1007,
+              "min": 6.0,
+              "max": 2456.0,
+              "coefficient_of_variation": 0.514
             },
             "rounds": {
-              "n": 3,
-              "mean": 9.3333,
-              "std": 6.5997,
+              "n": 10,
+              "mean": 11.4,
+              "std": 5.9363,
               "min": 0.0,
-              "max": 14.0,
-              "coefficient_of_variation": 0.7071
+              "max": 17.0,
+              "coefficient_of_variation": 0.5207
             },
-            "mean_adopters": 616.3333,
-            "std_adopters": 432.4753,
-            "mean_exposed": 1496.6667,
-            "std_exposed": 1053.382,
-            "mean_rounds": 9.3333
+            "mean_adopters": 694.3,
+            "std_adopters": 359.3361,
+            "mean_exposed": 1708.3,
+            "std_exposed": 878.1007,
+            "mean_rounds": 11.4
           },
-          "runtime_seconds": 0.0845
+          "runtime_seconds": 0.3279
         }
       }
     },
@@ -951,6 +1896,55 @@
           12716,
           20559,
           45609
+        ],
+        [
+          1426,
+          2142,
+          7247,
+          20245,
+          37485
+        ],
+        [
+          2911,
+          6294,
+          8407,
+          9232,
+          13074
+        ],
+        [
+          1033,
+          2277,
+          6491,
+          6661,
+          8718
+        ],
+        [
+          2364,
+          3137,
+          3546,
+          15410,
+          31036
+        ],
+        [
+          2723,
+          3243,
+          3329,
+          3829,
+          4977
+        ],
+        [
+          1776,
+          3398,
+          4735,
+          6806,
+          23082
+        ],
+        [
+          1261,
+          1503,
+          2252,
+          4481,
+          7101
         ]
       ],
       "icm_canonical": {
@@ -972,32 +1966,74 @@
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 349,
+              "n_rounds": 22
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
               "n_adopters": 5,
               "n_rounds": 0
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 6,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 12,
+              "n_rounds": 5
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 16,
+              "n_rounds": 5
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 7,
+              "n_rounds": 2
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 549,
+              "n_rounds": 25
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 5.0,
-              "std": 0.0,
+              "n": 10,
+              "mean": 95.9,
+              "std": 182.159,
               "min": 5.0,
-              "max": 5.0,
-              "coefficient_of_variation": 0.0
+              "max": 549.0,
+              "coefficient_of_variation": 1.8995
             },
             "rounds": {
-              "n": 3,
-              "mean": 0.0,
-              "std": 0.0,
+              "n": 10,
+              "mean": 6.0,
+              "std": 8.9666,
               "min": 0.0,
-              "max": 0.0,
-              "coefficient_of_variation": null
+              "max": 25.0,
+              "coefficient_of_variation": 1.4944
             },
-            "mean_adopters": 5.0,
-            "std_adopters": 0.0,
-            "mean_rounds": 0.0
+            "mean_adopters": 95.9,
+            "std_adopters": 182.159,
+            "mean_rounds": 6.0
           },
-          "runtime_seconds": 0.0026
+          "runtime_seconds": 0.0582
         },
         "p=0.05": {
           "propagation_prob": 0.05,
@@ -1005,44 +2041,86 @@
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 5,
-              "n_rounds": 0
+              "n_adopters": 4671,
+              "n_rounds": 12
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 4699,
-              "n_rounds": 11
+              "n_adopters": 6,
+              "n_rounds": 1
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
-              "n_adopters": 4630,
+              "n_adopters": 4752,
               "n_rounds": 10
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 4697,
+              "n_rounds": 10
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 4666,
+              "n_rounds": 12
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 4686,
+              "n_rounds": 10
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 4664,
+              "n_rounds": 10
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 4608,
+              "n_rounds": 11
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 4779,
+              "n_rounds": 12
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 4753,
+              "n_rounds": 11
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 3111.3333,
-              "std": 2196.69,
-              "min": 5.0,
-              "max": 4699.0,
-              "coefficient_of_variation": 0.706
+              "n": 10,
+              "mean": 4228.2,
+              "std": 1408.24,
+              "min": 6.0,
+              "max": 4779.0,
+              "coefficient_of_variation": 0.3331
             },
             "rounds": {
-              "n": 3,
-              "mean": 7.0,
-              "std": 4.9666,
-              "min": 0.0,
-              "max": 11.0,
-              "coefficient_of_variation": 0.7095
+              "n": 10,
+              "mean": 9.9,
+              "std": 3.0806,
+              "min": 1.0,
+              "max": 12.0,
+              "coefficient_of_variation": 0.3112
             },
-            "mean_adopters": 3111.3333,
-            "std_adopters": 2196.69,
-            "mean_rounds": 7.0
+            "mean_adopters": 4228.2,
+            "std_adopters": 1408.24,
+            "mean_rounds": 9.9
           },
-          "runtime_seconds": 0.1584
+          "runtime_seconds": 0.7767
         }
       },
       "icm_preference_aware": {
@@ -1066,43 +2144,92 @@
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 7,
+              "n_exposed": 11,
+              "n_rounds": 2
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
               "n_adopters": 5,
               "n_exposed": 5,
               "n_rounds": 0
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 5,
+              "n_exposed": 6,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 5,
+              "n_exposed": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 6,
+              "n_exposed": 7,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 5,
+              "n_exposed": 7,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 5,
+              "n_exposed": 6,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 6,
+              "n_exposed": 8,
+              "n_rounds": 1
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 5.0,
-              "std": 0.0,
+              "n": 10,
+              "mean": 5.4,
+              "std": 0.6633,
               "min": 5.0,
-              "max": 5.0,
-              "coefficient_of_variation": 0.0
+              "max": 7.0,
+              "coefficient_of_variation": 0.1228
             },
             "exposed": {
-              "n": 3,
-              "mean": 5.0,
-              "std": 0.0,
+              "n": 10,
+              "mean": 6.5,
+              "std": 1.8028,
               "min": 5.0,
-              "max": 5.0,
-              "coefficient_of_variation": 0.0
+              "max": 11.0,
+              "coefficient_of_variation": 0.2774
             },
             "rounds": {
-              "n": 3,
-              "mean": 0.0,
-              "std": 0.0,
+              "n": 10,
+              "mean": 0.4,
+              "std": 0.6633,
               "min": 0.0,
-              "max": 0.0,
-              "coefficient_of_variation": null
+              "max": 2.0,
+              "coefficient_of_variation": 1.6583
             },
-            "mean_adopters": 5.0,
-            "std_adopters": 0.0,
-            "mean_exposed": 5.0,
-            "std_exposed": 0.0,
-            "mean_rounds": 0.0
+            "mean_adopters": 5.4,
+            "std_adopters": 0.6633,
+            "mean_exposed": 6.5,
+            "std_exposed": 1.8028,
+            "mean_rounds": 0.4
           },
-          "runtime_seconds": 0.0008
+          "runtime_seconds": 0.0014
         },
         "p=0.05": {
           "propagation_prob": 0.05,
@@ -1111,82 +2238,131 @@
               "simulation_index": 0,
               "sim_seed": 49,
               "n_adopters": 5,
-              "n_exposed": 5,
+              "n_exposed": 8,
               "n_rounds": 0
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 538,
-              "n_exposed": 1648,
-              "n_rounds": 20
+              "n_adopters": 6,
+              "n_exposed": 6,
+              "n_rounds": 1
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 432,
+              "n_exposed": 1342,
+              "n_rounds": 18
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 7,
+              "n_exposed": 15,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 7,
+              "n_exposed": 11,
+              "n_rounds": 2
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 570,
+              "n_exposed": 1644,
+              "n_rounds": 17
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 11,
+              "n_exposed": 23,
+              "n_rounds": 2
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 6,
+              "n_exposed": 11,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
               "n_adopters": 5,
-              "n_exposed": 10,
+              "n_exposed": 8,
               "n_rounds": 0
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 16,
+              "n_exposed": 44,
+              "n_rounds": 3
             }
           ],
           "summary": {
             "adopters": {
-              "n": 3,
-              "mean": 182.6667,
-              "std": 251.2586,
+              "n": 10,
+              "mean": 106.5,
+              "std": 199.6744,
               "min": 5.0,
-              "max": 538.0,
-              "coefficient_of_variation": 1.3755
+              "max": 570.0,
+              "coefficient_of_variation": 1.8749
             },
             "exposed": {
-              "n": 3,
-              "mean": 554.3333,
-              "std": 773.3418,
-              "min": 5.0,
-              "max": 1648.0,
-              "coefficient_of_variation": 1.3951
+              "n": 10,
+              "mean": 311.2,
+              "std": 594.8396,
+              "min": 6.0,
+              "max": 1644.0,
+              "coefficient_of_variation": 1.9114
             },
             "rounds": {
-              "n": 3,
-              "mean": 6.6667,
-              "std": 9.4281,
+              "n": 10,
+              "mean": 4.5,
+              "std": 6.5612,
               "min": 0.0,
-              "max": 20.0,
-              "coefficient_of_variation": 1.4142
+              "max": 18.0,
+              "coefficient_of_variation": 1.4581
             },
-            "mean_adopters": 182.6667,
-            "std_adopters": 251.2586,
-            "mean_exposed": 554.3333,
-            "std_exposed": 773.3418,
-            "mean_rounds": 6.6667
+            "mean_adopters": 106.5,
+            "std_adopters": 199.6744,
+            "mean_exposed": 311.2,
+            "std_exposed": 594.8396,
+            "mean_rounds": 4.5
           },
-          "runtime_seconds": 0.0311
+          "runtime_seconds": 0.0519
         }
       }
     },
     "comparison": {
       "p=0.01": {
-        "rare_canonical_mean_adopters": 125.3333,
-        "moderate_canonical_mean_adopters": 5.0,
-        "moderate_minus_rare_canonical": -120.3333,
-        "moderate_relative_canonical_pct": -96.01063723687162,
-        "rare_preference_mean_adopters": 6.0,
-        "moderate_preference_mean_adopters": 5.0,
-        "moderate_minus_rare_preference": -1.0,
-        "moderate_relative_preference_pct": -16.666666666666668
+        "rare_canonical_mean_adopters": 69.9,
+        "moderate_canonical_mean_adopters": 95.9,
+        "moderate_minus_rare_canonical": 26.0,
+        "moderate_relative_canonical_pct": 37.19599427753934,
+        "rare_preference_mean_adopters": 9.3,
+        "moderate_preference_mean_adopters": 5.4,
+        "moderate_minus_rare_preference": -3.9000000000000004,
+        "moderate_relative_preference_pct": -41.935483870967744
       },
       "p=0.05": {
-        "rare_canonical_mean_adopters": 4684.3333,
-        "moderate_canonical_mean_adopters": 3111.3333,
-        "moderate_minus_rare_canonical": -1573.0000000000005,
-        "moderate_relative_canonical_pct": -33.580018740340286,
-        "rare_preference_mean_adopters": 616.3333,
-        "moderate_preference_mean_adopters": 182.6667,
-        "moderate_minus_rare_preference": -433.6666,
-        "moderate_relative_preference_pct": -70.36235102013798
+        "rare_canonical_mean_adopters": 4695.5,
+        "moderate_canonical_mean_adopters": 4228.2,
+        "moderate_minus_rare_canonical": -467.3000000000002,
+        "moderate_relative_canonical_pct": -9.952081780428072,
+        "rare_preference_mean_adopters": 694.3,
+        "moderate_preference_mean_adopters": 106.5,
+        "moderate_minus_rare_preference": -587.8,
+        "moderate_relative_preference_pct": -84.66080944836526
       }
     },
-    "runtime_seconds": 0.1931
+    "runtime_seconds": 0.8886
   },
   "network_structure_comparison": {
     "design": {
@@ -1218,7 +2394,7 @@
           "degree_sequence_preserved": true,
           "max_out_degree": 1889
         },
-        "randomization_runtime_seconds": 3.7127,
+        "randomization_runtime_seconds": 3.8321,
         "null_model_note": "This is one seeded degree-preserving rearrangement, not a claim of full mixing over all graphs with that degree sequence."
       },
       "same_seed_sets": [
@@ -1242,14 +2418,71 @@
           7018,
           7985,
           10792
+        ],
+        [
+          385,
+          5669,
+          6814,
+          7381,
+          41789
+        ],
+        [
+          1571,
+          1872,
+          2958,
+          10783,
+          25296
+        ],
+        [
+          1924,
+          6681,
+          7153,
+          8856,
+          24242
+        ],
+        [
+          634,
+          5395,
+          5595,
+          11806,
+          17399
+        ],
+        [
+          1593,
+          3108,
+          4970,
+          8366,
+          16488
+        ],
+        [
+          196,
+          2140,
+          10494,
+          10645,
+          11562
+        ],
+        [
+          664,
+          4190,
+          6424,
+          8673,
+          18907
         ]
       ],
       "same_simulation_seeds": [
         49,
         1049,
-        2049
+        2049,
+        3049,
+        4049,
+        5049,
+        6049,
+        7049,
+        8049,
+        9049
       ],
       "only_structure_changes": true,
+      "common_random_numbers": "Each graph has its own per-edge thresholds for a trial seed; observed and randomized runs are therefore not paired edge by edge, but every p within a graph reuses the same thresholds and both graphs use the same seed sets.",
       "outcome_scope": "simulated adoptions, not observed cascades"
     },
     "settings": {
@@ -1257,157 +2490,241 @@
         "propagation_prob": 0.01,
         "observed": {
           "adopters": {
-            "n": 3,
-            "mean": 125.3333,
-            "std": 167.3566,
+            "n": 10,
+            "mean": 69.9,
+            "std": 111.6239,
             "min": 5.0,
-            "max": 362.0,
-            "coefficient_of_variation": 1.3353
+            "max": 333.0,
+            "coefficient_of_variation": 1.5969
           },
           "rounds": {
-            "n": 3,
-            "mean": 9.0,
-            "std": 11.3431,
+            "n": 10,
+            "mean": 6.9,
+            "std": 7.9555,
             "min": 0.0,
             "max": 25.0,
-            "coefficient_of_variation": 1.2603
+            "coefficient_of_variation": 1.153
           },
-          "mean_adopters": 125.3333,
-          "std_adopters": 167.3566,
-          "mean_rounds": 9.0
+          "mean_adopters": 69.9,
+          "std_adopters": 111.6239,
+          "mean_rounds": 6.9
         },
         "randomized": {
           "adopters": {
-            "n": 3,
-            "mean": 7.3333,
-            "std": 1.6997,
+            "n": 10,
+            "mean": 12.3,
+            "std": 8.0876,
             "min": 5.0,
-            "max": 9.0,
-            "coefficient_of_variation": 0.2318
+            "max": 30.0,
+            "coefficient_of_variation": 0.6575
           },
           "rounds": {
-            "n": 3,
-            "mean": 1.0,
-            "std": 0.8165,
+            "n": 10,
+            "mean": 2.8,
+            "std": 2.7857,
             "min": 0.0,
-            "max": 2.0,
-            "coefficient_of_variation": 0.8165
+            "max": 9.0,
+            "coefficient_of_variation": 0.9949
           },
           "runs": [
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 9,
+              "n_adopters": 8,
               "n_rounds": 2
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 8,
-              "n_rounds": 1
+              "n_adopters": 9,
+              "n_rounds": 2
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
+              "n_adopters": 30,
+              "n_rounds": 5
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 14,
+              "n_rounds": 4
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
               "n_adopters": 5,
               "n_rounds": 0
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 7,
+              "n_rounds": 1
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 21,
+              "n_rounds": 9
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 5,
+              "n_rounds": 0
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 19,
+              "n_rounds": 5
             }
           ],
-          "mean_adopters": 7.3333,
-          "std_adopters": 1.6997,
-          "mean_rounds": 1.0
+          "mean_adopters": 12.3,
+          "std_adopters": 8.0876,
+          "mean_rounds": 2.8
         },
         "paired_randomized_minus_observed": {
-          "n": 3,
-          "mean_difference": -118.0,
-          "std_difference": 204.382,
-          "ci95_low": -349.28,
-          "ci95_high": 113.28,
-          "wins": 0,
-          "ties": 2,
-          "losses": 1
+          "n": 10,
+          "mean_difference": -57.6,
+          "std_difference": 109.9941,
+          "ci95_low": -125.7751,
+          "ci95_high": 10.5751,
+          "wins": 1,
+          "ties": 3,
+          "losses": 6
         },
-        "relative_change_pct": -94.149,
-        "runtime_seconds": 0.0016
+        "relative_change_pct": -82.403,
+        "runtime_seconds": 0.0069
       },
       "p=0.05": {
         "propagation_prob": 0.05,
         "observed": {
           "adopters": {
-            "n": 3,
-            "mean": 4684.3333,
-            "std": 21.7,
-            "min": 4659.0,
-            "max": 4712.0,
-            "coefficient_of_variation": 0.0046
+            "n": 10,
+            "mean": 4695.5,
+            "std": 49.2549,
+            "min": 4606.0,
+            "max": 4777.0,
+            "coefficient_of_variation": 0.0105
           },
           "rounds": {
-            "n": 3,
+            "n": 10,
             "mean": 11.0,
-            "std": 1.633,
+            "std": 1.6125,
             "min": 9.0,
-            "max": 13.0,
-            "coefficient_of_variation": 0.1485
+            "max": 15.0,
+            "coefficient_of_variation": 0.1466
           },
-          "mean_adopters": 4684.3333,
-          "std_adopters": 21.7,
+          "mean_adopters": 4695.5,
+          "std_adopters": 49.2549,
           "mean_rounds": 11.0
         },
         "randomized": {
           "adopters": {
-            "n": 3,
-            "mean": 4780.0,
-            "std": 20.3142,
-            "min": 4758.0,
-            "max": 4807.0,
-            "coefficient_of_variation": 0.0042
+            "n": 10,
+            "mean": 4754.4,
+            "std": 51.7807,
+            "min": 4665.0,
+            "max": 4828.0,
+            "coefficient_of_variation": 0.0109
           },
           "rounds": {
-            "n": 3,
-            "mean": 9.6667,
-            "std": 0.4714,
+            "n": 10,
+            "mean": 10.6,
+            "std": 1.3565,
             "min": 9.0,
-            "max": 10.0,
-            "coefficient_of_variation": 0.0488
+            "max": 14.0,
+            "coefficient_of_variation": 0.128
           },
           "runs": [
             {
               "simulation_index": 0,
               "sim_seed": 49,
-              "n_adopters": 4775,
-              "n_rounds": 9
+              "n_adopters": 4748,
+              "n_rounds": 11
             },
             {
               "simulation_index": 1,
               "sim_seed": 1049,
-              "n_adopters": 4807,
+              "n_adopters": 4699,
               "n_rounds": 10
             },
             {
               "simulation_index": 2,
               "sim_seed": 2049,
-              "n_adopters": 4758,
+              "n_adopters": 4793,
               "n_rounds": 10
+            },
+            {
+              "simulation_index": 3,
+              "sim_seed": 3049,
+              "n_adopters": 4776,
+              "n_rounds": 10
+            },
+            {
+              "simulation_index": 4,
+              "sim_seed": 4049,
+              "n_adopters": 4681,
+              "n_rounds": 9
+            },
+            {
+              "simulation_index": 5,
+              "sim_seed": 5049,
+              "n_adopters": 4777,
+              "n_rounds": 14
+            },
+            {
+              "simulation_index": 6,
+              "sim_seed": 6049,
+              "n_adopters": 4781,
+              "n_rounds": 11
+            },
+            {
+              "simulation_index": 7,
+              "sim_seed": 7049,
+              "n_adopters": 4665,
+              "n_rounds": 11
+            },
+            {
+              "simulation_index": 8,
+              "sim_seed": 8049,
+              "n_adopters": 4828,
+              "n_rounds": 11
+            },
+            {
+              "simulation_index": 9,
+              "sim_seed": 9049,
+              "n_adopters": 4796,
+              "n_rounds": 9
             }
           ],
-          "mean_adopters": 4780.0,
-          "std_adopters": 20.3142,
-          "mean_rounds": 9.6667
+          "mean_adopters": 4754.4,
+          "std_adopters": 51.7807,
+          "mean_rounds": 10.6
         },
         "paired_randomized_minus_observed": {
-          "n": 3,
-          "mean_difference": 95.6667,
-          "std_difference": 31.1341,
-          "ci95_low": 60.4351,
-          "ci95_high": 130.8982,
-          "wins": 3,
+          "n": 10,
+          "mean_difference": 58.9,
+          "std_difference": 32.2368,
+          "ci95_low": 38.9194,
+          "ci95_high": 78.8806,
+          "wins": 10,
           "ties": 0,
           "losses": 0
         },
-        "relative_change_pct": 2.042,
-        "runtime_seconds": 0.2345
+        "relative_change_pct": 1.254,
+        "runtime_seconds": 1.1049
       }
     },
-    "runtime_seconds": 0.2369
+    "runtime_seconds": 2.0876
   }
 }

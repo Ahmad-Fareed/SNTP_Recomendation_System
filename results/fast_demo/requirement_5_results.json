@@ -14,25 +14,32 @@
       3,
       5
     ],
-    "n_simulations": 2,
+    "n_simulations": 5,
     "selection_seeds": [
       49,
-      1049
+      1049,
+      2049,
+      3049,
+      4049
     ],
     "evaluation_seeds": [
       500049,
-      501049
+      501049,
+      502049,
+      503049,
+      504049
     ],
-    "n_random_trials": 3,
+    "n_random_trials": 20,
     "max_rounds": 25,
     "candidate_pool": {
       "n_eligible": 9883,
-      "n_candidates": 15,
+      "n_candidates": 25,
       "restricted": true,
       "rule": "top out-degree users in the propagation graph, ties by ascending user index",
       "same_pool_for_all_methods": true
     },
     "marginal_gain_definition": "paired mean difference between the same Monte Carlo trials at budget b and at the previous evaluated budget; the number of added seeds is recorded per row",
+    "common_random_numbers": "One per-edge activation threshold per trial is reused for every seed set, budget, candidate, and both greedy variants. The finite-trial objective is therefore deterministic and monotone, so extra seeds cannot reduce measured spread and marginal gains cannot be negative from fresh Monte Carlo noise.",
     "outcome_scope": "simulated canonical-ICM spread on the active graph"
   },
   "methods": {
@@ -42,73 +49,133 @@
           803
         ],
         "seeds_from_trial": 0,
-        "n_random_trials": 3,
-        "mean_spread": 4711.0,
-        "std_spread": 1.4142,
-        "mean_within_trial_std": 10.0,
+        "n_random_trials": 20,
+        "mean_spread": 4719.36,
+        "std_spread": 1.68,
+        "mean_within_trial_std": 59.0012,
         "trial_mean_spreads": [
-          4710.0,
-          4713.0,
-          4710.0
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4
         ],
         "simulation_spread_counts": [
-          4718,
-          4702
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": 4711.0,
-        "marginal_gain_std": 1.4142,
+        "marginal_gain": 4719.36,
+        "marginal_gain_std": 1.68,
         "seeds_added_since_previous_budget": 1,
         "marginal_gain_note": "gain from the empty seed set; mean across random trials"
       },
       "3": {
         "seeds": [
           803,
-          340,
-          466
+          59,
+          773
         ],
         "seeds_from_trial": 0,
-        "n_random_trials": 3,
-        "mean_spread": 4690.0,
-        "std_spread": 22.7596,
-        "mean_within_trial_std": 16.0,
+        "n_random_trials": 20,
+        "mean_spread": 4719.36,
+        "std_spread": 1.68,
+        "mean_within_trial_std": 59.0012,
         "trial_mean_spreads": [
-          4709.0,
-          4703.0,
-          4658.0
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4
         ],
         "simulation_spread_counts": [
-          4714,
-          4704
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": -21.0,
-        "marginal_gain_std": 22.2261,
+        "marginal_gain": 0.0,
+        "marginal_gain_std": 0.0,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "mean paired difference across random trials"
       },
       "5": {
         "seeds": [
           803,
-          340,
-          466,
-          180,
-          774
+          59,
+          773,
+          1667,
+          570
         ],
         "seeds_from_trial": 0,
-        "n_random_trials": 3,
-        "mean_spread": 4692.5,
-        "std_spread": 26.0608,
-        "mean_within_trial_std": 20.8333,
+        "n_random_trials": 20,
+        "mean_spread": 4719.64,
+        "std_spread": 1.9996,
+        "mean_within_trial_std": 58.9732,
         "trial_mean_spreads": [
-          4657.5,
-          4700.0,
-          4720.0
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4,
+          4718.8,
+          4718.8,
+          4718.8,
+          4724.4
         ],
         "simulation_spread_counts": [
-          4696,
-          4619
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": 2.5,
-        "marginal_gain_std": 46.4991,
+        "marginal_gain": 0.28,
+        "marginal_gain_std": 1.2205,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "mean paired difference across random trials"
       }
@@ -118,14 +185,17 @@
         "seeds": [
           494
         ],
-        "mean_spread": 4712.0,
-        "std_spread": 10.0,
+        "mean_spread": 4718.8,
+        "std_spread": 59.0573,
         "simulation_spread_counts": [
-          4722,
-          4702
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": 4712.0,
-        "marginal_gain_std": 10.0,
+        "marginal_gain": 4718.8,
+        "marginal_gain_std": 59.0573,
         "seeds_added_since_previous_budget": 1,
         "marginal_gain_note": "gain from the empty seed set"
       },
@@ -135,17 +205,20 @@
           180,
           22
         ],
-        "mean_spread": 4747.5,
-        "std_spread": 14.5,
+        "mean_spread": 4718.8,
+        "std_spread": 59.0573,
         "simulation_spread_counts": [
-          4762,
-          4733
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": 35.5,
-        "marginal_gain_std": 6.364,
-        "marginal_gain_ci95_low": 26.68,
-        "marginal_gain_ci95_high": 44.32,
-        "marginal_gain_wins": 2,
+        "marginal_gain": 0.0,
+        "marginal_gain_std": 0.0,
+        "marginal_gain_ci95_low": 0.0,
+        "marginal_gain_ci95_high": 0.0,
+        "marginal_gain_wins": 0,
         "marginal_gain_losses": 0,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "paired Monte Carlo difference versus the previous evaluated budget"
@@ -158,18 +231,21 @@
           321,
           803
         ],
-        "mean_spread": 4712.5,
-        "std_spread": 1.5,
+        "mean_spread": 4718.8,
+        "std_spread": 59.0573,
         "simulation_spread_counts": [
-          4714,
-          4711
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": -35.0,
-        "marginal_gain_std": 18.3848,
-        "marginal_gain_ci95_low": -60.48,
-        "marginal_gain_ci95_high": -9.52,
+        "marginal_gain": 0.0,
+        "marginal_gain_std": 0.0,
+        "marginal_gain_ci95_low": 0.0,
+        "marginal_gain_ci95_high": 0.0,
         "marginal_gain_wins": 0,
-        "marginal_gain_losses": 2,
+        "marginal_gain_losses": 0,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "paired Monte Carlo difference versus the previous evaluated budget"
       }
@@ -177,59 +253,68 @@
     "greedy": {
       "1": {
         "seeds": [
-          59
+          494
         ],
-        "mean_spread": 4726.5,
-        "std_spread": 4.5,
+        "mean_spread": 4718.8,
+        "std_spread": 59.0573,
         "simulation_spread_counts": [
-          4722,
-          4731
+          4611,
+          4742,
+          4786,
+          4745,
+          4710
         ],
-        "marginal_gain": 4726.5,
-        "marginal_gain_std": 4.5,
+        "marginal_gain": 4718.8,
+        "marginal_gain_std": 59.0573,
         "seeds_added_since_previous_budget": 1,
         "marginal_gain_note": "gain from the empty seed set"
       },
       "3": {
         "seeds": [
-          59,
-          306,
+          494,
+          663,
           321
         ],
-        "mean_spread": 4687.0,
-        "std_spread": 5.0,
+        "mean_spread": 4724.4,
+        "std_spread": 58.4965,
         "simulation_spread_counts": [
-          4682,
-          4692
+          4618,
+          4742,
+          4794,
+          4749,
+          4719
         ],
-        "marginal_gain": -39.5,
-        "marginal_gain_std": 0.7071,
-        "marginal_gain_ci95_low": -40.48,
-        "marginal_gain_ci95_high": -38.52,
-        "marginal_gain_wins": 0,
-        "marginal_gain_losses": 2,
+        "marginal_gain": 5.6,
+        "marginal_gain_std": 3.6469,
+        "marginal_gain_ci95_low": 2.4033,
+        "marginal_gain_ci95_high": 8.7967,
+        "marginal_gain_wins": 4,
+        "marginal_gain_losses": 0,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "paired Monte Carlo difference versus the previous evaluated budget"
       },
       "5": {
         "seeds": [
-          59,
-          306,
+          494,
+          663,
           321,
-          206,
-          180
+          570,
+          22
         ],
-        "mean_spread": 4700.5,
-        "std_spread": 5.5,
+        "mean_spread": 4724.4,
+        "std_spread": 58.4965,
         "simulation_spread_counts": [
-          4706,
-          4695
+          4618,
+          4742,
+          4794,
+          4749,
+          4719
         ],
-        "marginal_gain": 13.5,
-        "marginal_gain_std": 14.8492,
-        "marginal_gain_ci95_low": -7.08,
-        "marginal_gain_ci95_high": 34.08,
-        "marginal_gain_wins": 2,
+        "marginal_gain": 0.0,
+        "marginal_gain_std": 0.0,
+        "marginal_gain_ci95_low": 0.0,
+        "marginal_gain_ci95_high": 0.0,
+        "marginal_gain_wins": 0,
         "marginal_gain_losses": 0,
         "seeds_added_since_previous_budget": 2,
         "marginal_gain_note": "paired Monte Carlo difference versus the previous evaluated budget"
@@ -237,34 +322,37 @@
     }
   },
   "adopter_overlaps": {
-    "random_vs_degree": 0.542,
-    "degree_vs_greedy": 0.551,
-    "random_vs_greedy": 0.542,
+    "random_vs_degree": 1.0,
+    "degree_vs_greedy": 0.999,
+    "random_vs_greedy": 0.999,
     "note": "Average Jaccard similarity of adopter sets across the same evaluation seeds at the largest budget; random uses trial 0."
   },
   "seed_overlaps": {
-    "random_vs_degree": 0.25,
-    "degree_vs_greedy": 0.25,
+    "random_vs_degree": 0.111,
+    "degree_vs_greedy": 0.429,
     "random_vs_greedy": 0.111
   },
   "runtimes_seconds": {
-    "random_selection_all_trials": 1.5754,
+    "random_selection_all_trials": 21.9759,
     "degree_selection": 0.0,
-    "greedy_selection": 14.2544,
-    "degree_evaluation": 0.5365,
-    "greedy_evaluation": 0.5164,
-    "greedy_n_evaluations": 65,
-    "greedy_internal_runtime": 14.254,
+    "greedy_selection": 45.1104,
+    "degree_evaluation": 1.049,
+    "greedy_evaluation": 0.9443,
+    "greedy_n_evaluations": 115,
+    "greedy_internal_runtime": 45.101,
     "greedy_spread_progression": [
-      4722.0,
-      4715.0,
-      4725.0,
-      4733.5,
-      4729.5
+      4710.8,
+      4719.8,
+      4725.6,
+      4728.6,
+      4728.6
     ],
     "greedy_selection_seeds": [
       49,
-      1049
+      1049,
+      2049,
+      3049,
+      4049
     ]
   },
   "analysis": {
@@ -272,73 +360,72 @@
       "1": {
         "budget": 1,
         "mean_spreads": {
-          "random": 4711.0,
-          "degree": 4712.0,
-          "greedy": 4726.5
+          "random": 4719.36,
+          "degree": 4718.8,
+          "greedy": 4718.8
         },
-        "best_method": "greedy",
-        "greedy_minus_random": 15.5,
-        "greedy_minus_degree": 14.5,
-        "greedy_lift_vs_random_pct": 0.33,
-        "greedy_lift_vs_degree_pct": 0.31,
-        "random_trial_std": 1.4142
+        "best_method": "random",
+        "greedy_minus_random": -0.56,
+        "greedy_minus_degree": 0.0,
+        "greedy_lift_vs_random_pct": -0.01,
+        "greedy_lift_vs_degree_pct": 0.0,
+        "random_trial_std": 1.68
       },
       "3": {
         "budget": 3,
         "mean_spreads": {
-          "random": 4690.0,
-          "degree": 4747.5,
-          "greedy": 4687.0
+          "random": 4719.36,
+          "degree": 4718.8,
+          "greedy": 4724.4
         },
-        "best_method": "degree",
-        "greedy_minus_random": -3.0,
-        "greedy_minus_degree": -60.5,
-        "greedy_lift_vs_random_pct": -0.06,
-        "greedy_lift_vs_degree_pct": -1.27,
-        "random_trial_std": 22.7596
+        "best_method": "greedy",
+        "greedy_minus_random": 5.04,
+        "greedy_minus_degree": 5.6,
+        "greedy_lift_vs_random_pct": 0.11,
+        "greedy_lift_vs_degree_pct": 0.12,
+        "random_trial_std": 1.68
       },
       "5": {
         "budget": 5,
         "mean_spreads": {
-          "random": 4692.5,
-          "degree": 4712.5,
-          "greedy": 4700.5
+          "random": 4719.64,
+          "degree": 4718.8,
+          "greedy": 4724.4
         },
-        "best_method": "degree",
-        "greedy_minus_random": 8.0,
-        "greedy_minus_degree": -12.0,
-        "greedy_lift_vs_random_pct": 0.17,
-        "greedy_lift_vs_degree_pct": -0.25,
-        "random_trial_std": 26.0608,
+        "best_method": "greedy",
+        "greedy_minus_random": 4.76,
+        "greedy_minus_degree": 5.6,
+        "greedy_lift_vs_random_pct": 0.1,
+        "greedy_lift_vs_degree_pct": 0.12,
+        "random_trial_std": 1.9996,
         "paired_greedy_vs_degree": {
-          "n": 2,
-          "mean_difference": -12.0,
-          "std_difference": 5.6569,
-          "ci95_low": -19.84,
-          "ci95_high": -4.16,
-          "wins": 0,
-          "ties": 0,
-          "losses": 2
+          "n": 5,
+          "mean_difference": 5.6,
+          "std_difference": 3.6469,
+          "ci95_low": 2.4033,
+          "ci95_high": 8.7967,
+          "wins": 4,
+          "ties": 1,
+          "losses": 0
         },
         "paired_greedy_vs_random_trial0": {
-          "n": 2,
-          "mean_difference": 43.0,
-          "std_difference": 46.669,
-          "ci95_low": -21.68,
-          "ci95_high": 107.68,
-          "wins": 2,
-          "ties": 0,
+          "n": 5,
+          "mean_difference": 5.6,
+          "std_difference": 3.6469,
+          "ci95_low": 2.4033,
+          "ci95_high": 8.7967,
+          "wins": 4,
+          "ties": 1,
           "losses": 0
         }
       }
     },
     "observations": [
-      "At budget 1, mean simulated spread was random=4711.00, degree=4712.00, greedy=4726.50; the highest measured mean was greedy.",
-      "At budget 3, mean simulated spread was random=4690.00, degree=4747.50, greedy=4687.00; the highest measured mean was degree.",
-      "At budget 5, mean simulated spread was random=4692.50, degree=4712.50, greedy=4700.50; the highest measured mean was degree.",
-      "At the largest budget, greedy exceeded the mean random baseline by 8.00 adopters (0.2%).",
-      "Degree centrality's measured marginal gain at budget 5 was negative (-35.00); extra high-degree seeds did not increase mean simulated spread in this trial set.",
-      "Degree and greedy adopter sets overlapped substantially (mean Jaccard 0.551), so high-degree seeds largely reached the same audience."
+      "At budget 1, mean simulated spread was random=4719.36, degree=4718.80, greedy=4718.80; the highest measured mean was random.",
+      "At budget 3, mean simulated spread was random=4719.36, degree=4718.80, greedy=4724.40; the highest measured mean was greedy.",
+      "At budget 5, mean simulated spread was random=4719.64, degree=4718.80, greedy=4724.40; the highest measured mean was greedy.",
+      "At the largest budget, greedy exceeded the mean random baseline by 4.76 adopters (0.1%).",
+      "Degree and greedy adopter sets overlapped substantially (mean Jaccard 0.999), so high-degree seeds largely reached the same audience."
     ],
     "uncertainty_note": "Random spread varies across seeded trials; std_spread for random is the standard deviation of trial means. Degree/greedy rows use the same common random numbers for paired comparisons.",
     "candidate_pool_note": "All methods use the same candidate pool. When the pool is restricted to top out-degree users, the result describes that restricted pool, not all graph users."

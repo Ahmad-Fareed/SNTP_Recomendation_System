@@ -37,7 +37,7 @@
       "center_user": 0,
       "hops": 2
     },
-    "n_simulations": 3,
+    "n_simulations": 10,
     "seed_size": 5,
     "seed": 42,
     "max_rounds": 25,
@@ -74,9 +74,9 @@
       5
     ],
     "propagation_prob": 0.05,
-    "n_simulations": 2,
-    "candidate_pool_size": 15,
-    "random_trials": 3,
+    "n_simulations": 5,
+    "candidate_pool_size": 25,
+    "random_trials": 20,
     "seed": 42
   },
   "group_recommendation": {
@@ -84,14 +84,14 @@
     "group_size": 4,
     "conflicting": true,
     "top_n": 5,
-    "diffusion_simulations": 2,
+    "diffusion_simulations": 5,
     "propagation_prob": 0.05,
     "base_adopt_prob": 0.5,
     "seed": 42
   },
   "evaluation": {
     "run_diffusion_interaction": true,
-    "interaction_simulations": 2,
+    "interaction_simulations": 5,
     "interaction_seed_size": 5,
     "interaction_propagation_prob": 0.05,
     "interaction_base_adopt_prob": 0.5,
@@ -110,7 +110,7 @@
     ],
     "base_adopt_prob": 0.5,
     "propagation_prob": 0.05,
-    "n_simulations": 5,
+    "n_simulations": 10,
     "seed_size": 5,
     "max_rounds": 25,
     "default_affinity": 0.3,
@@ -120,7 +120,7 @@
     "celf": {
       "budget": 3,
       "candidate_pool_size": 12,
-      "n_simulations": 2,
+      "n_simulations": 5,
       "controlled_check": true
     }
   },

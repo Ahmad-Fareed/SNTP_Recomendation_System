@@ -40,7 +40,7 @@
           "diversity_is_sampled": true,
           "diversity_sample_seed": 42,
           "diversity_sampling_scope": "ranking_user_sample",
-          "eval_time_seconds": 0.49
+          "eval_time_seconds": 0.44
         }
       },
       "matrix_factorization": {
@@ -70,7 +70,7 @@
           "diversity_is_sampled": true,
           "diversity_sample_seed": 42,
           "diversity_sampling_scope": "ranking_user_sample",
-          "eval_time_seconds": 3.6
+          "eval_time_seconds": 3.09
         }
       },
       "social_recommender": {
@@ -100,7 +100,7 @@
           "diversity_is_sampled": true,
           "diversity_sample_seed": 42,
           "diversity_sampling_scope": "ranking_user_sample",
-          "eval_time_seconds": 5.66
+          "eval_time_seconds": 5.81
         }
       }
     },
@@ -193,108 +193,108 @@
     "models": {
       "item_based_cf": {
         "adopters": {
-          "n": 2,
-          "mean": 753.0,
-          "std": 72.0,
-          "min": 681.0,
-          "max": 825.0,
-          "coefficient_of_variation": 0.0956
+          "n": 5,
+          "mean": 336.2,
+          "std": 405.2147,
+          "min": 5.0,
+          "max": 894.0,
+          "coefficient_of_variation": 1.2053
         },
         "exposed": {
-          "n": 2,
-          "mean": 1924.0,
-          "std": 111.0,
-          "min": 1813.0,
-          "max": 2035.0,
-          "coefficient_of_variation": 0.0577
+          "n": 5,
+          "mean": 871.6,
+          "std": 1049.3111,
+          "min": 11.0,
+          "max": 2301.0,
+          "coefficient_of_variation": 1.2039
         },
         "rounds": {
-          "n": 2,
-          "mean": 16.0,
-          "std": 1.0,
-          "min": 15.0,
-          "max": 17.0,
-          "coefficient_of_variation": 0.0625
+          "n": 5,
+          "mean": 6.4,
+          "std": 6.375,
+          "min": 0.0,
+          "max": 16.0,
+          "coefficient_of_variation": 0.9961
         },
         "adopter_satisfaction_proxy": {
-          "n": 1506,
-          "mean": 4.1388,
-          "std": 0.4271,
-          "min": 2.4545,
+          "n": 1681,
+          "mean": 4.1183,
+          "std": 0.427,
+          "min": 2.125,
           "max": 5.0,
-          "coefficient_of_variation": 0.1032
+          "coefficient_of_variation": 0.1037
         },
-        "runtime_seconds": 0.0747
+        "runtime_seconds": 0.0784
       },
       "matrix_factorization": {
         "adopters": {
-          "n": 2,
-          "mean": 914.5,
-          "std": 60.5,
-          "min": 854.0,
-          "max": 975.0,
-          "coefficient_of_variation": 0.0662
+          "n": 5,
+          "mean": 547.2,
+          "std": 445.8131,
+          "min": 8.0,
+          "max": 1036.0,
+          "coefficient_of_variation": 0.8147
         },
         "exposed": {
-          "n": 2,
-          "mean": 2204.0,
-          "std": 140.0,
-          "min": 2064.0,
-          "max": 2344.0,
-          "coefficient_of_variation": 0.0635
+          "n": 5,
+          "mean": 1335.0,
+          "std": 1079.3511,
+          "min": 21.0,
+          "max": 2439.0,
+          "coefficient_of_variation": 0.8085
         },
         "rounds": {
-          "n": 2,
-          "mean": 15.5,
-          "std": 0.5,
-          "min": 15.0,
-          "max": 16.0,
-          "coefficient_of_variation": 0.0323
+          "n": 5,
+          "mean": 10.6,
+          "std": 7.088,
+          "min": 2.0,
+          "max": 20.0,
+          "coefficient_of_variation": 0.6687
         },
         "adopter_satisfaction_proxy": {
-          "n": 1829,
-          "mean": 4.3201,
-          "std": 0.3213,
+          "n": 2736,
+          "mean": 4.3039,
+          "std": 0.3308,
           "min": 2.7412,
           "max": 5.0,
-          "coefficient_of_variation": 0.0744
+          "coefficient_of_variation": 0.0769
         },
-        "runtime_seconds": 0.0884
+        "runtime_seconds": 0.1002
       },
       "social_recommender": {
         "adopters": {
-          "n": 2,
-          "mean": 940.0,
-          "std": 23.0,
-          "min": 917.0,
-          "max": 963.0,
-          "coefficient_of_variation": 0.0245
+          "n": 5,
+          "mean": 744.2,
+          "std": 374.1847,
+          "min": 8.0,
+          "max": 1051.0,
+          "coefficient_of_variation": 0.5028
         },
         "exposed": {
-          "n": 2,
-          "mean": 2265.0,
-          "std": 15.0,
-          "min": 2250.0,
-          "max": 2280.0,
-          "coefficient_of_variation": 0.0066
+          "n": 5,
+          "mean": 1809.0,
+          "std": 901.9572,
+          "min": 21.0,
+          "max": 2471.0,
+          "coefficient_of_variation": 0.4986
         },
         "rounds": {
-          "n": 2,
-          "mean": 15.5,
-          "std": 0.5,
-          "min": 15.0,
-          "max": 16.0,
-          "coefficient_of_variation": 0.0323
+          "n": 5,
+          "mean": 13.4,
+          "std": 5.8172,
+          "min": 3.0,
+          "max": 20.0,
+          "coefficient_of_variation": 0.4341
         },
         "adopter_satisfaction_proxy": {
-          "n": 1880,
-          "mean": 4.3309,
-          "std": 0.3166,
-          "min": 3.1642,
+          "n": 3721,
+          "mean": 4.3219,
+          "std": 0.3209,
+          "min": 2.7412,
           "max": 5.0,
-          "coefficient_of_variation": 0.0731
+          "coefficient_of_variation": 0.0742
         },
-        "runtime_seconds": 0.0837
+        "runtime_seconds": 0.1297
       }
     },
     "design": {
@@ -322,7 +322,7 @@
       },
       "n_eligible_users": 9882,
       "seed_size": 5,
-      "n_simulations": 2,
+      "n_simulations": 5,
       "seed_sets": [
         [
           734,
@@ -337,13 +337,38 @@
           2386,
           2860,
           13374
+        ],
+        [
+          1413,
+          6945,
+          7018,
+          7985,
+          10792
+        ],
+        [
+          385,
+          5669,
+          6814,
+          7381,
+          41789
+        ],
+        [
+          1571,
+          1872,
+          2958,
+          10783,
+          25296
         ]
       ],
       "simulation_seeds": [
         700049,
-        701049
+        701049,
+        702049,
+        703049,
+        704049
       ],
       "same_seed_sets_and_seeds_for_all_models": true,
+      "common_random_numbers": "Every model reuses one per-edge exposure and per-user adoption threshold set per trial, so spread differences come from the model's affinity function rather than fresh random streams.",
       "propagation_prob": 0.05,
       "base_adopt_prob": 0.5,
       "max_rounds": 25,
@@ -353,9 +378,9 @@
   },
   "tradeoff_analysis": {
     "simulated_spread_ranking": {
-      "item_based_cf": 753.0,
-      "matrix_factorization": 914.5,
-      "social_recommender": 940.0
+      "item_based_cf": 336.2,
+      "matrix_factorization": 547.2,
+      "social_recommender": 744.2
     },
     "best_simulated_spread_model": "social_recommender",
     "best_observed_ndcg_model": "social_recommender",
