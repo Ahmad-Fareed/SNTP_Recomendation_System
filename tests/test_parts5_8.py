@@ -286,6 +286,27 @@ class TestInfluenceMaximization(unittest.TestCase):
         self.assertAlmostEqual(progression[-1], 11.0)
 
 
+    def test_greedy_and_celf_agree_under_common_random_numbers(self):
+        """With shared per-edge thresholds the objective is deterministic and
+        submodular, so CELF must match standard greedy."""
+        selection_seeds = [101, 1101, 2101, 3101, 4101]
+        kwargs = dict(
+            propagation_graph=self.graph,
+            eligible_users=self.users,
+            budget=3,
+            propagation_prob=0.4,
+            n_simulations=len(selection_seeds),
+            candidate_pool=self.users,
+            selection_seeds=selection_seeds,
+        )
+        standard = greedy_influence_maximization(use_celf=False, **kwargs)
+        celf = greedy_influence_maximization(use_celf=True, **kwargs)
+        self.assertEqual(standard["seeds"], celf["seeds"])
+        self.assertLessEqual(celf["n_evaluations"], standard["n_evaluations"])
+        self.assertTrue(all(g >= -1e-9 for g in standard["marginal_gains"]))
+        self.assertTrue(all(g >= -1e-9 for g in celf["marginal_gains"]))
+
+
 class DummyRecommender:
     """Mock recommender for group and intervention tests."""
 
@@ -298,6 +319,22 @@ class DummyRecommender:
 
     def score_all(self, u: int) -> np.ndarray:
         return self.score_matrix[u].copy()
+
+
+class DummyRawRecommender:
+    """Recommender that distinguishes raw ordering scores from clipped ratings."""
+
+    def __init__(self, raw_matrix: np.ndarray):
+        self.raw_matrix = raw_matrix
+        self.n_users, self.n_items = raw_matrix.shape
+
+    def predict(self, u: int, i: int) -> float:
+        return float(np.clip(self.raw_matrix[u, i], 1.0, 5.0))
+
+    def score_all(self, u: int, raw_scores: bool = False) -> np.ndarray:
+        if raw_scores:
+            return self.raw_matrix[u].copy()
+        return np.clip(self.raw_matrix[u], 1.0, 5.0)
 
 
 class TestGroupRecommendation(unittest.TestCase):
@@ -346,6 +383,21 @@ class TestGroupRecommendation(unittest.TestCase):
         mp_scores = score_group_items(self.recommender, self.group, n_items=4, strategy="most_pleasure")
         self.assertAlmostEqual(mp_scores[0], 5.0)
         self.assertAlmostEqual(mp_scores[1], 4.0)
+
+    def test_most_pleasure_ranks_on_raw_scores_then_reports_clipped(self):
+        # Raw scores order item 2 above item 0, but both clip to 5.0.  Ranking
+        # on clipped scores would pick the lower index (item 0); ranking on raw
+        # scores must pick item 2 while still reporting a clipped rating.
+        raw = np.array([
+            [5.05, 1.0, 5.95],
+            [5.05, 1.0, 5.95],
+        ])
+        recommender = DummyRawRecommender(raw)
+        recs = recommend_for_group(
+            recommender, [0, 1], n_items=3, n=1, strategy="most_pleasure",
+        )
+        self.assertEqual(recs[0][0], 2)
+        self.assertAlmostEqual(recs[0][1], 5.0)
 
     def test_evaluate_group_satisfaction(self):
         sat = evaluate_group_satisfaction(self.recommender, self.group, item_idx=1)

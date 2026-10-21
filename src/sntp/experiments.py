@@ -45,8 +45,8 @@ from sntp.metrics import (
 from sntp.recommenders.item_based import ItemBasedCF
 from sntp.recommenders.matrix_factorization import BiasedMF
 from sntp.recommenders.social import SocialRecommender, SimilarUserRecommender
-from sntp.diffusion.icm import ICMSimulator
-from sntp.diffusion.sir import SIRSimulator
+from sntp.diffusion.icm import ICMRandomness, ICMSimulator
+from sntp.diffusion.sir import SIRRandomness, SIRSimulator
 from sntp.influence import (
     estimate_spread,
     random_seed_selection,
@@ -57,6 +57,7 @@ from sntp.influence import (
 from sntp.groups import (
     generate_groups,
     recommend_for_group,
+    score_group_items,
     evaluate_group_satisfaction,
 )
 
@@ -883,6 +884,14 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     )
     sim_seeds = make_simulation_seeds(base_seed, n_simulations, offset=0)
 
+    # Common random outcomes: one threshold per edge per trial, generated from
+    # the trial seed and reused across every seed set, propagation probability,
+    # and ICM variant.  This gives genuine paired comparisons instead of
+    # restarting a sequential RNG at the same integer seed.
+    icm_randomness_by_seed = {
+        int(s): ICMRandomness(active_graph, int(s)) for s in sim_seeds
+    }
+
     aff_fn = _affinity_fn_factory(
         recommender, target_idx, dataset.user_to_idx,
         default_affinity=default_affinity, n_users=dataset.n_users,
@@ -912,6 +921,26 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             "simulation_seeds": sim_seeds,
             "same_seed_sets_for_all_settings": True,
             "same_simulation_seeds_for_all_settings": True,
+            "common_random_numbers": {
+                "icm": (
+                    "one per-edge activation threshold per trial, reused across "
+                    "seed sets, propagation probabilities, and both ICM variants"
+                ),
+                "preference_aware_icm": (
+                    "shares the per-edge exposure thresholds and adds one "
+                    "per-user adoption threshold per trial"
+                ),
+                "sir": (
+                    "one transmission threshold per (edge, round) and one "
+                    "recovery threshold per (user, round), reused across beta, "
+                    "gamma, and seed sets for each trial"
+                ),
+                "not_claimed": (
+                    "Thresholds are shared within a trial; separate trials are "
+                    "independent. Thresholds are not shared across different "
+                    "graphs because edge identities differ."
+                ),
+            },
             "graph_info": graph_info,
             "max_rounds": max_rounds,
             "base_adopt_prob": base_adopt_prob,
@@ -941,6 +970,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             icm = ICMSimulator(
                 active_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=icm_randomness_by_seed[int(sim_seed)],
             )
             result = icm.run_canonical(seed_users)
             run_results.append({
@@ -1015,6 +1045,9 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
         )
 
         structure_results = {}
+        randomized_icm_randomness = {
+            int(s): ICMRandomness(randomized_graph, int(s)) for s in sim_seeds
+        }
         for p_prob in propagation_probs:
             key = f"p={p_prob}"
             observed_summary = results["icm_canonical"][key]["summary"]
@@ -1028,6 +1061,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
                 icm = ICMSimulator(
                     randomized_graph, propagation_prob=p_prob,
                     max_rounds=max_rounds, seed=sim_seed,
+                    common_randomness=randomized_icm_randomness[int(sim_seed)],
                 )
                 result = icm.run_canonical(seed_users)
                 random_counts.append(int(result["n_adopters"]))
@@ -1083,6 +1117,12 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
                 "same_seed_sets": seed_sets,
                 "same_simulation_seeds": sim_seeds,
                 "only_structure_changes": True,
+                "common_random_numbers": (
+                    "Each graph has its own per-edge thresholds for a trial seed; "
+                    "observed and randomized runs are therefore not paired edge "
+                    "by edge, but every p within a graph reuses the same "
+                    "thresholds and both graphs use the same seed sets."
+                ),
                 "outcome_scope": "simulated adoptions, not observed cascades",
             },
             "settings": structure_results,
@@ -1102,6 +1142,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             icm = ICMSimulator(
                 active_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=icm_randomness_by_seed[int(sim_seed)],
             )
             result = icm.run_preference_aware(
                 seed_users, affinity_fn=aff_fn,
@@ -1145,56 +1186,73 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
     _stage_end("R4: ICM preference-aware", ts)
     logger.info("--- SIR Model ---")
     ts = _stage_start("R4: SIR")
-    for p_prob in propagation_probs:
-        for g_prob in recovery_probs:
-            key = f"beta={p_prob}_gamma={g_prob}"
-            run_results = []
+    sir_keys = [
+        (p_prob, g_prob, f"beta={p_prob}_gamma={g_prob}")
+        for p_prob in propagation_probs for g_prob in recovery_probs
+    ]
+    sir_rows: dict[str, list[dict]] = {key: [] for _, _, key in sir_keys}
+    sir_runtime: dict[str, float] = {key: 0.0 for _, _, key in sir_keys}
+    sir_randomness_seconds = 0.0
+    # Trial-outer loop: one SIRRandomness object per trial is reused across every
+    # β/γ setting, so changing β or γ reuses identical infection/recovery draws.
+    for sim_i, sim_seed in enumerate(sim_seeds):
+        t_gen = time.perf_counter()
+        sir_randomness = SIRRandomness(
+            active_graph, max_rounds, int(sim_seed), n_users=dataset.n_users
+        )
+        sir_randomness_seconds += time.perf_counter() - t_gen
+        seed_users = set(seed_sets[sim_i])
+        for p_prob, g_prob, key in sir_keys:
             t0 = time.perf_counter()
-            for sim_i, sim_seed in enumerate(sim_seeds):
-                seed_users = set(seed_sets[sim_i])
-                sir = SIRSimulator(
-                    active_graph, transmission_prob=p_prob,
-                    recovery_prob=g_prob, max_rounds=max_rounds, seed=sim_seed,
-                )
-                result = sir.run(
-                    seed_users, affinity_fn=aff_fn,
-                    base_adopt_prob=base_adopt_prob,
-                    all_users=active_users,
-                )
-                run_results.append({
-                    "simulation_index": sim_i,
-                    "sim_seed": int(sim_seed),
-                    "n_ever_infected": int(result["n_ever_infected"]),
-                    "n_final_recovered": int(result["n_final_recovered"]),
-                    "n_rounds": int(result["n_rounds"]),
-                    "rounds_attempted": int(result["rounds_attempted"]),
-                    "final_S": int(result["state_history"][-1]["S"]),
-                    "final_I": int(result["state_history"][-1]["I"]),
-                    "final_R": int(result["state_history"][-1]["R"]),
-                })
-            elapsed = time.perf_counter() - t0
-
-            infected_dist = _distribution(r["n_ever_infected"] for r in run_results)
-            round_dist = _distribution(r["n_rounds"] for r in run_results)
-            results["sir"][key] = {
-                "transmission_prob": p_prob,
-                "recovery_prob": g_prob,
-                "runs": run_results,
-                "summary": {
-                    "ever_infected": infected_dist,
-                    "rounds": round_dist,
-                    "mean_ever_infected": infected_dist["mean"],
-                    "std_ever_infected": infected_dist["std"],
-                    "mean_rounds": round_dist["mean"],
-                },
-                "runtime_seconds": round(elapsed, 4),
-            }
-            logger.info(
-                "SIR (β=%.2f, γ=%.2f): mean=%.1f ± %.1f ever infected, mean rounds=%.1f",
-                p_prob, g_prob, infected_dist["mean"], infected_dist["std"],
-                round_dist["mean"] or 0.0,
+            sir = SIRSimulator(
+                active_graph, transmission_prob=p_prob,
+                recovery_prob=g_prob, max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=sir_randomness,
             )
+            result = sir.run(
+                seed_users, affinity_fn=aff_fn,
+                base_adopt_prob=base_adopt_prob,
+                all_users=active_users,
+            )
+            sir_runtime[key] += time.perf_counter() - t0
+            sir_rows[key].append({
+                "simulation_index": sim_i,
+                "sim_seed": int(sim_seed),
+                "n_ever_infected": int(result["n_ever_infected"]),
+                "n_final_recovered": int(result["n_final_recovered"]),
+                "n_rounds": int(result["n_rounds"]),
+                "rounds_attempted": int(result["rounds_attempted"]),
+                "final_S": int(result["state_history"][-1]["S"]),
+                "final_I": int(result["state_history"][-1]["I"]),
+                "final_R": int(result["state_history"][-1]["R"]),
+            })
+
+    for p_prob, g_prob, key in sir_keys:
+        run_results = sir_rows[key]
+        infected_dist = _distribution(r["n_ever_infected"] for r in run_results)
+        round_dist = _distribution(r["n_rounds"] for r in run_results)
+        results["sir"][key] = {
+            "transmission_prob": p_prob,
+            "recovery_prob": g_prob,
+            "runs": run_results,
+            "summary": {
+                "ever_infected": infected_dist,
+                "rounds": round_dist,
+                "mean_ever_infected": infected_dist["mean"],
+                "std_ever_infected": infected_dist["std"],
+                "mean_rounds": round_dist["mean"],
+            },
+            "runtime_seconds": round(sir_runtime[key], 4),
+        }
+        logger.info(
+            "SIR (β=%.2f, γ=%.2f): mean=%.1f ± %.1f ever infected, mean rounds=%.1f",
+            p_prob, g_prob, infected_dist["mean"], infected_dist["std"],
+            round_dist["mean"] or 0.0,
+        )
     _stage_end("R4: SIR", ts)
+    results["design"]["common_random_numbers"]["sir_randomness_generation_seconds"] = (
+        round(sir_randomness_seconds, 4)
+    )
 
     # --- Moderate-popularity target experiment (rare target retained above) ---
     logger.info("--- Moderate-popularity target experiment ---")
@@ -1211,6 +1269,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             icm = ICMSimulator(
                 active_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=icm_randomness_by_seed[int(sim_seed)],
             )
             result = icm.run_canonical(set(moderate_seed_sets[sim_i]))
             canonical_runs.append({
@@ -1240,6 +1299,7 @@ def run_requirement_4(dataset, train, recommender, config: dict, results_dir: Pa
             icm = ICMSimulator(
                 active_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=icm_randomness_by_seed[int(sim_seed)],
             )
             result = icm.run_preference_aware(
                 set(moderate_seed_sets[sim_i]), affinity_fn=moderate_aff_fn,
@@ -1427,6 +1487,10 @@ def run_requirement_5(dataset, config: dict, results_dir: Path):
 
     selection_seeds = make_simulation_seeds(seed, n_sims, offset=0)
     evaluation_seeds = make_simulation_seeds(seed, n_sims, offset=500_000)
+    # One threshold set per evaluation trial, reused for every method and budget.
+    evaluation_randomness = {
+        int(s): ICMRandomness(active_graph, int(s)) for s in evaluation_seeds
+    }
 
     results = {
         "design": {
@@ -1454,6 +1518,13 @@ def run_requirement_5(dataset, config: dict, results_dir: Path):
                 "paired mean difference between the same Monte Carlo trials at "
                 "budget b and at the previous evaluated budget; the number of "
                 "added seeds is recorded per row"
+            ),
+            "common_random_numbers": (
+                "One per-edge activation threshold per trial is reused for every "
+                "seed set, budget, candidate, and both greedy variants. The "
+                "finite-trial objective is therefore deterministic and monotone, "
+                "so extra seeds cannot reduce measured spread and marginal gains "
+                "cannot be negative from fresh Monte Carlo noise."
             ),
             "outcome_scope": "simulated canonical-ICM spread on the active graph",
         },
@@ -1511,6 +1582,7 @@ def run_requirement_5(dataset, config: dict, results_dir: Path):
                 n_simulations=n_sims,
                 max_rounds=max_rounds,
                 sim_seeds=evaluation_seeds,
+                randomness_by_seed=evaluation_randomness,
             )
             counts = [len(s) for s in adopter_sets]
             trial_record["by_budget"][str(b)] = {
@@ -1537,6 +1609,7 @@ def run_requirement_5(dataset, config: dict, results_dir: Path):
             n_simulations=n_sims,
             max_rounds=max_rounds,
             sim_seeds=evaluation_seeds,
+            randomness_by_seed=evaluation_randomness,
         )
         method_raw["degree"][b] = {
             "seeds": seeds_b,
@@ -1556,6 +1629,7 @@ def run_requirement_5(dataset, config: dict, results_dir: Path):
             n_simulations=n_sims,
             max_rounds=max_rounds,
             sim_seeds=evaluation_seeds,
+            randomness_by_seed=evaluation_randomness,
         )
         method_raw["greedy"][b] = {
             "seeds": seeds_b,
@@ -1872,6 +1946,12 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
                 "recommender trained on the training split; no held-out rating "
                 "is used for group construction or reported satisfaction"
             ),
+            "ranking_definition": (
+                "Group top-N ordering uses the recommender's raw (unclipped) "
+                "member scores; the reported group score is the clipped "
+                "aggregate satisfaction for the selected item, so ties at the "
+                "rating ceiling no longer determine the order."
+            ),
             "diffusion_design": {
                 "model": "preference-aware ICM",
                 "propagation_prob": p_prob,
@@ -1881,6 +1961,13 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
                 "default_affinity": default_affinity,
                 "seed_users": "the group members",
                 "outcome_scope": "simulated",
+                "common_random_numbers": (
+                    "For a group, every candidate item's preference-aware ICM "
+                    "runs reuse the same per-edge exposure and per-user adoption "
+                    "thresholds for each simulation seed. Differences across "
+                    "items therefore come from the affinity function, not from a "
+                    "fresh random stream."
+                ),
             },
         },
         "n_groups": len(groups),
@@ -1899,6 +1986,7 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
             "top_item_satisfaction_max": [],
             "top_item_satisfaction_range": [],
             "group_score": [],
+            "group_ranking_score": [],
             "spread_mean": [],
             "spread_std": [],
             "top_item_is_best_satisfaction": [],
@@ -1912,6 +2000,9 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
         group_sim_seeds = make_simulation_seeds(
             seed, diff_sims, offset=100_000 + g_idx * 1_000
         )
+        group_randomness = {
+            int(s): ICMRandomness(active_graph, int(s)) for s in group_sim_seeds
+        }
         results["groups"][g_key] = {
             "members": [int(u) for u in group],
             "simulation_seeds": group_sim_seeds,
@@ -1938,9 +2029,14 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
                 }
                 continue
             top_item, group_score = recs[0]
+            raw_scores = score_group_items(
+                recommender, group, dataset.n_items,
+                strategy=strat, raw_scores=True,
+            )
             strategy_items[strat] = {
                 "top_item": int(top_item),
                 "group_score": float(group_score),
+                "group_ranking_score": float(raw_scores[top_item]),
                 "top_recommendations": recs,
             }
 
@@ -1974,6 +2070,7 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
                 sim = ICMSimulator(
                     active_graph, propagation_prob=p_prob,
                     max_rounds=max_rounds, seed=sim_seed,
+                    common_randomness=group_randomness[int(sim_seed)],
                 )
                 out = sim.run_preference_aware(
                     seed_users=set(group),
@@ -2040,6 +2137,7 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
                 "top_recommendations": info["top_recommendations"],
                 "top_item": top_item,
                 "group_score": round(info["group_score"], 4),
+                "group_ranking_score": round(info["group_ranking_score"], 4),
                 "satisfaction": sat,
                 "diffusion_spread": spread,
                 "top_item_is_best_satisfaction": is_best_sat,
@@ -2051,6 +2149,7 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
             strat_stats[strat]["top_item_satisfaction_max"].append(sat["max"])
             strat_stats[strat]["top_item_satisfaction_range"].append(sat["range"])
             strat_stats[strat]["group_score"].append(info["group_score"])
+            strat_stats[strat]["group_ranking_score"].append(info["group_ranking_score"])
             strat_stats[strat]["spread_mean"].append(spread["mean_adopters"])
             strat_stats[strat]["spread_std"].append(spread["std_adopters"])
             strat_stats[strat]["top_item_is_best_satisfaction"].append(int(is_best_sat))
@@ -2068,6 +2167,7 @@ def run_requirement_6(dataset, train, recommender, config: dict, results_dir: Pa
             "avg_max_satisfaction": round(float(np.mean(stats["top_item_satisfaction_max"])), 3),
             "avg_disagreement_range": round(float(np.mean(stats["top_item_satisfaction_range"])), 3),
             "avg_group_score": round(float(np.mean(stats["group_score"])), 3),
+            "avg_group_ranking_score": round(float(np.mean(stats["group_ranking_score"])), 3),
             "avg_diffusion_spread": round(float(np.mean(stats["spread_mean"])), 3),
             "avg_diffusion_std": round(float(np.mean(stats["spread_std"])), 3),
             "top_item_best_satisfaction_count": int(sum(stats["top_item_is_best_satisfaction"])),
@@ -2380,6 +2480,9 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
             n_simulations=interaction_sims, seed=base_seed,
         )
         sim_seeds = make_simulation_seeds(base_seed, interaction_sims, offset=700_000)
+        interaction_randomness = {
+            int(s): ICMRandomness(active_graph, int(s)) for s in sim_seeds
+        }
 
         results["simulated"]["design"] = {
             "model": "preference-aware ICM",
@@ -2392,6 +2495,11 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
             "seed_sets": seed_sets,
             "simulation_seeds": sim_seeds,
             "same_seed_sets_and_seeds_for_all_models": True,
+            "common_random_numbers": (
+                "Every model reuses one per-edge exposure and per-user adoption "
+                "threshold set per trial, so spread differences come from the "
+                "model's affinity function rather than fresh random streams."
+            ),
             "propagation_prob": p_prob,
             "base_adopt_prob": base_adopt_prob,
             "max_rounds": max_rounds,
@@ -2415,6 +2523,7 @@ def run_requirement_7(dataset, train, val, test, models_dict: dict, config: dict
                 sim = ICMSimulator(
                     active_graph, propagation_prob=p_prob,
                     max_rounds=max_rounds, seed=sim_seed,
+                    common_randomness=interaction_randomness[int(sim_seed)],
                 )
                 out = sim.run_preference_aware(
                     seed_users=set(seed_sets[sim_i]),
@@ -2553,6 +2662,11 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
         eligible, seed_size=seed_size, n_simulations=n_sims, seed=seed
     )
     sim_seeds = make_simulation_seeds(seed, n_sims, offset=900_000)
+    # Per-edge and per-user thresholds reused across every intervention
+    # threshold, so thresholds are compared on the same random outcomes.
+    intervention_randomness = {
+        int(s): ICMRandomness(active_graph, int(s)) for s in sim_seeds
+    }
     aff_fn = _affinity_fn_factory(
         recommender, int(target["idx"]), dataset.user_to_idx,
         default_affinity=default_affinity, n_users=dataset.n_users,
@@ -2572,6 +2686,7 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
             sim = ICMSimulator(
                 active_graph, propagation_prob=p_prob,
                 max_rounds=max_rounds, seed=sim_seed,
+                common_randomness=intervention_randomness[int(sim_seed)],
             )
             out = sim.run_preference_aware(
                 seed_users=seed_set,
@@ -2790,10 +2905,11 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
         "identical_seeds": bool(identical_seeds),
         "seed_jaccard": round(_jaccard(greedy_std["seeds"], greedy_celf["seeds"]), 3),
         "note": (
-            "CELF's lazy bound is exact for a deterministic monotone submodular "
-            "objective. With finite Monte Carlo estimates the objective is noisy, "
-            "so CELF can legitimately select different seeds and can be slower. "
-            "The conclusion below is based only on these measurements."
+            "With fixed common random outcomes the finite-trial ICM objective is "
+            "deterministic, monotone, and submodular, so the CELF lazy bound is "
+            "valid for this measured objective: CELF should select the same seed "
+            "set with no more evaluations than standard greedy. The measurement "
+            "checks that claim rather than assuming it."
         ),
         "memory_method": (
             "tracemalloc Python allocations plus RSS delta when psutil is "
@@ -2813,11 +2929,16 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
             f"CELF did not produce a wall-clock speedup in this measured "
             f"setting ({t_celf:.3f}s vs {t_std:.3f}s; "
             f"{greedy_celf['n_evaluations']} vs {greedy_std['n_evaluations']} "
-            "evaluations). Lazy re-evaluation overhead and Monte Carlo noise "
-            "can outweigh fewer evaluations at this pool size."
+            "evaluations). Lazy re-evaluation overhead can outweigh the saved "
+            "evaluations at this pool size even when the objective is "
+            "deterministic."
         )
     if not identical_seeds:
-        celf_finding += " The selected seed sets differed under noisy estimates."
+        celf_finding += (
+            " The selected seed sets still differed even though the measured "
+            "objective is deterministic under common random outcomes; this "
+            "flags a tie-breaking or implementation discrepancy."
+        )
 
     # Controlled deterministic check on a small induced graph.
     controlled_check = None
@@ -2943,6 +3064,9 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
             sub_bias = recommender.item_bias[:n_sub]
 
             def _score_subset():
+                weight = float(getattr(
+                    recommender, "ranking_item_bias_weight", 1.0
+                ))
                 for u in users_with_train:
                     scores = (
                         recommender.global_mean
@@ -2950,7 +3074,10 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
                         + sub_bias
                         + sub_factors.dot(recommender.user_factors[u])
                     )
-                    scores = np.clip(scores, 1.0, 5.0)
+                    # Rank on the same bias-adjusted raw score family used by
+                    # the recommender's own top-N path; clipping before ranking
+                    # would collapse distinct items into ties.
+                    scores = scores - (1.0 - weight) * sub_bias
                     top_n_from_scores(
                         scores, k,
                         recommender._train_user_items.get(u, set()),
@@ -3043,6 +3170,10 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
             "seed_sets": seed_sets,
             "simulation_seeds": sim_seeds,
             "same_seed_sets_and_seeds_across_thresholds": True,
+            "common_random_numbers": (
+                "Each trial has one per-edge exposure threshold and one per-user "
+                "adoption threshold; every intervention threshold reuses them."
+            ),
             "outcome_scope": "simulated exposures/adoptions and simulator-side rating proxy",
         },
         "intervention": {
@@ -3060,8 +3191,10 @@ def run_requirement_8(dataset, train, recommender, config: dict, results_dir: Pa
                 "recommender, not observed after the intervention.",
                 "The intervention is applied inside the simulator; no online "
                 "randomized experiment was run.",
-                "Shared simulation seeds reduce but do not eliminate path-level "
-                "randomness when a threshold changes the cascade.",
+                "Shared per-edge exposure and per-user adoption thresholds mean "
+                "threshold changes are compared on the same random outcomes; "
+                "filtering still changes which paths form, so downstream "
+                "divergence is a real cascade effect, not fresh noise.",
             ],
         },
         "celf_optimization": {

@@ -141,11 +141,32 @@ def aggregate_member_scores(member_scores: np.ndarray, strategy: str) -> np.ndar
     return np.max(matrix, axis=0)
 
 
+def _member_scores(recommender, user_idx: int, n_items: int,
+                   raw_scores: bool) -> np.ndarray:
+    """Return one member's scores, preserving raw values when requested."""
+    if hasattr(recommender, "score_all"):
+        if raw_scores:
+            try:
+                return np.asarray(
+                    recommender.score_all(user_idx, raw_scores=True),
+                    dtype=np.float64,
+                )
+            except TypeError:
+                # Recommenders without the raw-scores option (test doubles).
+                pass
+        return np.asarray(recommender.score_all(user_idx), dtype=np.float64)
+    return np.array(
+        [recommender.predict(user_idx, i) for i in range(n_items)],
+        dtype=np.float64,
+    )
+
+
 def score_group_items(
     recommender,
     group: list[int],
     n_items: int,
     strategy: str = "average",
+    raw_scores: bool = False,
 ) -> np.ndarray:
     """Compute aggregate scores for all items for a given group.
 
@@ -159,6 +180,10 @@ def score_group_items(
         Total number of items in catalog.
     strategy : str
         'average', 'least_misery', or 'most_pleasure'.
+    raw_scores : bool
+        If True, ask the recommender for unclipped member scores.  Aggregates
+        are then ordering scores, not ratings.  Calling code that reports
+        satisfaction must request clipped scores separately.
 
     Returns
     -------
@@ -172,13 +197,7 @@ def score_group_items(
     # Gather predicted ratings for each group member across all items
     member_scores = []
     for u in group:
-        if hasattr(recommender, "score_all"):
-            scores = np.asarray(recommender.score_all(u), dtype=np.float64)
-        else:
-            scores = np.array(
-                [recommender.predict(u, i) for i in range(n_items)],
-                dtype=np.float64,
-            )
+        scores = _member_scores(recommender, u, n_items, raw_scores)
         if scores.shape != (n_items,):
             raise ValueError(
                 f"recommender returned shape {scores.shape} for user {u}; "
@@ -198,8 +217,14 @@ def recommend_for_group(
     strategy: str = "average",
     train_user_items: dict[int, set[int]] | None = None,
     exclude_seen_by_any: bool = True,
+    rank_with_raw_scores: bool = True,
 ) -> list[tuple[int, float]]:
     """Recommend top-N items for a group using the specified aggregation strategy.
+
+    Ordering uses the recommender's raw (unclipped) member scores when
+    available; the returned score is the clipped group satisfaction for the
+    selected item.  This avoids artificial ties at the rating ceiling while
+    keeping the reported number interpretable as a group rating.
 
     Parameters
     ----------
@@ -217,12 +242,23 @@ def recommend_for_group(
         Training items per user.
     exclude_seen_by_any : bool
         If True, exclude items rated by any member in training.
+    rank_with_raw_scores : bool
+        If True, aggregate raw member scores for ordering and separately
+        aggregate clipped scores for the reported satisfaction value.
 
     Returns
     -------
-    recommendations : list of (item_idx, group_score)
+    recommendations : list of (item_idx, group_satisfaction)
     """
-    scores = score_group_items(recommender, group, n_items, strategy=strategy)
+    ranking_scores = score_group_items(
+        recommender, group, n_items, strategy=strategy, raw_scores=rank_with_raw_scores
+    )
+    if rank_with_raw_scores:
+        display_scores = score_group_items(
+            recommender, group, n_items, strategy=strategy, raw_scores=False
+        )
+    else:
+        display_scores = ranking_scores
 
     exclude_set = set()
     if train_user_items is not None:
@@ -235,17 +271,18 @@ def recommend_for_group(
             if sets:
                 exclude_set = set.intersection(*sets)
 
+    ranking_scores = np.array(ranking_scores, dtype=np.float64, copy=True)
     for item_idx in exclude_set:
-        if 0 <= item_idx < len(scores):
-            scores[item_idx] = -np.inf
+        if 0 <= item_idx < len(ranking_scores):
+            ranking_scores[item_idx] = -np.inf
 
     # Top-N selection with deterministic tie-breaking
-    top_indices = np.argsort(-scores, kind="stable")[:n]
+    top_indices = np.argsort(-ranking_scores, kind="stable")[:n]
     results = []
     for idx in top_indices:
-        if np.isneginf(scores[idx]):
+        if np.isneginf(ranking_scores[idx]):
             break
-        results.append((int(idx), float(scores[idx])))
+        results.append((int(idx), float(display_scores[idx])))
 
     return results
 

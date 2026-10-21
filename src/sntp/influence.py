@@ -19,7 +19,7 @@ from typing import Any
 
 import numpy as np
 
-from sntp.diffusion.icm import ICMSimulator
+from sntp.diffusion.icm import ICMRandomness, ICMSimulator
 from sntp.selection import make_simulation_seeds
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ def estimate_spread(
     max_rounds: int = 100,
     seed: int = 42,
     sim_seeds: list[int] | None = None,
+    randomness_by_seed: dict[int, ICMRandomness] | None = None,
 ) -> tuple[float, float, list[set[int]]]:
     """Estimate expected spread (mean, std) of a seed set via Monte Carlo ICM.
 
@@ -52,8 +53,13 @@ def estimate_spread(
         Base random seed (used only when ``sim_seeds`` is not supplied).
     sim_seeds : list[int] or None
         Explicit Monte Carlo seeds.  Supplying the same list to every method
-        gives paired/common-random-number comparisons; this is the recommended
-        path for all reported experiments.
+        reuses the same per-edge thresholds, which gives genuine common random
+        outcomes (common random numbers) rather than merely repeating an integer
+        seed.  This is the recommended path for all reported experiments.
+    randomness_by_seed : dict[int, ICMRandomness], optional
+        Pre-generated outcomes keyed by trial seed.  Reusing one mapping across
+        every candidate evaluation and across standard/CELF greedy avoids
+        regenerating thresholds and guarantees identical realizations.
 
     Returns
     -------
@@ -85,6 +91,10 @@ def estimate_spread(
             propagation_prob=propagation_prob,
             max_rounds=max_rounds,
             seed=sim_seed,
+            common_randomness=(
+                randomness_by_seed.get(int(sim_seed))
+                if randomness_by_seed is not None else None
+            ),
         )
         res = sim.run_canonical(seeds)
         adopters = res["adopters"]
@@ -209,8 +219,8 @@ def greedy_influence_maximization(
     selection_seeds : list[int] or None
         Explicit Monte Carlo seeds used for every candidate evaluation.
         Reusing one list across every candidate and across standard greedy /
-        CELF gives paired comparisons and makes negative Monte Carlo noise less
-        likely to look like a real marginal loss.
+        CELF gives genuine common random outcomes, which makes marginal gains
+        paired and the finite-trial objective deterministic.
 
     Returns
     -------
@@ -262,6 +272,14 @@ def greedy_influence_maximization(
     spread_progression: list[float] = []
     spread_stds: list[float] = []
 
+    # One set of per-edge thresholds per trial, reused for every candidate and
+    # for both greedy variants.  With these fixed realizations the finite-trial
+    # ICM objective is deterministic, monotone, and submodular, so marginal
+    # gains cannot become negative because of an unlucky fresh random stream.
+    randomness_by_seed = {
+        int(s): ICMRandomness(propagation_graph, int(s)) for s in selection_seeds
+    }
+
     current_spread = 0.0
 
     if not use_celf:
@@ -272,10 +290,8 @@ def greedy_influence_maximization(
                 break
 
             best_candidate = None
-            # Monte Carlo estimates can make a marginal gain negative (for
-            # example when extra seeds perturb the random stream).  The
-            # sentinel must therefore be -inf, not -1; otherwise the loop
-            # stops after one selection whenever every measured gain is < -1.
+            # The objective is deterministic under fixed common random
+            # outcomes.  -inf remains the safe sentinel.
             best_gain = -np.inf
             best_spread = current_spread
             best_std = 0.0
@@ -290,6 +306,7 @@ def greedy_influence_maximization(
                     n_simulations=n_simulations,
                     seed=seed,
                     sim_seeds=selection_seeds,
+                    randomness_by_seed=randomness_by_seed,
                 )
                 n_evals += 1
                 gain = sp_mean - current_spread
@@ -328,6 +345,7 @@ def greedy_influence_maximization(
                 n_simulations=n_simulations,
                 seed=seed,
                 sim_seeds=selection_seeds,
+                randomness_by_seed=randomness_by_seed,
             )
             n_evals += 1
             last_std[cand] = sp_std
@@ -360,6 +378,7 @@ def greedy_influence_maximization(
                     n_simulations=n_simulations,
                     seed=seed,
                     sim_seeds=selection_seeds,
+                    randomness_by_seed=randomness_by_seed,
                 )
                 n_evals += 1
                 last_std[cand] = sp_std

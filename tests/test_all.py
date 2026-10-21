@@ -32,8 +32,8 @@ from sntp.metrics import mae, rmse, precision_at_k, hit_rate_at_k
 from sntp.recommenders.item_based import ItemBasedCF
 from sntp.recommenders.matrix_factorization import BiasedMF
 from sntp.recommenders.social import SocialRecommender
-from sntp.diffusion.icm import ICMSimulator
-from sntp.diffusion.sir import SIRSimulator
+from sntp.diffusion.icm import ICMRandomness, ICMSimulator
+from sntp.diffusion.sir import SIRRandomness, SIRSimulator
 
 
 class TestParsing(unittest.TestCase):
@@ -485,6 +485,120 @@ class TestSIR(unittest.TestCase):
         total = 3
         for state in result["state_history"]:
             self.assertEqual(state["S"] + state["I"] + state["R"], total)
+
+
+class TestCommonRandomNumbers(unittest.TestCase):
+    """Common random outcomes must be shared, not merely reseeded."""
+
+    def _graph(self):
+        # Small graph with several paths so outcomes are non-trivial.
+        return {
+            0: [1, 2, 3],
+            1: [2, 4],
+            2: [4, 5],
+            3: [5],
+            4: [5],
+            5: [],
+        }
+
+    def test_icm_seed_superset_monotone_same_trial(self):
+        """Adding seeds cannot reduce spread under one fixed realization."""
+        for seed in (1, 7, 42, 101):
+            base = ICMSimulator(self._graph(), propagation_prob=0.5, seed=seed)
+            small = base.run_canonical({0})
+            bigger = ICMSimulator(
+                self._graph(), propagation_prob=0.5, seed=seed
+            ).run_canonical({0, 5})
+            self.assertTrue(
+                small["adopters"].issubset(bigger["adopters"]),
+                msg=f"seed={seed}: {small['adopters']} not subset of "
+                    f"{bigger['adopters']}",
+            )
+
+    def test_icm_probability_nesting_same_trial(self):
+        """Larger p activates a superset of edges under the same threshold."""
+        for seed in (1, 7, 42, 101):
+            low = ICMSimulator(
+                self._graph(), propagation_prob=0.3, seed=seed
+            ).run_canonical({0})
+            high = ICMSimulator(
+                self._graph(), propagation_prob=0.8, seed=seed
+            ).run_canonical({0})
+            self.assertTrue(
+                low["adopters"].issubset(high["adopters"]),
+                msg=f"seed={seed}: p=0.3 adopters not subset of p=0.8 adopters",
+            )
+
+    def test_preference_aware_seed_superset_monotone(self):
+        for seed in (3, 11):
+            small = ICMSimulator(
+                self._graph(), propagation_prob=0.6, seed=seed
+            ).run_preference_aware(
+                {0}, affinity_fn=lambda u: 0.7, base_adopt_prob=0.8,
+            )
+            bigger = ICMSimulator(
+                self._graph(), propagation_prob=0.6, seed=seed
+            ).run_preference_aware(
+                {0, 5}, affinity_fn=lambda u: 0.7, base_adopt_prob=0.8,
+            )
+            self.assertTrue(small["adopters"].issubset(bigger["adopters"]))
+
+    def test_icm_randomness_object_is_reused(self):
+        """Passing one randomness object must give identical outcomes."""
+        graph = self._graph()
+        randomness = ICMRandomness(graph, seed=123)
+        first = ICMSimulator(
+            graph, propagation_prob=0.5, seed=123,
+            common_randomness=randomness,
+        ).run_canonical({0, 3})
+        second = ICMSimulator(
+            graph, propagation_prob=0.5, seed=123,
+            common_randomness=randomness,
+        ).run_canonical({0, 3})
+        self.assertEqual(first["adopters"], second["adopters"])
+
+    def test_icm_randomness_seed_mismatch_rejected(self):
+        graph = self._graph()
+        randomness = ICMRandomness(graph, seed=123)
+        with self.assertRaises(ValueError):
+            ICMSimulator(
+                graph, propagation_prob=0.5, seed=999,
+                common_randomness=randomness,
+            )
+
+    def test_sir_reproducible_across_settings_with_shared_randomness(self):
+        """Same trial and shared thresholds give identical SIR outcomes."""
+        graph = self._graph()
+        randomness = SIRRandomness(graph, max_rounds=10, seed=55)
+        first = SIRSimulator(
+            graph, transmission_prob=0.4, recovery_prob=0.3,
+            max_rounds=10, seed=55, common_randomness=randomness,
+        ).run({0}, all_users=set(graph))
+        second = SIRSimulator(
+            graph, transmission_prob=0.4, recovery_prob=0.3,
+            max_rounds=10, seed=55, common_randomness=randomness,
+        ).run({0}, all_users=set(graph))
+        self.assertEqual(first["ever_infected"], second["ever_infected"])
+        self.assertEqual(first["state_history"], second["state_history"])
+        self.assertEqual(first["final_recovered"], second["final_recovered"])
+
+    def test_sir_recovery_thresholds_shared_across_gamma(self):
+        """Changing gamma must not redraw the transmission/recovery stream."""
+        graph = self._graph()
+        randomness = SIRRandomness(graph, max_rounds=10, seed=77)
+        # beta=0 isolates recovery: the seed is the only infected user and its
+        # per-round recovery threshold is the same in both runs.
+        low_gamma = SIRSimulator(
+            graph, transmission_prob=0.0, recovery_prob=0.2,
+            max_rounds=10, seed=77, common_randomness=randomness,
+        ).run({0}, all_users=set(graph))
+        high_gamma = SIRSimulator(
+            graph, transmission_prob=0.0, recovery_prob=0.9,
+            max_rounds=10, seed=77, common_randomness=randomness,
+        ).run({0}, all_users=set(graph))
+        self.assertTrue(
+            low_gamma["final_recovered"].issubset(high_gamma["final_recovered"])
+        )
 
 
 if __name__ == "__main__":

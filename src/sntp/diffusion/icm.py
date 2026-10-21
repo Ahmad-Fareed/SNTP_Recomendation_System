@@ -16,6 +16,17 @@ Timing:
   - Each active user gets exactly one attempt per outgoing edge.
   - A failed attempt is never retried by the same sender.
 
+Common random numbers (CRN):
+  A simulator draws one activation threshold per directed edge and one adoption
+  threshold per user when it is constructed.  An edge activates when its
+  threshold is below p.  The thresholds depend only on the trial seed and the
+  graph, not on the seed set, the propagation probability, or the cascade path.
+  Consequently the same ``ICMRandomness`` object (or a fresh simulator with the
+  same seed and graph) gives coupled outcomes when seed sets or p are varied.
+  This is what makes paired comparisons and the CELF lazy bound meaningful.
+  Resetting a sequential RNG to the same integer seed inside every run would
+  NOT provide this property because the draw positions depend on the cascade.
+
 Events tracked:
   - 'recommend': user received a direct platform recommendation.
   - 'expose': user became exposed through a neighbor.
@@ -25,6 +36,8 @@ The dataset has NO observed adoption timestamps or diffusion histories.
 All propagation results are simulated and must be labeled as such.
 """
 
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 
@@ -33,11 +46,45 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+class ICMRandomness:
+    """Reusable common random outcomes for one ICM trial.
+
+    Attributes
+    ----------
+    seed : int
+        Trial seed used to generate the thresholds.
+    edge_thresholds : dict[int, np.ndarray]
+        For each sender, one float32 threshold per outgoing edge, aligned with
+        the sender's neighbor list in the propagation graph.
+    adoption_thresholds : np.ndarray
+        One float32 adoption threshold per user index.
+    """
+
+    def __init__(self, propagation_graph: dict, seed: int):
+        self.seed = int(seed)
+        rng = np.random.RandomState(self.seed)
+        self.edge_thresholds: dict[int, np.ndarray] = {}
+        max_node = -1
+        for sender in sorted(propagation_graph):
+            sender = int(sender)
+            neighbors = propagation_graph[sender]
+            max_node = max(max_node, sender)
+            if neighbors:
+                max_node = max(max_node, max(int(v) for v in neighbors))
+            self.edge_thresholds[sender] = rng.random_sample(
+                len(neighbors)
+            ).astype(np.float32)
+        if max_node < 0:
+            max_node = 0
+        self.adoption_thresholds = rng.random_sample(max_node + 1).astype(np.float32)
+
+
 class ICMSimulator:
     """Independent Cascade Model simulator."""
 
     def __init__(self, propagation_graph: dict, propagation_prob: float = 0.1,
-                 max_rounds: int = 100, seed: int = 42):
+                 max_rounds: int = 100, seed: int = 42,
+                 common_randomness: ICMRandomness | None = None):
         """
         Parameters
         ----------
@@ -49,11 +96,23 @@ class ICMSimulator:
             Safety limit on simulation rounds.
         seed : int
             Random seed for reproducibility.
+        common_randomness : ICMRandomness, optional
+            Pre-generated outcomes to reuse across comparable runs.  When
+            supplied, ``seed`` is only retained for provenance and must match
+            the randomness object's seed.
         """
         self.propagation_graph = propagation_graph
         self.propagation_prob = propagation_prob
         self.max_rounds = max_rounds
-        self.seed = seed
+        self.seed = int(seed)
+        if common_randomness is None:
+            common_randomness = ICMRandomness(propagation_graph, self.seed)
+        elif common_randomness.seed != self.seed:
+            raise ValueError(
+                "common_randomness seed does not match simulator seed: "
+                f"{common_randomness.seed} != {self.seed}"
+            )
+        self.randomness = common_randomness
 
     def run_canonical(self, seed_users: set[int]) -> dict:
         """Run canonical ICM from a set of initial adopters.
@@ -72,7 +131,7 @@ class ICMSimulator:
             'seed_users': the initial seed set
         """
         seed_users = set(seed_users)
-        rng = np.random.RandomState(self.seed)
+        p = float(self.propagation_prob)
         adopters = set(seed_users)
         newly_active = set(seed_users)
         attempted = defaultdict(set)  # sender -> set of receivers already attempted
@@ -95,7 +154,10 @@ class ICMSimulator:
 
             for sender in newly_active:
                 neighbors = self.propagation_graph.get(sender, [])
-                for receiver in neighbors:
+                thresholds = self.randomness.edge_thresholds.get(sender)
+                if thresholds is None:
+                    continue
+                for pos, receiver in enumerate(neighbors):
                     if receiver in adopters or receiver in next_active:
                         continue
                     if receiver in attempted[sender]:
@@ -103,7 +165,7 @@ class ICMSimulator:
 
                     attempted[sender].add(receiver)
 
-                    if rng.random() < self.propagation_prob:
+                    if float(thresholds[pos]) < p:
                         next_active.add(receiver)
                         event_log.append({
                             "round": round_num, "event": "adopt",
@@ -161,7 +223,7 @@ class ICMSimulator:
         result : dict with exposure and adoption tracking.
         """
         seed_users = set(seed_users)
-        rng = np.random.RandomState(self.seed)
+        p = float(self.propagation_prob)
         adopters = set(seed_users)
         exposed = set(seed_users)
         newly_active = set(seed_users)
@@ -186,7 +248,10 @@ class ICMSimulator:
             # Stage 1: propagation attempts (exposure)
             for sender in newly_active:
                 neighbors = self.propagation_graph.get(sender, [])
-                for receiver in neighbors:
+                thresholds = self.randomness.edge_thresholds.get(sender)
+                if thresholds is None:
+                    continue
+                for pos, receiver in enumerate(neighbors):
                     if receiver in adopters:
                         continue
                     if receiver in attempted[sender]:
@@ -194,7 +259,7 @@ class ICMSimulator:
 
                     attempted[sender].add(receiver)
 
-                    if rng.random() < self.propagation_prob:
+                    if float(thresholds[pos]) < p:
                         if receiver not in exposed:
                             newly_exposed.add(receiver)
                             exposed.add(receiver)
@@ -212,8 +277,8 @@ class ICMSimulator:
 
                 adopt_prob = base_adopt_prob * aff
                 adopt_prob = min(max(adopt_prob, 0.0), 1.0)
-
-                if rng.random() < adopt_prob:
+                threshold = self.randomness.adoption_thresholds
+                if user < threshold.size and float(threshold[user]) < adopt_prob:
                     next_active.add(user)
                     adopters.add(user)
                     event_log.append({

@@ -19,23 +19,62 @@ Timing convention:
   - Then process recovery for all Infected users (including those from prior rounds).
   - Newly infected users join the Infected pool for the next round.
 
-The dataset has NO observed adoption timestamps. All results are simulated.
-Recovery represents "user stops actively promoting the item" — a modeling assumption.
+Reproducible random outcomes:
+  For a trial seed, one transmission threshold is pre-generated for every
+  (directed edge, round) pair and one recovery threshold for every
+  (user, round) pair.  These thresholds are independent of the seed set and of
+  β/γ, so changing either parameter reuses the same underlying random
+  outcomes.  The draws are therefore reproducible and consistently defined
+  across comparable runs instead of consuming a sequential RNG in an order
+  that depends on the cascade path.
+
+The dataset has NO observed adoption timestamps or diffusion histories.
+All results are simulated.
 """
 
+from __future__ import annotations
+
 import logging
-from collections import defaultdict
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
+class SIRRandomness:
+    """Reusable per-edge/per-round and per-user/per-round random thresholds."""
+
+    def __init__(self, propagation_graph: dict, max_rounds: int, seed: int,
+                 n_users: int | None = None):
+        self.seed = int(seed)
+        self.max_rounds = int(max_rounds)
+        rng = np.random.RandomState(self.seed)
+        self.transmission_thresholds: dict[int, np.ndarray] = {}
+        max_node = -1
+        for sender in sorted(propagation_graph):
+            sender = int(sender)
+            neighbors = propagation_graph[sender]
+            max_node = max(max_node, sender)
+            if neighbors:
+                max_node = max(max_node, max(int(v) for v in neighbors))
+            self.transmission_thresholds[sender] = rng.random_sample(
+                self.max_rounds * len(neighbors)
+            ).astype(np.float32)
+        if n_users is not None:
+            max_node = max(max_node, int(n_users) - 1)
+        if max_node < 0:
+            max_node = 0
+        self.recovery_thresholds = rng.random_sample(
+            (self.max_rounds, max_node + 1)
+        ).astype(np.float32)
+
+
 class SIRSimulator:
     """SIR epidemic model for item adoption diffusion."""
 
     def __init__(self, propagation_graph: dict, transmission_prob: float = 0.1,
-                 recovery_prob: float = 0.2, max_rounds: int = 100, seed: int = 42):
+                 recovery_prob: float = 0.2, max_rounds: int = 100, seed: int = 42,
+                 common_randomness: SIRRandomness | None = None):
         """
         Parameters
         ----------
@@ -50,12 +89,29 @@ class SIRSimulator:
             Safety limit.
         seed : int
             Random seed.
+        common_randomness : SIRRandomness, optional
+            Pre-generated outcomes reused across comparable β/γ/seed-set runs.
         """
         self.propagation_graph = propagation_graph
         self.transmission_prob = transmission_prob
         self.recovery_prob = recovery_prob
         self.max_rounds = max_rounds
-        self.seed = seed
+        self.seed = int(seed)
+        if common_randomness is None:
+            common_randomness = SIRRandomness(
+                propagation_graph, max_rounds, self.seed
+            )
+        elif common_randomness.seed != self.seed:
+            raise ValueError(
+                "common_randomness seed does not match simulator seed: "
+                f"{common_randomness.seed} != {self.seed}"
+            )
+        elif common_randomness.max_rounds != int(max_rounds):
+            raise ValueError(
+                "common_randomness max_rounds does not match simulator max_rounds: "
+                f"{common_randomness.max_rounds} != {max_rounds}"
+            )
+        self.randomness = common_randomness
 
     def run(self, seed_users: set[int], affinity_fn=None,
             base_adopt_prob: float = 1.0,
@@ -79,7 +135,6 @@ class SIRSimulator:
         result : dict with state history, event log, and summary statistics.
         """
         seed_users = set(seed_users)
-        rng = np.random.RandomState(self.seed)
 
         # Initialize states
         if all_users is None:
@@ -119,12 +174,16 @@ class SIRSimulator:
             newly_infected = set()
 
             # --- Transmission phase ---
-            # Only users infected at the START of this round attempt transmission
+            # Only users infected at the START of this round attempt transmission.
             current_infected = list(infected)
 
             for sender in current_infected:
                 neighbors = self.propagation_graph.get(sender, [])
-                for receiver in neighbors:
+                thresholds = self.randomness.transmission_thresholds.get(sender)
+                if not neighbors or thresholds is None:
+                    continue
+                offset = (round_num - 1) * len(neighbors)
+                for pos, receiver in enumerate(neighbors):
                     if receiver not in susceptible:
                         continue
 
@@ -135,7 +194,7 @@ class SIRSimulator:
                         t_prob = self.transmission_prob * base_adopt_prob * aff
                         t_prob = min(max(t_prob, 0.0), 1.0)
 
-                    if rng.random() < t_prob:
+                    if float(thresholds[offset + pos]) < t_prob:
                         newly_infected.add(receiver)
                         ever_infected.add(receiver)
                         event_log.append({
@@ -144,13 +203,19 @@ class SIRSimulator:
                         })
 
             # --- Recovery phase ---
+            gamma = float(self.recovery_prob)
             newly_recovered = set()
-            for u in current_infected:
-                if self.recovery_prob > 0 and rng.random() < self.recovery_prob:
-                    newly_recovered.add(u)
-                    event_log.append({
-                        "round": round_num, "event": "recover", "user": u,
-                    })
+            if gamma > 0.0:
+                recovery_thresholds = self.randomness.recovery_thresholds
+                row = round_num - 1
+                for u in current_infected:
+                    if u < recovery_thresholds.shape[1] and float(
+                        recovery_thresholds[row, u]
+                    ) < gamma:
+                        newly_recovered.add(u)
+                        event_log.append({
+                            "round": round_num, "event": "recover", "user": u,
+                        })
 
             # --- Update states ---
             susceptible -= newly_infected
